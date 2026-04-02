@@ -4,33 +4,51 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 
 ## Features
 
+### Authentication
+- External auth integration via `NEXT_PUBLIC_AUTH_URL`
+- Role-based access (only "author" role allowed)
+- User info displayed in header with profile picture
+
 ### Article Management
-- View and manage articles
+- View and manage articles on main dashboard
 - Search articles by title, summary, or tags
 - Pagination for article listings
-- Responsive dashboard design
+- Filter by status (Draft, Published, Cancelled) and category
 
-### Rich Text Editor (CreateArticle)
+### Article Actions (on card hover)
+- **Share** - Copy article URL to clipboard
+- **Edit** - Navigate to `/edit/[articleId]`
+- **Unpublish** - Move published article back to draft with optional feedback
+- **Delete** - Delete article with confirmation modal
+
+### Rich Text Editor (Create/Edit Article)
 - **Modern Tiptap Editor** with full formatting support:
   - Bold, Italic, Underline, Strikethrough
   - Headings (H1, H2, H3)
   - Bullet and numbered lists
   - Blockquotes and code blocks
   - Links with custom URL input
-  - **Image upload** to Cloudinary (with file picker)
-  - **Video upload** to Cloudinary (with file picker)
+  - **Image upload** to Cloudinary (`article-images` folder)
+  - **Video upload** to Cloudinary (`article-videos` folder)
 - **Real-time word count** and auto-calculated read time
 - **Live preview mode** to see article before publishing
 - **Save draft** to Supabase (creates or updates article)
 - **Publish** with validation (requires title and content)
 - **Category selection** from Supabase database
-- **Featured image upload** to Cloudinary
+- **Featured image upload** to Cloudinary (`thumbnails` folder)
 - **SEO description** field with character count hint
 - **Tags input** for article categorization
 
+### Categories Management (`/categories`)
+- View all categories in table format
+- Add new category with name and description
+- Edit existing category
+- Delete category with confirmation modal
+- Search categories by name or description
+
 ### UI/UX
 - Primary color: #3182ce (blue-500)
-- Less rounded edges (rounded-md instead of rounded-xl)
+- Less rounded edges (rounded-md)
 - Modern, clean design with gradient backgrounds
 - Smooth transitions and hover effects
 - Backdrop blur effects
@@ -42,17 +60,14 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - **Frontend**: Next.js 16, React 19, Tailwind CSS 4
 - **Editor**: Tiptap v3 with extensions (Link, Image, Underline, Strike, Placeholder)
 - **Storage**: Supabase (PostgreSQL) + Cloudinary (images/videos)
+- **Authentication**: External auth app via REST API
 - **Icons**: Lucide React
 - **Language**: TypeScript
 
-## Getting Started
+## Environment Variables
 
-1. Install dependencies:
-```bash
-npm install
-```
+Create a `.env` file with:
 
-2. Set up environment variables in `.env`:
 ```env
 # Supabase
 NEXT_PUBLIC_PROJECT_URL=your_supabase_project_url
@@ -62,9 +77,18 @@ NEXT_PUBLIC_SERVICE_KEY=your_supabase_service_key
 # Cloudinary (for image/video uploads)
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
+
+# External Auth
+NEXT_PUBLIC_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_BASE_URL=http://localhost:3001
+
+# Main App (for sharing articles)
+NEXT_PUBLIC_BASE_MAIN_APP=http://localhost:3000
 ```
 
-3. Ensure your Supabase database has the `articles` table:
+## Database Schema
+
+### Articles Table
 ```sql
 create table public.articles (
   id uuid not null default gen_random_uuid (),
@@ -83,18 +107,47 @@ create table public.articles (
   summary text null,
   views numeric null default 0,
   status text null,
+  ai_summary text null,
+  feedback text null,
+  featured_images text null,
+  sources text null,
+  author_name text null,
   drafted_at timestamp with time zone null,
   constraint articles_pkey primary key (id),
-  constraint articles_slug_lang_unique unique (slug, lang)
+  constraint articles_slug_lang_unique unique (slug, lang),
+  constraint articles_author_id_fkey foreign key (author_id) references authors (id) on delete set null,
+  constraint articles_category_id_fkey foreign key (category_id) references categories (id) on delete set null
 );
 ```
 
-4. Run the development server:
+### Categories Table
+```sql
+create table public.categories (
+  id uuid not null default gen_random_uuid (),
+  created_at timestamp with time zone not null default now(),
+  lang text not null default 'en'::text,
+  name text not null,
+  description text null,
+  constraint categories_pkey primary key (id),
+  constraint categories_name_lang_unique unique (name, lang)
+);
+```
+
+## Getting Started
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Set up environment variables (see above)
+
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. Open [http://localhost:3001](http://localhost:3001) in your browser
 
 ## Build for Production
 
@@ -108,19 +161,11 @@ npm run build
 npm run lint
 ```
 
-## Article Schema
+## Routes
 
-| Field | Type | Description |
-|-------|------|-------------|
-| id | uuid | Primary key |
-| created_at | timestamp | Creation timestamp |
-| title | text | Article title |
-| slug | text | URL-friendly slug |
-| content | text | HTML content from editor |
-| image | text | Featured image URL (Cloudinary) |
-| category_id | uuid | Foreign key to categories |
-| tags | text | Comma-separated tags |
-| summary | text | SEO description |
-| read_time | text | Estimated read time |
-| status | text | 'draft' or 'published' |
-| drafted_at | timestamp | When draft was last saved |
+| Route | Description |
+|-------|-------------|
+| `/` | Main dashboard with articles |
+| `/create` | Create new article |
+| `/edit/[id]` | Edit existing article |
+| `/categories` | Manage categories |

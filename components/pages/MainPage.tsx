@@ -12,6 +12,13 @@ import {
   Filter,
   X,
   Tag,
+  Share2,
+  Trash2,
+  Edit2,
+  EyeOff,
+  Check,
+  AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import {
@@ -19,19 +26,20 @@ import {
   searchArticles,
   getFilteredArticles,
   getCategories,
+  deleteArticle,
+  updateArticle,
 } from "@/supabase/CRUD/querries";
 import { useRouter } from "next/navigation";
 import { AuthResult } from "@/lib/auth";
 import { Category } from "@/types/category";
 import Link from "next/link";
 
-const CMSDashboard = ({
-  initialArticles,
-  user,
-}: {
+interface MainPageProps {
   initialArticles: JoinedArticle[];
   user?: AuthResult;
-}) => {
+}
+
+export default function MainPage({ initialArticles, user }: MainPageProps) {
   const router = useRouter();
   const [articles, setArticles] = useState<JoinedArticle[]>(initialArticles);
   const [page, setPage] = useState(1);
@@ -45,6 +53,22 @@ const CMSDashboard = ({
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+
+  // Modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingArticle, setDeletingArticle] = useState<JoinedArticle | null>(
+    null,
+  );
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [showUnpublishModal, setShowUnpublishModal] = useState(false);
+  const [unpublishArticle, setUnpublishArticle] =
+    useState<JoinedArticle | null>(null);
+  const [unpublishFeedback, setUnpublishFeedback] = useState("");
+  const [unpublishLoading, setUnpublishLoading] = useState(false);
+
+  // Copy feedback
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     getCategories().then(setCategories).catch(console.error);
@@ -79,7 +103,7 @@ const CMSDashboard = ({
     const filter: Parameters<typeof getFilteredArticles>[0] = {};
 
     if (statusFilter) {
-      filter.status = statusFilter as "draft" | "published" | "archived";
+      filter.status = statusFilter as "draft" | "published" | "cancelled";
     }
     if (categoryFilter) {
       filter.category_id = categoryFilter;
@@ -112,6 +136,72 @@ const CMSDashboard = ({
       applyFilters();
     }
   }, [statusFilter, categoryFilter]);
+
+  const handleShare = async (article: JoinedArticle) => {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_MAIN_APP ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      "";
+    const url = `${baseUrl}/${article.slug}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(article.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleDeleteClick = (article: JoinedArticle) => {
+    setDeletingArticle(article);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingArticle) return;
+
+    setDeleteLoading(true);
+    const success = await deleteArticle(deletingArticle.id);
+    if (success) {
+      setArticles((prev) => prev.filter((a) => a.id !== deletingArticle.id));
+    }
+    setDeleteLoading(false);
+    setShowDeleteModal(false);
+    setDeletingArticle(null);
+  };
+
+  const handleUnpublishClick = (article: JoinedArticle) => {
+    setUnpublishArticle(article);
+    setUnpublishFeedback("");
+    setShowUnpublishModal(true);
+  };
+
+  const confirmUnpublish = async () => {
+    if (!unpublishArticle) return;
+
+    setUnpublishLoading(true);
+    const result = await updateArticle(unpublishArticle.id, {
+      status: "draft",
+      feedback: unpublishFeedback || null,
+    });
+
+    if (result) {
+      setArticles((prev) =>
+        prev.map((a) =>
+          a.id === unpublishArticle.id ? { ...a, status: "draft" } : a,
+        ),
+      );
+    }
+
+    setUnpublishLoading(false);
+    setShowUnpublishModal(false);
+    setUnpublishArticle(null);
+  };
+
+  const handleEdit = (articleId: string) => {
+    router.push(`/edit/${articleId}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -244,7 +334,7 @@ const CMSDashboard = ({
                   <option value="">All Status</option>
                   <option value="draft">Draft</option>
                   <option value="published">Published</option>
-                  <option value="archived">Archived</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 
@@ -284,12 +374,22 @@ const CMSDashboard = ({
               <span className="text-sm font-medium">Create New Article</span>
             </button>
 
-            <Link href="/categories" className="group text-left">
+            <a href="/categories" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Tag className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Categories</span>
-            </Link>
+            </a>
+
+            <a href="/stats" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <BarChart3
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">My Stats</span>
+            </a>
           </div>
         </section>
 
@@ -326,20 +426,67 @@ const CMSDashboard = ({
                       {article.status}
                     </span>
                   )}
-                </div>
-                <div className="mt-3 flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900 truncate w-32 leading-tight">
-                      {article.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <FileText className="w-3 h-3 text-[#3182ce]" />
-                      {article.category?.name || "Uncategorized"}
-                    </p>
+
+                  {/* Action Buttons Overlay */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(article);
+                        }}
+                        className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
+                        title="Copy link"
+                      >
+                        {copiedId === article.id ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Share2 className="w-4 h-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(article.id);
+                        }}
+                        className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      {article.status === "published" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnpublishClick(article);
+                          }}
+                          className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
+                          title="Unpublish"
+                        >
+                          <EyeOff className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(article);
+                        }}
+                        className="p-1.5 bg-white/90 rounded-md hover:bg-white text-red-600 shadow-sm"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <button className="p-1 hover:bg-gray-100 rounded">
-                    <MoreVertical className="w-4 h-4 text-gray-400" />
-                  </button>
+                </div>
+                <div className="mt-3">
+                  <h3 className="text-sm font-medium text-gray-900 truncate w-full leading-tight">
+                    {article.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <FileText className="w-3 h-3 text-[#3182ce]" />
+                    {article.category?.name || "Uncategorized"}
+                  </p>
                 </div>
               </div>
             ))}
@@ -358,8 +505,106 @@ const CMSDashboard = ({
           )}
         </section>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowDeleteModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Article
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{deletingArticle?.title}"? This
+              action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {deleteLoading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unpublish Confirmation Modal */}
+      {showUnpublishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowUnpublishModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-yellow-100 rounded-full">
+                <EyeOff className="w-6 h-6 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Unpublish Article
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to unpublish "{unpublishArticle?.title}"? It
+              will be moved back to draft status.
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for unpublishing (optional)
+              </label>
+              <textarea
+                value={unpublishFeedback}
+                onChange={(e) => setUnpublishFeedback(e.target.value)}
+                placeholder="Why is this being unpublished?"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowUnpublishModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUnpublish}
+                disabled={unpublishLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {unpublishLoading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <EyeOff className="w-4 h-4" />
+                )}
+                Unpublish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default CMSDashboard;
+}
