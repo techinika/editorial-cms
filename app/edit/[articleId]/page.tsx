@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import ArticleEditor from "@/components/pages/CreateArticle";
 import { checkAuthStatusServer, getAuthUrl } from "@/lib/auth-server";
-import { getArticleById } from "@/supabase/CRUD/querries";
+import { getArticleById, getArticleFeedback, getUnresolvedFeedbackCount, getArticleContributors } from "@/supabase/CRUD/querries";
 
 interface EditPageProps {
   params: Promise<{ articleId: string }>;
@@ -13,7 +13,7 @@ export default async function EditPage({ params }: EditPageProps) {
   if (!authResult.authenticated || authResult.role !== "author") {
     const authUrl = getAuthUrl();
     const currentUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-    const loginUrl = `${authUrl}/login?redirect=${encodeURIComponent(currentUrl)}/edit`;
+    const loginUrl = `${authUrl}/status?redirect=${encodeURIComponent(currentUrl)}/edit`;
     redirect(loginUrl);
   }
   
@@ -23,6 +23,14 @@ export default async function EditPage({ params }: EditPageProps) {
   if (!article) {
     redirect("/");
   }
+
+  const isOwner = article.author?.id === authResult.user?.id;
+  const isAdmin = authResult.isAdmin;
+  const canEdit = isOwner || isAdmin;
   
-  return <ArticleEditor authUser={authResult} article={article} />;
+  const feedback = await getArticleFeedback(articleId);
+  const unresolvedCount = await getUnresolvedFeedbackCount(articleId);
+  const contributors = await getArticleContributors(articleId);
+  
+  return <ArticleEditor authUser={authResult} article={article} isOwner={canEdit} isAdmin={isAdmin} feedback={feedback} unresolvedCount={unresolvedCount} contributors={contributors} />;
 }

@@ -1,7 +1,7 @@
 import { Author } from "./author";
 import { Category } from "./category";
 
-export type ArticleStatus = "draft" | "published" | "archived";
+export type ArticleStatus = "draft" | "published" | "cancelled";
 
 export type Article = {
   id: string;
@@ -26,9 +26,13 @@ export type Article = {
   sources: string | null;
   author_name: string | null;
   drafted_at: string | null;
+  published_at: string | null;
 };
 
-export interface JoinedArticle extends Omit<Article, "author_id" | "category_id"> {
+export interface JoinedArticle extends Omit<
+  Article,
+  "author_id" | "category_id"
+> {
   author: Author | null;
   category: Category | null;
 }
@@ -49,4 +53,30 @@ export interface ArticleFormData {
   date?: string | null;
   drafted_at?: string | null;
   feedback?: string | null;
+  published_at?: string | null;
+}
+
+export interface ArticleFeedback {
+  id: string;
+  created_at: string;
+  author_id: string;
+  article_id: string;
+  feedback_content: string;
+  resolved: boolean;
+  resolved_at: string | null;
+  author?: {
+    name: string | null;
+    image_url: string | null;
+  } | null;
+}
+
+export interface ArticleContributor {
+  id: string;
+  article_id: string;
+  author_id: string;
+  contribution_type: "owner" | "contributor";
+  author?: {
+    name: string | null;
+    image_url: string | null;
+  } | null;
 }

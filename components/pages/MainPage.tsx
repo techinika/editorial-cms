@@ -18,6 +18,7 @@ import {
   EyeOff,
   Check,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import {
@@ -31,6 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import { AuthResult } from "@/lib/auth";
 import { Category } from "@/types/category";
+import Link from "next/link";
 
 interface MainPageProps {
   initialArticles: JoinedArticle[];
@@ -45,7 +47,7 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  
+
   // Filter states
   const [categories, setCategories] = useState<Category[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -54,11 +56,14 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
 
   // Modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingArticle, setDeletingArticle] = useState<JoinedArticle | null>(null);
+  const [deletingArticle, setDeletingArticle] = useState<JoinedArticle | null>(
+    null,
+  );
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [showUnpublishModal, setShowUnpublishModal] = useState(false);
-  const [unpublishArticle, setUnpublishArticle] = useState<JoinedArticle | null>(null);
+  const [unpublishArticle, setUnpublishArticle] =
+    useState<JoinedArticle | null>(null);
   const [unpublishFeedback, setUnpublishFeedback] = useState("");
   const [unpublishLoading, setUnpublishLoading] = useState(false);
 
@@ -78,29 +83,32 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
     setLoading(false);
   };
 
-  const handleSearch = useCallback(async (query: string) => {
-    setSearchQuery(query);
-    if (!query.trim()) {
-      setArticles(initialArticles);
-      return;
-    }
-    setSearching(true);
-    const results = await searchArticles(query);
-    setArticles(results);
-    setSearching(false);
-  }, [initialArticles]);
+  const handleSearch = useCallback(
+    async (query: string) => {
+      setSearchQuery(query);
+      if (!query.trim()) {
+        setArticles(initialArticles);
+        return;
+      }
+      setSearching(true);
+      const results = await searchArticles(query);
+      setArticles(results);
+      setSearching(false);
+    },
+    [initialArticles],
+  );
 
   const applyFilters = useCallback(async () => {
     setLoading(true);
     const filter: Parameters<typeof getFilteredArticles>[0] = {};
-    
+
     if (statusFilter) {
       filter.status = statusFilter as "draft" | "published" | "cancelled";
     }
     if (categoryFilter) {
       filter.category_id = categoryFilter;
     }
-    
+
     const results = await getFilteredArticles(filter, 0, 12);
     setArticles(results);
     setHasMore(results.length === 12);
@@ -130,9 +138,12 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
   }, [statusFilter, categoryFilter]);
 
   const handleShare = async (article: JoinedArticle) => {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_MAIN_APP || process.env.NEXT_PUBLIC_BASE_URL || "";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_MAIN_APP ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      "";
     const url = `${baseUrl}/${article.slug}`;
-    
+
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(article.id);
@@ -149,7 +160,7 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
 
   const confirmDelete = async () => {
     if (!deletingArticle) return;
-    
+
     setDeleteLoading(true);
     const success = await deleteArticle(deletingArticle.id);
     if (success) {
@@ -168,19 +179,21 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
 
   const confirmUnpublish = async () => {
     if (!unpublishArticle) return;
-    
+
     setUnpublishLoading(true);
     const result = await updateArticle(unpublishArticle.id, {
       status: "draft",
       feedback: unpublishFeedback || null,
     });
-    
+
     if (result) {
       setArticles((prev) =>
-        prev.map((a) => (a.id === unpublishArticle.id ? { ...a, status: "draft" } : a))
+        prev.map((a) =>
+          a.id === unpublishArticle.id ? { ...a, status: "draft" } : a,
+        ),
       );
     }
-    
+
     setUnpublishLoading(false);
     setShowUnpublishModal(false);
     setUnpublishArticle(null);
@@ -225,7 +238,13 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                   />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
-                    {(user.user.user_metadata.full_name || user.user.email || "U").charAt(0).toUpperCase()}
+                    {(
+                      user.user.user_metadata.full_name ||
+                      user.user.email ||
+                      "U"
+                    )
+                      .charAt(0)
+                      .toUpperCase()}
                   </div>
                 )}
                 <span className="text-sm text-gray-700 font-medium">
@@ -237,21 +256,21 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                   </span>
                 )}
               </div>
-              <a
+              <Link
                 href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
                 className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors"
                 title="Account Settings"
               >
                 <LogOut className="w-5 h-5" />
-              </a>
+              </Link>
             </div>
           ) : (
-            <a
-              href={`${process.env.NEXT_PUBLIC_AUTH_URL}/login?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
+            <Link
+              href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
               className="px-4 py-2 text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors text-sm font-medium"
             >
               Log In
-            </a>
+            </Link>
           )}
         </div>
       </header>
@@ -290,7 +309,9 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
               )}
               {categoryFilter && (
                 <span className="px-3 py-1 bg-[#3182ce]/10 text-[#3182ce] text-sm rounded-md">
-                  Category: {categories.find(c => c.id === categoryFilter)?.name || categoryFilter}
+                  Category:{" "}
+                  {categories.find((c) => c.id === categoryFilter)?.name ||
+                    categoryFilter}
                 </span>
               )}
             </div>
@@ -302,7 +323,9 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
             <div className="flex flex-wrap gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 mr-2">Status</label>
+                <label className="text-sm font-medium text-gray-700 mr-2">
+                  Status
+                </label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -316,7 +339,9 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 mr-2">Category</label>
+                <label className="text-sm font-medium text-gray-700 mr-2">
+                  Category
+                </label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
@@ -355,6 +380,16 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
               </div>
               <span className="text-sm font-medium">Categories</span>
             </a>
+
+            <a href="/stats" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <BarChart3
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">My Stats</span>
+            </a>
           </div>
         </section>
 
@@ -391,12 +426,15 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                       {article.status}
                     </span>
                   )}
-                  
+
                   {/* Action Buttons Overlay */}
                   <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleShare(article); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(article);
+                        }}
                         className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
                         title="Copy link"
                       >
@@ -407,7 +445,10 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                         )}
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(article.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(article.id);
+                        }}
                         className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
                         title="Edit"
                       >
@@ -415,7 +456,10 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                       </button>
                       {article.status === "published" && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleUnpublishClick(article); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnpublishClick(article);
+                          }}
                           className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
                           title="Unpublish"
                         >
@@ -423,7 +467,10 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                         </button>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(article); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(article);
+                        }}
                         className="p-1.5 bg-white/90 rounded-md hover:bg-white text-red-600 shadow-sm"
                         title="Delete"
                       >
@@ -462,7 +509,7 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
+          <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowDeleteModal(false)}
           />
@@ -476,8 +523,8 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
               </h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete "{deletingArticle?.title}"? 
-              This action cannot be undone.
+              Are you sure you want to delete "{deletingArticle?.title}"? This
+              action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -506,7 +553,7 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
       {/* Unpublish Confirmation Modal */}
       {showUnpublishModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
+          <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowUnpublishModal(false)}
           />
@@ -520,8 +567,8 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
               </h3>
             </div>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to unpublish "{unpublishArticle?.title}"? 
-              It will be moved back to draft status.
+              Are you sure you want to unpublish "{unpublishArticle?.title}"? It
+              will be moved back to draft status.
             </p>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
