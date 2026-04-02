@@ -50,6 +50,7 @@ import {
 } from "@/lib/cloudinary";
 import { checkAuthStatus, AuthResult } from "@/lib/auth";
 import { Category } from "@/types/category";
+import { JoinedArticle } from "@/types/article";
 
 interface Metadata {
   title: string;
@@ -65,28 +66,38 @@ const PRIMARY_COLOR = "#3182ce";
 
 interface ArticleEditorProps {
   authUser?: AuthResult;
+  article?: JoinedArticle;
 }
 
-const ArticleEditor = ({ authUser: initialAuthUser }: ArticleEditorProps) => {
+const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle }: ArticleEditorProps) => {
   const [metadata, setMetadata] = useState<Metadata>({
-    title: "",
-    slug: "",
-    seoDescription: "",
-    tags: "",
-    readTime: 5,
-    category_id: "",
-    image: null,
+    title: initialArticle?.title || "",
+    slug: initialArticle?.slug || "",
+    seoDescription: initialArticle?.summary || "",
+    tags: initialArticle?.tags || "",
+    readTime: parseInt(initialArticle?.read_time || "5") || 5,
+    category_id: initialArticle?.category?.id || "",
+    image: initialArticle?.image || null,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
-  const [articleId, setArticleId] = useState<string | null>(null);
+  const [isPublished, setIsPublished] = useState(initialArticle?.status === "published");
+  const [articleId, setArticleId] = useState<string | null>(initialArticle?.id || null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingEditorImage, setUploadingEditorImage] = useState(false);
   const [authUser, setAuthUser] = useState<AuthResult | null>(initialAuthUser || null);
+
+  // Initialize editor with existing content
+  const [initialContent, setInitialContent] = useState<string>("");
+
+  useEffect(() => {
+    if (initialArticle?.content) {
+      setInitialContent(initialArticle.content);
+    }
+  }, [initialArticle]);
 
   useEffect(() => {
     if (initialAuthUser) {
@@ -121,7 +132,7 @@ const ArticleEditor = ({ authUser: initialAuthUser }: ArticleEditorProps) => {
         },
       }),
     ],
-    content: "",
+    content: initialContent || "",
     immediatelyRender: false,
     editorProps: {
       attributes: {

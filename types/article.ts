@@ -48,4 +48,5 @@ export interface ArticleFormData {
   author_name?: string | null;
   date?: string | null;
   drafted_at?: string | null;
+  feedback?: string | null;
 }

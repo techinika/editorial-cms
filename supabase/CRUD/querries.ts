@@ -10,7 +10,7 @@ const generateSlug = (title: string): string => {
 };
 
 export const createArticle = async (
-  data: ArticleFormData
+  data: ArticleFormData,
 ): Promise<Article | null> => {
   try {
     const slug = data.slug || generateSlug(data.title);
@@ -49,7 +49,7 @@ export const createArticle = async (
 
 export const updateArticle = async (
   id: string,
-  data: Partial<ArticleFormData>
+  data: Partial<ArticleFormData>,
 ): Promise<Article | null> => {
   try {
     const updateData: Record<string, unknown> = { ...data };
@@ -88,7 +88,9 @@ export const publishArticle = async (id: string): Promise<Article | null> => {
   });
 };
 
-export const getArticleById = async (id: string): Promise<JoinedArticle | null> => {
+export const getArticleById = async (
+  id: string,
+): Promise<JoinedArticle | null> => {
   try {
     const { data, error } = await supabase
       .from("articles")
@@ -97,7 +99,7 @@ export const getArticleById = async (id: string): Promise<JoinedArticle | null> 
         *,
         author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
         category:categories (id, name)
-      `
+      `,
       )
       .eq("id", id)
       .single();
@@ -146,7 +148,9 @@ export const getArticles = async (
   }
 };
 
-export const searchArticles = async (query: string): Promise<JoinedArticle[]> => {
+export const searchArticles = async (
+  query: string,
+): Promise<JoinedArticle[]> => {
   if (!query.trim()) {
     return getArticles(0, 12);
   }
@@ -161,7 +165,9 @@ export const searchArticles = async (query: string): Promise<JoinedArticle[]> =>
         category:categories (id, name)
       `,
       )
-      .or(`title.ilike.%${query}%,summary.ilike.%${query}%,tags.ilike.%${query}%`)
+      .or(
+        `title.ilike.%${query}%,summary.ilike.%${query}%,tags.ilike.%${query}%`,
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -196,7 +202,7 @@ export const getCategories = async (): Promise<Category[]> => {
 };
 
 export type ArticleFilter = {
-  status?: "draft" | "published" | "archived";
+  status?: "draft" | "published" | "cancelled";
   category_id?: string;
   author_id?: string;
 };
@@ -204,7 +210,7 @@ export type ArticleFilter = {
 export const getFilteredArticles = async (
   filter: ArticleFilter,
   page = 0,
-  limit = 12
+  limit = 12,
 ): Promise<JoinedArticle[]> => {
   const from = page * limit;
   const to = from + limit - 1;
@@ -217,7 +223,7 @@ export const getFilteredArticles = async (
         *,
         author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
         category:categories (id, name)
-      `
+      `,
       )
       .order("created_at", { ascending: false })
       .range(from, to);
@@ -251,7 +257,7 @@ export const getFilteredArticles = async (
 export const createCategory = async (
   name: string,
   description?: string,
-  lang = "en"
+  lang = "en",
 ): Promise<Category | null> => {
   try {
     const { data, error } = await supabase
@@ -278,7 +284,7 @@ export const createCategory = async (
 
 export const updateCategory = async (
   id: string,
-  data: { name?: string; description?: string }
+  data: { name?: string; description?: string },
 ): Promise<Category | null> => {
   try {
     const { data: category, error } = await supabase
@@ -302,13 +308,26 @@ export const updateCategory = async (
 
 export const deleteCategory = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("categories").delete().eq("id", id);
 
     if (error) {
       console.error("Error deleting category:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const deleteArticle = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from("articles").delete().eq("id", id);
+
+    if (error) {
+      console.error("Error deleting article:", error);
       return false;
     }
 
