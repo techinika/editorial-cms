@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import ArticleEditor from "@/components/pages/CreateArticle";
-import { checkAuthStatusServer, getAuthUrl } from "@/lib/auth-server";
+import { checkAuthStatusServer, requireAuthor } from "@/lib/auth-server";
 import { getArticleById, getArticleFeedback, getUnresolvedFeedbackCount, getArticleContributors } from "@/supabase/CRUD/querries";
 
 interface EditPageProps {
@@ -9,13 +9,7 @@ interface EditPageProps {
 
 export default async function EditPage({ params }: EditPageProps) {
   const authResult = await checkAuthStatusServer();
-  
-  if (!authResult.authenticated || authResult.role !== "author") {
-    const authUrl = getAuthUrl();
-    const currentUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-    const loginUrl = `${authUrl}/status?redirect=${encodeURIComponent(currentUrl)}/edit`;
-    redirect(loginUrl);
-  }
+  requireAuthor(authResult, "/edit");
   
   const { articleId } = await params;
   const article = await getArticleById(articleId);
