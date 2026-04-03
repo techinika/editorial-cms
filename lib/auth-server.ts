@@ -51,7 +51,8 @@ export const checkAuthStatusServer = async (): Promise<AuthResult> => {
     const response = await fetch(`${authUrl}/api/auth/status`, {
       method: "GET",
       headers: {
-        "Cookie": cookieHeader,
+        "cookie": cookieHeader,
+        "Authorization": `Bearer ${cookieStore.get("sb-access-token")?.value || ""}`,
         "Accept": "application/json",
       },
       credentials: "include",
