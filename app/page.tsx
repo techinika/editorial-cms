@@ -5,7 +5,6 @@ import { checkAuthStatusServer, getAuthUrl } from "@/lib/auth-server";
 
 export default async function Home() {
   const authResult = await checkAuthStatusServer();
-  console.log(authResult);
 
   if (!authResult.authenticated || authResult.role !== "author") {
     const authUrl = getAuthUrl();
