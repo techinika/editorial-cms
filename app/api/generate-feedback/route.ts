@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import puter from "@heyputer/puter.js";
+import { init } from "@heyputer/puter.js/src/init.cjs";
 import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
+
+const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
+
+if (!puterAuthToken) {
+  console.error("PUTER_AUTH_TOKEN environment variable is not set");
+}
+
+const puter = puterAuthToken ? init(puterAuthToken) : null;
 
 const EDITORIAL_GUIDELINES = `
 Techinika Editorial Guidelines v1.0
@@ -12,7 +20,7 @@ Techinika Editorial Guidelines v1.0
 2. Accuracy:
 - Use original sources (official websites)
 - Verify dates, names, URLs
-- Include sources at bottom
+- Include sources at bottom (if needed)
 
 3. Originality:
 - Do not copy other articles
@@ -29,8 +37,21 @@ Techinika Editorial Guidelines v1.0
 - Only tech-focused content
 `;
 
+interface PuterError {
+  message: string;
+  code: string;
+}
+
+function isPuterError(response: unknown): response is PuterError {
+  return typeof response === 'object' && response !== null && 'code' in response;
+}
+
 export async function POST(request: Request) {
   try {
+    if (!puter) {
+      return NextResponse.json({ error: "Puter AI not configured. Set PUTER_AUTH_TOKEN env variable." }, { status: 500 });
+    }
+
     const { articleId, authorId } = await request.json();
 
     if (!articleId || !authorId) {
@@ -55,14 +76,27 @@ Provide exactly 5 feedback points as a numbered list (1. to 5.).
 Each feedback should be 1-2 sentences, specific, actionable, and reference the guidelines above.
 Focus on: content quality, structure, accuracy, headers, sources, dates, readability, technology relevance.`;
 
+    console.log("Calling Puter AI with prompt...");
+
     const response = await puter.ai.chat(prompt, {
       model: "gpt-4.1-nano"
     });
 
+    console.log("AI raw response type:", typeof response);
     console.log("AI raw response:", response);
+
+    if (isPuterError(response)) {
+      console.error("Puter API error:", response.message);
+      return NextResponse.json({ error: `Puter AI error: ${response.message}` }, { status: 500 });
+    }
 
     const feedbackText = String(response || "");
     console.log("Feedback text:", feedbackText);
+    
+    if (!feedbackText || feedbackText === "undefined") {
+      console.error("Empty response from Puter AI");
+      return NextResponse.json({ error: "AI returned empty response. Please check Puter authentication." }, { status: 500 });
+    }
     
     const feedbackLines = feedbackText.split("\n").filter((line: string) => line.trim());
     console.log("Feedback lines:", feedbackLines);
@@ -94,5 +128,76 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
   } catch (error) {
     console.error("Error generating AI feedback:", error);
     return NextResponse.json({ error: "Failed to generate feedback" }, { status: 500 });
+  }
+}
+
+    const article = await getArticleById(articleId);
+
+    console.log(article);
+
+    if (!article) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
+    const prompt = `You are an expert article reviewer for Techinika, a technology media platform. 
+Analyze the following article and provide exactly 5 constructive short feedback points using the Techinika Editorial Guidelines.
+
+${EDITORIAL_GUIDELINES}
+
+Article Title: ${article.title}
+Article Content: ${article.content ? article.content.substring(0, 8000) : "No content"}
+
+Provide exactly 5 feedback points as a numbered list (1. to 5.). 
+Each feedback should be 1-2 sentences, specific, actionable, and reference the guidelines above.
+Focus on: content quality, structure, accuracy, headers, sources, dates, readability, technology relevance.`;
+
+    const response = await puter.ai.chat(prompt, {
+      model: "gpt-4.1-nano",
+    });
+
+    console.log("AI raw response:", response);
+
+    const feedbackText = String(response || "");
+    console.log("Feedback text:", feedbackText);
+
+    const feedbackLines = feedbackText
+      .split("\n")
+      .filter((line: string) => line.trim());
+    console.log("Feedback lines:", feedbackLines);
+
+    const feedbackPoints = feedbackLines
+      .filter((line: string) => {
+        const trimmed = line.trim();
+        return (
+          trimmed.match(/^\d+[.)]/) ||
+          trimmed.startsWith("-") ||
+          trimmed.length > 30
+        );
+      })
+      .slice(0, 5);
+
+    console.log("Parsed feedback points:", feedbackPoints);
+
+    const results = [];
+    for (const feedback of feedbackPoints) {
+      let content = feedback.replace(/^[-.\d.]+\s*/, "").trim();
+      content = content.replace(/^[A-Z]:\s*/, "").trim();
+
+      if (content.length > 10 && content.length < 500) {
+        const result = await createFeedback(articleId, authorId, content, true);
+        if (result) {
+          results.push(result);
+        }
+      }
+    }
+
+    console.log("Created feedback count:", results.length);
+    return NextResponse.json(results);
+  } catch (error) {
+    console.error("Error generating AI feedback:", error);
+    return NextResponse.json(
+      { error: "Failed to generate feedback" },
+      { status: 500 },
+    );
   }
 }
