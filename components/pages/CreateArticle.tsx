@@ -434,6 +434,17 @@ const ArticleEditor = ({
         setArticleId(result.id);
         setIsPublished(true);
         showToast("success", "Article published successfully!");
+
+        fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://techinika.com'}/api/push/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'New Article Published!',
+            message: metadata.title,
+            url: `/${result.slug || result.id}`,
+            articleId: result.id,
+          }),
+        }).catch(console.error);
       }
     } catch (error) {
       console.error("Error publishing:", error);
