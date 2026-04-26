@@ -1,10 +1,17 @@
 "use server";
 
-import puter from "@heyputer/puter.js";
+import { init } from "@heyputer/puter.js/src/init.cjs";
 import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
 import { revalidatePath } from "next/cache";
 
+const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
+const puter = puterAuthToken ? init(puterAuthToken) : null;
+
 export async function generateAIFeedback(articleId: string, authorId: string) {
+  if (!puter) {
+    throw new Error("Puter AI not configured");
+  }
+
   const article = await getArticleById(articleId);
   
   if (!article) {
@@ -27,6 +34,10 @@ Provide 5 feedback points, one per line, each starting with a bullet point (-). 
     const response = await puter.ai.chat(prompt, {
       model: "gpt-4.1-nano"
     });
+
+    if (!response || typeof response !== 'string') {
+      throw new Error("Invalid response from AI");
+    }
 
     const feedbackPoints = response
       .split("\n")
