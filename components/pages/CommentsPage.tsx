@@ -124,8 +124,7 @@ export default function CommentsPage({ user }: CommentsPageProps) {
   const unreadCount = comments.filter((c) => c.read === false).length;
 
   const getUserName = (comment: Comment) => {
-    const metadata = comment.user?.user_metadata as { full_name?: string } | null;
-    return (metadata as unknown as { full_name?: string })?.full_name || "Unknown User";
+    return comment.user?.nickname || "Unknown User";
   };
 
   return (

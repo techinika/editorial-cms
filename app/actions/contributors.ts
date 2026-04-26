@@ -8,7 +8,7 @@ export async function fetchContributors(articleId: string) {
 }
 
 export async function addArticleContributor(articleId: string, authorId: string) {
-  const result = await addContributor(articleId, authorId, "contributor");
+  const result = await addContributor(articleId, authorId);
   revalidatePath(`/edit/${articleId}`);
   return result;
 }

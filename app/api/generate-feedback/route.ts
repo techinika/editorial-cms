@@ -59,7 +59,7 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
       model: "gpt-4.1-nano"
     });
 
-    const feedbackText = response?.text || "";
+    const feedbackText = String(response || "");
     const feedbackLines = feedbackText.split("\n").filter((line: string) => line.trim());
     
     const feedbackPoints = feedbackLines

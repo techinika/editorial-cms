@@ -1106,7 +1106,7 @@ export const getArticleComments = async (
       .select(
         `
         *,
-        user:users!user_id (id, user_metadata)
+        user:users!user_id (id, nickname)
       `,
       )
       .eq("article_id", articleId)
@@ -1131,7 +1131,7 @@ export const getAllComments = async (): Promise<Comment[]> => {
       .select(
         `
         *,
-        user:users!user_id (id, user_metadata),
+        user:users!user_id (id, nickname),
         article:articles!article_id (id, title, slug)
       `,
       )
@@ -1167,7 +1167,7 @@ export const getUserComments = async (userId: string): Promise<Comment[]> => {
       .select(
         `
         *,
-        user:users!user_id (id, user_metadata),
+        user:users!user_id (id, nickname),
         article:articles!article_id (id, title, slug)
       `,
       )
@@ -1204,7 +1204,7 @@ export const createComment = async (
       .select(
         `
         *,
-        user:users!user_id (id, user_metadata),
+        user:users!user_id (id, nickname),
         article:articles!article_id (id, title, slug)
       `,
       )

@@ -95,38 +95,7 @@ export interface Comment {
   read: boolean | null;
   user?: {
     id: string;
-    user_metadata: {
-      full_name?: string;
-      avatar_url?: string;
-    };
-  } | null;
-  article?: {
-    id: string;
-    title: string;
-    slug: string;
-  } | null;
-}
-
-export interface ArticlePendingActivity {
-  articleId: string;
-  unreadComments: number;
-  unresolvedFeedback: number;
-}
-
-export interface Comment {
-  id: string;
-  created_at: string | null;
-  user_id: string;
-  article_id: string;
-  message: string;
-  status: string;
-  read: boolean | null;
-  user?: {
-    id: string;
-    user_metadata: {
-      full_name?: string;
-      avatar_url?: string;
-    };
+    nickname: string | null;
   } | null;
   article?: {
     id: string;
