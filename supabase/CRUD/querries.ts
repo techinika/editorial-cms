@@ -744,3 +744,63 @@ export const getAllAuthors = async (): Promise<{ id: string; name: string; image
     return [];
   }
 };
+
+export const getArticlesWithPendingFeedback = async (): Promise<JoinedArticle[]> => {
+  try {
+    const { data: articlesWithFeedback, error: feedbackError } = await supabase
+      .from("article_feedback")
+      .select("article_id")
+      .eq("resolved", false);
+
+    if (feedbackError) {
+      console.error("Error fetching pending feedback:", feedbackError);
+      return [];
+    }
+
+    if (!articlesWithFeedback || articlesWithFeedback.length === 0) {
+      return [];
+    }
+
+    const articleIds = [...new Set(articlesWithFeedback.map(f => f.article_id))];
+
+    const { data, error } = await supabase
+      .from("articles")
+      .select(`
+        *,
+        author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
+        category:categories (id, name)
+      `)
+      .in("id", articleIds)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching articles with pending feedback:", error);
+      return [];
+    }
+
+    return data as unknown as JoinedArticle[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const getUnresolvedFeedbackCountByArticle = async (articleId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from("article_feedback")
+      .select("*", { count: "exact", head: true })
+      .eq("article_id", articleId)
+      .eq("resolved", false);
+
+    if (error) {
+      console.error("Error counting unresolved feedback:", error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return 0;
+  }
+};

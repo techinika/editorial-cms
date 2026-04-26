@@ -83,9 +83,11 @@ interface ArticleEditorProps {
   feedback?: ArticleFeedback[];
   unresolvedCount?: number;
   contributors?: ArticleContributor[];
+  allAuthors?: { id: string; name: string; image_url: string | null }[];
+  isNewArticle?: boolean;
 }
 
-const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isOwner: initialIsOwner = true, isAdmin: initialIsAdmin = false, feedback: initialFeedback = [], unresolvedCount: initialUnresolvedCount = 0, contributors: initialContributors = [] }: ArticleEditorProps) => {
+const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isOwner: initialIsOwner = true, isAdmin: initialIsAdmin = false, feedback: initialFeedback = [], unresolvedCount: initialUnresolvedCount = 0, contributors: initialContributors = [], allAuthors: initialAllAuthors = [], isNewArticle: initialIsNewArticle = false }: ArticleEditorProps) => {
   const [metadata, setMetadata] = useState<Metadata>({
     title: initialArticle?.title || "",
     slug: initialArticle?.slug || "",
@@ -112,10 +114,11 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [showFeedbackPanel, setShowFeedbackPanel] = useState(true);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
+  const [isNewArticle, setIsNewArticle] = useState(initialIsNewArticle);
   const [contributors, setContributors] = useState<ArticleContributor[]>(initialContributors);
-  const [allAuthors, setAllAuthors] = useState<{ id: string; name: string; image_url: string | null }[]>([]);
+  const [allAuthors, setAllAuthors] = useState<{ id: string; name: string; image_url: string | null }[]>(initialAllAuthors);
   const [showTeamPanel, setShowTeamPanel] = useState(false);
-  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(initialArticle?.author?.id || null);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(initialArticle?.author?.id || (initialAllAuthors.length > 0 ? initialAllAuthors[0].id : null));
   const [isUpdatingOwner, setIsUpdatingOwner] = useState(false);
   const [isAddingContributor, setIsAddingContributor] = useState(false);
 
@@ -259,6 +262,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
     setIsSaving(true);
     const htmlContent = editor?.getHTML() || "";
+    const authorId = isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
 
     try {
       if (articleId) {
@@ -271,7 +275,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           summary: metadata.seoDescription,
           read_time: `${metadata.readTime} min`,
           status: "draft",
-          author_id: authUser.user.id,
+          author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
         });
         if (result) {
@@ -285,9 +289,9 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           category_id: metadata.category_id || null,
           tags: metadata.tags,
           summary: metadata.seoDescription,
-          read_time: `${metadata.readTime} min`,
+          read_time: `${metadata.readTime}`,
           status: "draft",
-          author_id: authUser.user.id,
+          author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
         });
         if (result) {
@@ -313,9 +317,21 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       return;
     }
 
-    if (isOwner && unresolvedCount > 0) {
+    // For new articles: require at least one feedback before publishing
+    if (isNewArticle && !isAdmin && unresolvedCount === 0) {
+      alert("Please add at least one feedback comment before publishing.");
+      return;
+    }
+
+    // For non-admin: require all feedback to be resolved before publishing
+    if (isOwner && !isAdmin && unresolvedCount > 0) {
       alert(`Please resolve all ${unresolvedCount} feedback item(s) before publishing.`);
       return;
+    }
+
+    // Admins can publish without feedback requirement
+    if (isAdmin && unresolvedCount > 0) {
+      alert(`Warning: This article has ${unresolvedCount} unresolved feedback(s). Publishing anyway.`);
     }
 
     if (!authUser?.authenticated || !authUser.user) {
@@ -328,6 +344,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
     try {
       let result;
+      const authorId = isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
       if (articleId) {
         result = await updateArticle(articleId, {
           title: metadata.title,
@@ -338,7 +355,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           summary: metadata.seoDescription,
           read_time: `${metadata.readTime} min`,
           status: "published",
-          author_id: authUser.user.id,
+          author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
         });
       } else {
@@ -351,7 +368,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           summary: metadata.seoDescription,
           read_time: `${metadata.readTime} min`,
           status: "published",
-          author_id: authUser.user.id,
+          author_id: isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id,
           author_name: authUser.user.user_metadata.full_name || null,
         });
       }
@@ -992,14 +1009,51 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               </div>
             </div>
           ) : (
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Eye className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-700">Preview Mode</span>
-              </div>
-              <p className="text-xs text-blue-600">
-                You are viewing this article as a reviewer. You can add feedback comments but cannot edit the article content.
-              </p>
+            <div className="space-y-6">
+              {/* Admin: Writer selector for new articles */}
+              {isAdmin && allAuthors.length > 0 && !initialArticle && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Writer
+                  </label>
+                  <select
+                    value={selectedOwnerId || ""}
+                    onChange={(e) => setSelectedOwnerId(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] transition-all"
+                  >
+                    {allAuthors.map((author) => (
+                      <option key={author.id} value={author.id}>
+                        {author.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Non-admin: Show current writer */}
+              {!isAdmin && !initialArticle && authUser?.user && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Writer
+                  </label>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                    {authUser.profilePicture ? (
+                      <img
+                        src={authUser.profilePicture}
+                        alt={authUser.user.user_metadata.full_name || "User"}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
+                        {(authUser.user.user_metadata.full_name || authUser.user.email || "U").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm text-gray-700">
+                      {authUser.user.user_metadata.full_name || authUser.user.email}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </aside>

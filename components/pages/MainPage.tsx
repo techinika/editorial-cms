@@ -19,6 +19,7 @@ import {
   Check,
   AlertTriangle,
   BarChart3,
+  Clock,
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import {
@@ -389,6 +390,16 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                 />
               </div>
               <span className="text-sm font-medium">My Stats</span>
+            </a>
+
+            <a href="/pending" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Clock
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">Pending Review</span>
             </a>
           </div>
         </section>
