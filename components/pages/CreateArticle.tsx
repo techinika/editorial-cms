@@ -22,7 +22,7 @@ import {
   Heading2,
   Heading3,
   Quote,
-Code,
+  Code,
   Link as LinkIcon,
   Unlink,
   Undo,
@@ -63,8 +63,17 @@ import { Category } from "@/types/category";
 import { JoinedArticle } from "@/types/article";
 import { ArticleFeedback } from "@/types/article";
 import { ArticleContributor } from "@/types/article";
-import { addFeedback, markFeedbackResolved, addAIFeedback } from "@/app/actions/feedback";
-import { addArticleContributor, removeArticleContributor, changeArticleOwner, fetchAllAuthors } from "@/app/actions/contributors";
+import {
+  addFeedback,
+  markFeedbackResolved,
+  addAIFeedback,
+} from "@/app/actions/feedback";
+import {
+  addArticleContributor,
+  removeArticleContributor,
+  changeArticleOwner,
+  fetchAllAuthors,
+} from "@/app/actions/contributors";
 import { useToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import UserNav from "@/components/UserNav";
@@ -93,7 +102,17 @@ interface ArticleEditorProps {
   isNewArticle?: boolean;
 }
 
-const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isOwner: initialIsOwner = true, isAdmin: initialIsAdmin = false, feedback: initialFeedback = [], unresolvedCount: initialUnresolvedCount = 0, contributors: initialContributors = [], allAuthors: initialAllAuthors = [], isNewArticle: initialIsNewArticle = false }: ArticleEditorProps) => {
+const ArticleEditor = ({
+  authUser: initialAuthUser,
+  article: initialArticle,
+  isOwner: initialIsOwner = true,
+  isAdmin: initialIsAdmin = false,
+  feedback: initialFeedback = [],
+  unresolvedCount: initialUnresolvedCount = 0,
+  contributors: initialContributors = [],
+  allAuthors: initialAllAuthors = [],
+  isNewArticle: initialIsNewArticle = false,
+}: ArticleEditorProps) => {
   const { showToast } = useToast();
   const [metadata, setMetadata] = useState<Metadata>({
     title: initialArticle?.title || "",
@@ -108,24 +127,39 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
   const [showPreview, setShowPreview] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [isPublished, setIsPublished] = useState(initialArticle?.status === "published");
-  const [articleId, setArticleId] = useState<string | null>(initialArticle?.id || null);
+  const [isPublished, setIsPublished] = useState(
+    initialArticle?.status === "published",
+  );
+  const [articleId, setArticleId] = useState<string | null>(
+    initialArticle?.id || null,
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingEditorImage, setUploadingEditorImage] = useState(false);
-  const [authUser, setAuthUser] = useState<AuthResult | null>(initialAuthUser || null);
+  const [authUser, setAuthUser] = useState<AuthResult | null>(
+    initialAuthUser || null,
+  );
   const [isOwner, setIsOwner] = useState(initialIsOwner);
   const [feedback, setFeedback] = useState<ArticleFeedback[]>(initialFeedback);
-  const [unresolvedCount, setUnresolvedCount] = useState(initialUnresolvedCount);
+  const [unresolvedCount, setUnresolvedCount] = useState(
+    initialUnresolvedCount,
+  );
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [showFeedbackPanel, setShowFeedbackPanel] = useState(true);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
   const [isNewArticle, setIsNewArticle] = useState(initialIsNewArticle);
-  const [contributors, setContributors] = useState<ArticleContributor[]>(initialContributors);
-  const [allAuthors, setAllAuthors] = useState<{ id: string; name: string; image_url: string | null }[]>(initialAllAuthors);
+  const [contributors, setContributors] =
+    useState<ArticleContributor[]>(initialContributors);
+  const [allAuthors, setAllAuthors] =
+    useState<{ id: string; name: string; image_url: string | null }[]>(
+      initialAllAuthors,
+    );
   const [showTeamPanel, setShowTeamPanel] = useState(false);
-  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(initialArticle?.author?.id || (initialAllAuthors.length > 0 ? initialAllAuthors[0].id : null));
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(
+    initialArticle?.author?.id ||
+      (initialAllAuthors.length > 0 ? initialAllAuthors[0].id : null),
+  );
   const [isUpdatingOwner, setIsUpdatingOwner] = useState(false);
   const [isAddingContributor, setIsAddingContributor] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -274,7 +308,8 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
     setIsSaving(true);
     const htmlContent = editor?.getHTML() || "";
-    const authorId = isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
+    const authorId =
+      isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
 
     try {
       if (articleId) {
@@ -330,12 +365,18 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
     }
 
     if (isNewArticle && !isAdmin && unresolvedCount === 0) {
-      showToast("warning", "Please add at least one feedback comment before publishing.");
+      showToast(
+        "warning",
+        "Please add at least one feedback comment before publishing.",
+      );
       return;
     }
 
     if (isOwner && !isAdmin && unresolvedCount > 0) {
-      showToast("warning", `Please resolve all ${unresolvedCount} feedback item(s) before publishing.`);
+      showToast(
+        "warning",
+        `Please resolve all ${unresolvedCount} feedback item(s) before publishing.`,
+      );
       return;
     }
 
@@ -354,20 +395,25 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
     try {
       let result;
-      const authorId = isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
+      const authorId =
+        isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
       if (articleId) {
-        result = await updateArticle(articleId, {
-          title: metadata.title,
-          content: htmlContent,
-          image: metadata.image,
-          category_id: metadata.category_id || null,
-          tags: metadata.tags,
-          summary: metadata.seoDescription,
-          read_time: `${metadata.readTime} min`,
-          status: "published",
-          author_id: authorId,
-          author_name: authUser.user.user_metadata.full_name || null,
-        }, authUser.user.id);
+        result = await updateArticle(
+          articleId,
+          {
+            title: metadata.title,
+            content: htmlContent,
+            image: metadata.image,
+            category_id: metadata.category_id || null,
+            tags: metadata.tags,
+            summary: metadata.seoDescription,
+            read_time: `${metadata.readTime} min`,
+            status: "published",
+            author_id: authorId,
+            author_name: authUser.user.user_metadata.full_name || null,
+          },
+          authUser.user.id,
+        );
       } else {
         result = await createArticle({
           title: metadata.title,
@@ -378,7 +424,8 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           summary: metadata.seoDescription,
           read_time: `${metadata.readTime} min`,
           status: "published",
-          author_id: isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id,
+          author_id:
+            isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id,
           author_name: authUser.user.user_metadata.full_name || null,
         });
       }
@@ -421,19 +468,24 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
     const htmlContent = editor?.getHTML() || "";
 
     try {
-      const authorId = isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
-      const result = await updateArticle(articleId!, {
-        title: metadata.title,
-        content: htmlContent,
-        image: metadata.image,
-        category_id: metadata.category_id || null,
-        tags: metadata.tags,
-        summary: metadata.seoDescription,
-        read_time: `${metadata.readTime} min`,
-        status: isPublished ? "published" : "draft",
-        author_id: authorId,
-        author_name: authUser.user.user_metadata.full_name || null,
-      }, authUser.user.id);
+      const authorId =
+        isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
+      const result = await updateArticle(
+        articleId!,
+        {
+          title: metadata.title,
+          content: htmlContent,
+          image: metadata.image,
+          category_id: metadata.category_id || null,
+          tags: metadata.tags,
+          summary: metadata.seoDescription,
+          read_time: `${metadata.readTime} min`,
+          status: isPublished ? "published" : "draft",
+          author_id: authorId,
+          author_name: authUser.user.user_metadata.full_name || null,
+        },
+        authUser.user.id,
+      );
 
       if (result) {
         showToast("success", "Article updated successfully!");
@@ -460,7 +512,11 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
     setIsSubmittingComment(true);
     try {
-      const result = await addFeedback(articleId, authUser.user.id, newComment.trim());
+      const result = await addFeedback(
+        articleId,
+        authUser.user.id,
+        newComment.trim(),
+      );
       if (result) {
         setFeedback((prev) => [result, ...prev]);
         setUnresolvedCount((prev) => prev + 1);
@@ -482,8 +538,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       if (success) {
         setFeedback((prev) =>
           prev.map((f) =>
-            f.id === feedbackId ? { ...f, resolved: true, resolved_at: new Date().toISOString() } : f
-          )
+            f.id === feedbackId
+              ? { ...f, resolved: true, resolved_at: new Date().toISOString() }
+              : f,
+          ),
         );
         setUnresolvedCount((prev) => Math.max(0, prev - 1));
         showToast("success", "Feedback resolved!");
@@ -517,7 +575,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
         if (newFeedbacks && newFeedbacks.length > 0) {
           setFeedback((prev) => [...newFeedbacks, ...prev]);
           setUnresolvedCount((prev) => prev + newFeedbacks.length);
-          showToast("success", `Generated ${newFeedbacks.length} AI feedback(s)!`);
+          showToast(
+            "success",
+            `Generated ${newFeedbacks.length} AI feedback(s)!`,
+          );
         } else {
           showToast("info", "No feedback generated");
         }
@@ -658,7 +719,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       {/* HEADER */}
       <header className="flex items-center justify-between px-6 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-200/60 shadow-sm">
         <div className="flex items-center gap-4">
-          <NextLink href="/" className="p-2 hover:bg-gray-100 rounded-md transition-colors group">
+          <NextLink
+            href="/"
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors group"
+          >
             <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
           </NextLink>
           <div className="flex flex-col">
@@ -686,7 +750,9 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 </span>
               )}
               {!isOwner && (
-                <span className="ml-2 text-blue-600 font-medium">• Review Mode</span>
+                <span className="ml-2 text-blue-600 font-medium">
+                  • Review Mode
+                </span>
               )}
               {isPublished && (
                 <span className="ml-2 text-green-600 font-medium">
@@ -729,8 +795,6 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               </span>
             )}
           </button>
-
-          <UserNav user={authUser || undefined} />
 
           <button
             onClick={() => setShowPreview(!showPreview)}
@@ -780,6 +844,8 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               </button>
             </>
           )}
+
+          <UserNav user={authUser || undefined} />
         </div>
       </header>
 
@@ -1034,7 +1100,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 <select
                   value={metadata.category_id}
                   onChange={(e) =>
-                    setMetadata((prev) => ({ ...prev, category_id: e.target.value }))
+                    setMetadata((prev) => ({
+                      ...prev,
+                      category_id: e.target.value,
+                    }))
                   }
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] transition-all"
                 >
@@ -1052,7 +1121,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 label="Read Time"
                 value={metadata.readTime}
                 onChange={(value) =>
-                  setMetadata((prev) => ({ ...prev, readTime: parseInt(value) || 5 }))
+                  setMetadata((prev) => ({
+                    ...prev,
+                    readTime: parseInt(value) || 5,
+                  }))
                 }
                 type="number"
                 placeholder="Minutes"
@@ -1062,7 +1134,9 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               <InputField
                 label="Tags"
                 value={metadata.tags}
-                onChange={(value: string) => setMetadata((prev) => ({ ...prev, tags: value }))}
+                onChange={(value: string) =>
+                  setMetadata((prev) => ({ ...prev, tags: value }))
+                }
                 placeholder="React, Next.js, TypeScript"
               />
 
@@ -1081,7 +1155,8 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs text-amber-700">
-                    Keep your SEO description under 160 characters for best results.
+                    Keep your SEO description under 160 characters for best
+                    results.
                   </p>
                   <p className="text-xs text-amber-600 mt-1">
                     {metadata.seoDescription.length}/160 characters
@@ -1126,11 +1201,18 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                       />
                     ) : (
                       <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
-                        {(authUser.user.user_metadata.full_name || authUser.user.email || "U").charAt(0).toUpperCase()}
+                        {(
+                          authUser.user.user_metadata.full_name ||
+                          authUser.user.email ||
+                          "U"
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                     )}
                     <span className="text-sm text-gray-700">
-                      {authUser.user.user_metadata.full_name || authUser.user.email}
+                      {authUser.user.user_metadata.full_name ||
+                        authUser.user.email}
                     </span>
                   </div>
                 </div>
@@ -1140,7 +1222,9 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
         </aside>
 
         {/* EDITOR AREA */}
-        <main className={`flex-1 overflow-y-auto p-8 pb-32 ${showFeedbackPanel && !isOwner ? 'pr-80' : ''}`}>
+        <main
+          className={`flex-1 overflow-y-auto p-8 pb-32 ${showFeedbackPanel && !isOwner ? "pr-80" : ""}`}
+        >
           <div className="max-w-3xl mx-auto">
             {showPreview ? (
               <div className="bg-white rounded-md shadow-sm border border-gray-200 p-12 min-h-[500px]">
@@ -1253,7 +1337,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               ) : (
                 <div className="divide-y divide-gray-50">
                   {feedback.map((item) => (
-                    <div key={item.id} className={`p-4 ${item.resolved ? 'bg-green-50/50' : 'bg-white'}`}>
+                    <div
+                      key={item.id}
+                      className={`p-4 ${item.resolved ? "bg-green-50/50" : "bg-white"}`}
+                    >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0">
                           {item.author?.image_url ? (
@@ -1264,14 +1351,18 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-sm">
-                              {(item.author?.name || "U").charAt(0).toUpperCase()}
+                              {(item.author?.name || "U")
+                                .charAt(0)
+                                .toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-800 truncate">
-                              {item.ai_generated ? "AI Reviewer" : (item.author?.name || "Unknown")}
+                              {item.ai_generated
+                                ? "AI Reviewer"
+                                : item.author?.name || "Unknown"}
                             </span>
                             {item.ai_generated && (
                               <span className="flex items-center gap-1 text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">
@@ -1296,7 +1387,8 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                                 onClick={() => handleResolveFeedback(item.id)}
                                 className="text-xs flex items-center gap-1 text-green-600 hover:text-green-700"
                               >
-                                <CheckCircle className="w-3 h-3" /> Mark Resolved
+                                <CheckCircle className="w-3 h-3" /> Mark
+                                Resolved
                               </button>
                             )}
                           </div>
@@ -1324,7 +1416,9 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center gap-2 mb-3">
                 <Crown className="w-4 h-4 text-amber-500" />
-                <span className="text-sm font-medium text-gray-700">Writer</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Writer
+                </span>
               </div>
               <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-md">
                 {initialArticle?.author?.image_url ? (
@@ -1335,7 +1429,9 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-sm">
-                    {(initialArticle?.author?.name || "W").charAt(0).toUpperCase()}
+                    {(initialArticle?.author?.name || "W")
+                      .charAt(0)
+                      .toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -1358,20 +1454,21 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                       </option>
                     ))}
                   </select>
-                  {selectedOwnerId && selectedOwnerId !== initialArticle?.author?.id && (
-                    <button
-                      onClick={handleChangeOwner}
-                      disabled={isUpdatingOwner}
-                      className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors disabled:opacity-50"
-                    >
-                      {isUpdatingOwner ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Crown className="w-4 h-4" />
-                      )}
-                      Change Writer
-                    </button>
-                  )}
+                  {selectedOwnerId &&
+                    selectedOwnerId !== initialArticle?.author?.id && (
+                      <button
+                        onClick={handleChangeOwner}
+                        disabled={isUpdatingOwner}
+                        className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors disabled:opacity-50"
+                      >
+                        {isUpdatingOwner ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Crown className="w-4 h-4" />
+                        )}
+                        Change Writer
+                      </button>
+                    )}
                 </div>
               )}
             </div>
@@ -1380,39 +1477,47 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-[#3182ce]" />
-                <span className="text-sm font-medium text-gray-700">Contributors</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Contributors
+                </span>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {contributors.length === 0 ? (
                   <p className="text-xs text-gray-500">No contributors yet</p>
                 ) : (
-                  contributors
-                    .map((contributor) => (
-                      <div key={contributor.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
-                        {contributor.author?.image_url ? (
-                          <img
-                            src={contributor.author.image_url}
-                            alt={contributor.author.name || "Contributor"}
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
-                            {(contributor.author?.name || "C").charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <span className="flex-1 text-sm text-gray-700 truncate">
-                          {contributor.author?.name || "Unknown"}
-                        </span>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleRemoveContributor(contributor.id)}
-                            className="p-1 text-red-500 hover:text-red-700"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))
+                  contributors.map((contributor) => (
+                    <div
+                      key={contributor.id}
+                      className="flex items-center gap-2 p-2 bg-gray-50 rounded-md"
+                    >
+                      {contributor.author?.image_url ? (
+                        <img
+                          src={contributor.author.image_url}
+                          alt={contributor.author.name || "Contributor"}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs">
+                          {(contributor.author?.name || "C")
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      )}
+                      <span className="flex-1 text-sm text-gray-700 truncate">
+                        {contributor.author?.name || "Unknown"}
+                      </span>
+                      {isAdmin && (
+                        <button
+                          onClick={() =>
+                            handleRemoveContributor(contributor.id)
+                          }
+                          className="p-1 text-red-500 hover:text-red-700"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
               {isAdmin && (
@@ -1427,9 +1532,15 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
                     defaultValue=""
                   >
-                    <option value="" disabled>Add contributor...</option>
+                    <option value="" disabled>
+                      Add contributor...
+                    </option>
                     {allAuthors
-                      .filter(a => a.id !== initialArticle?.author?.id && !contributors.some(c => c.author_id === a.id))
+                      .filter(
+                        (a) =>
+                          a.id !== initialArticle?.author?.id &&
+                          !contributors.some((c) => c.author_id === a.id),
+                      )
                       .map((author) => (
                         <option key={author.id} value={author.id}>
                           {author.name}

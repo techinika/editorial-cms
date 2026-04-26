@@ -66,7 +66,9 @@ export default function PendingReviewPage({ user }: PendingReviewPageProps) {
               </p>
             </div>
           </div>
-          <UserNav user={user} />
+          <div className="flex items-center">
+            <UserNav user={user} />
+          </div>
         </div>
       </header>
 

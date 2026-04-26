@@ -24,7 +24,7 @@ export default function UserNav({ user }: UserNavProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative z-50">
       <button
         onClick={() => setShowUserMenu(!showUserMenu)}
         className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded-md transition-colors"
@@ -38,28 +38,26 @@ export default function UserNav({ user }: UserNavProps) {
           />
         ) : (
           <div className="w-8 h-8 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-sm font-medium">
-            {(
-              user.user.user_metadata.full_name ||
-              user.user.email ||
-              "U"
-            )
+            {(user.user.user_metadata.full_name || user.user.email || "U")
               .charAt(0)
               .toUpperCase()}
           </div>
         )}
         <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
       </button>
-      
+
       {showUserMenu && (
         <>
-          <div 
+          <div
             className="fixed inset-0 z-10"
             onClick={() => setShowUserMenu(false)}
           />
           <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-20">
             {user.isAdmin && (
               <div className="px-3 py-1 border-b border-gray-100">
-                <span className="text-xs text-[#3182ce] font-medium">Admin</span>
+                <span className="text-xs text-[#3182ce] font-medium">
+                  Admin
+                </span>
               </div>
             )}
             <div className="px-3 py-1 text-xs text-gray-500 truncate border-b border-gray-100">
