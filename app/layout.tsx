@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={workSans.className}>
+    <html lang="en" className={workSans.variable}>
       <body>
         <ToastProvider>{children}</ToastProvider>
       </body>

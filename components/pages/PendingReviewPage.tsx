@@ -1,59 +1,72 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText,
   Search,
-  X,
   Clock,
-  CheckCircle,
   AlertCircle,
-  User,
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import { AuthResult } from "@/lib/auth";
-import { getUnresolvedFeedbackCountByArticle } from "@/supabase/CRUD/querries";
+import { getArticlesWithPendingFeedbackUser } from "@/supabase/CRUD/querries";
+import UserNav from "@/components/UserNav";
 
 interface PendingReviewPageProps {
   user: AuthResult;
-  initialArticles: JoinedArticle[];
 }
 
-export default function PendingReviewPage({ user, initialArticles }: PendingReviewPageProps) {
+export default function PendingReviewPage({ user }: PendingReviewPageProps) {
   const router = useRouter();
-  const [articles, setArticles] = useState<JoinedArticle[]>(initialArticles);
+  const [articles, setArticles] = useState<JoinedArticle[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    loadArticles();
+  }, []);
+
+  const loadArticles = async () => {
+    setLoading(true);
+    try {
+      if (!user.user?.id) {
+        setLoading(false);
+        return;
+      }
+      const result = await getArticlesWithPendingFeedbackUser(user.user.id, user.isAdmin);
+      setArticles(result);
+    } catch (err) {
+      console.error("Error loading articles:", err);
+    }
+    setLoading(false);
+  };
 
   const filteredArticles = articles.filter((article) =>
     article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     article.summary?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleArticleClick = async (articleId: string) => {
-    setLoadingArticleId(articleId);
+  const handleArticleClick = (articleId: string) => {
     router.push(`/edit/${articleId}`);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-      {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <a href="/" className="text-gray-500 hover:text-gray-700">
-                ← Back
-              </a>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Pending Review</h1>
-                <p className="text-sm text-gray-500">
-                  Articles with unresolved feedback
-                </p>
-              </div>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700">
+              ← Back
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Pending Review</h1>
+              <p className="text-sm text-gray-500">
+                Articles with feedback on your articles
+              </p>
             </div>
           </div>
+          <UserNav user={user} />
         </div>
       </header>
 

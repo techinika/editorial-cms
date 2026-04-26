@@ -22,7 +22,7 @@ import {
   Heading2,
   Heading3,
   Quote,
-  Code,
+Code,
   Link as LinkIcon,
   Unlink,
   Undo,
@@ -44,6 +44,7 @@ import {
   Users,
   Crown,
   User,
+  Edit2,
 } from "lucide-react";
 import NextLink from "next/link";
 import {
@@ -65,6 +66,7 @@ import { addFeedback, markFeedbackResolved } from "@/app/actions/feedback";
 import { addArticleContributor, removeArticleContributor, changeArticleOwner, fetchAllAuthors } from "@/app/actions/contributors";
 import { useToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import UserNav from "@/components/UserNav";
 
 interface Metadata {
   title: string;
@@ -668,75 +670,38 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           {(isOwner || isAdmin) && (
             <button
               onClick={() => setShowTeamPanel(!showTeamPanel)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                showTeamPanel
-                  ? "bg-[#3182ce]/10 text-[#3182ce]"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+              className={`p-2 rounded-md transition-colors ${showTeamPanel ? "bg-[#3182ce]/10 text-[#3182ce]" : "text-gray-600 hover:bg-gray-100"}`}
+              title="Team"
             >
               <Users className="w-4 h-4" />
-              <span className="text-sm font-medium">Team</span>
             </button>
           )}
 
           <button
             onClick={() => setShowFeedbackPanel(!showFeedbackPanel)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-              showFeedbackPanel
-                ? "bg-[#3182ce]/10 text-[#3182ce]"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
+            className={`p-2 rounded-md transition-colors ${showFeedbackPanel ? "bg-[#3182ce]/10 text-[#3182ce]" : "text-gray-600 hover:bg-gray-100"}`}
+            title="Feedback"
           >
             <MessageSquare className="w-4 h-4" />
-            <span className="text-sm font-medium">Feedback</span>
             {feedback.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-[#3182ce] text-white text-xs rounded-full">
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
                 {feedback.length}
               </span>
             )}
           </button>
 
-          {authUser?.authenticated && authUser.user ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-              {authUser.profilePicture ? (
-                <img
-                  src={authUser.profilePicture}
-                  alt={authUser.user.user_metadata.full_name || "User"}
-                  className="w-6 h-6 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
-                  {(authUser.user.user_metadata.full_name || authUser.user.email || "U").charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span className="text-sm text-gray-700 font-medium">
-                {authUser.user.user_metadata.full_name || authUser.user.email}
-              </span>
-              {authUser.isAdmin && (
-                <span className="text-xs text-[#3182ce] bg-[#3182ce]/10 px-1.5 py-0.5 rounded">
-                  Admin
-                </span>
-              )}
-            </div>
-          ) : (
-            <NextLink
-              href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
-              className="flex items-center gap-2 px-4 py-2 text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors text-sm font-medium"
-            >
-              Log In
-            </NextLink>
-          )}
+          <UserNav user={authUser || undefined} />
 
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            title={showPreview ? "Edit Mode" : "Preview"}
           >
             {showPreview ? (
-              <EyeOff className="w-4 h-4" />
+              <Edit2 className="w-4 h-4" />
             ) : (
               <Eye className="w-4 h-4" />
             )}
-            <span className="text-sm font-medium">Preview</span>
           </button>
 
           {isOwner && (
@@ -744,20 +709,25 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               <button
                 onClick={handleSaveDraft}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                title="Save Draft"
               >
-                <Save className="w-4 h-4" />
-                <span className="text-sm font-medium">Save Draft</span>
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
               </button>
 
               <button
                 onClick={isPublished ? handleUpdateCheck : handlePublishCheck}
                 disabled={isSaving}
-                className={`flex items-center gap-2 px-6 py-2 rounded-md font-semibold transition-all duration-200 ${
+                className={`p-2 rounded-md transition-all duration-200 ${
                   isPublished
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-green-100 text-green-700 hover:bg-green-200"
                     : `bg-[${PRIMARY_COLOR}] hover:bg-[#2c5282] text-white`
                 } disabled:opacity-70`}
+                title={isPublished ? "Update" : "Publish"}
                 style={isPublished ? {} : { backgroundColor: PRIMARY_COLOR }}
               >
                 {isSaving ? (
@@ -767,7 +737,6 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {isSaving ? (isPublished ? "Updating..." : "Publishing...") : isPublished ? "Update" : "Publish"}
               </button>
             </>
           )}

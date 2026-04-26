@@ -814,7 +814,64 @@ export const getArticlesWithPendingFeedback = async (): Promise<JoinedArticle[]>
         category:categories (id, name)
       `)
       .in("id", articleIds)
-      .order("updated_at", { ascending: false });
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching articles with pending feedback:", error);
+      return [];
+    }
+
+    return data as unknown as JoinedArticle[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const getArticlesWithPendingFeedbackUser = async (userId: string, isAdmin: boolean): Promise<JoinedArticle[]> => {
+  try {
+    let articleIdsQuery;
+    
+    if (isAdmin) {
+      const { data: allFeedback } = await supabase
+        .from("article_feedback")
+        .select("article_id")
+        .eq("resolved", false);
+      
+      if (!allFeedback || allFeedback.length === 0) return [];
+      articleIdsQuery = [...new Set(allFeedback.map(f => f.article_id))];
+    } else {
+      const { data: userFeedback } = await supabase
+        .from("article_feedback")
+        .select("article_id")
+        .eq("resolved", false);
+      
+      if (!userFeedback || userFeedback.length === 0) return [];
+      const articleIds = [...new Set(userFeedback.map(f => f.article_id))];
+      
+      if (articleIds.length === 0) return [];
+      
+      const { data: userArticles } = await supabase
+        .from("articles")
+        .select("id")
+        .eq("author_id", userId);
+      
+      if (!userArticles) return [];
+      const ownedArticleIds = userArticles.map(a => a.id);
+      articleIdsQuery = articleIds.filter((id: string) => ownedArticleIds.includes(id));
+    }
+
+    if (!articleIdsQuery || articleIdsQuery.length === 0) return [];
+
+    const { data, error } = await supabase
+      .from("articles")
+      .select(`
+        *,
+        author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
+        category:categories (id, name)
+      `)
+      .in("id", articleIdsQuery)
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching articles with pending feedback:", error);
