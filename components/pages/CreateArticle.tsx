@@ -45,6 +45,7 @@ Code,
   Crown,
   User,
   Edit2,
+  Sparkles,
 } from "lucide-react";
 import NextLink from "next/link";
 import {
@@ -62,7 +63,7 @@ import { Category } from "@/types/category";
 import { JoinedArticle } from "@/types/article";
 import { ArticleFeedback } from "@/types/article";
 import { ArticleContributor } from "@/types/article";
-import { addFeedback, markFeedbackResolved } from "@/app/actions/feedback";
+import { addFeedback, markFeedbackResolved, addAIFeedback } from "@/app/actions/feedback";
 import { addArticleContributor, removeArticleContributor, changeArticleOwner, fetchAllAuthors } from "@/app/actions/contributors";
 import { useToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -127,6 +128,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
   const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(initialArticle?.author?.id || (initialAllAuthors.length > 0 ? initialAllAuthors[0].id : null));
   const [isUpdatingOwner, setIsUpdatingOwner] = useState(false);
   const [isAddingContributor, setIsAddingContributor] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -489,6 +491,44 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
     } catch (error) {
       console.error("Error resolving feedback:", error);
       showToast("error", "Failed to resolve feedback");
+    }
+  };
+
+  const handleGenerateAIFeedback = async () => {
+    if (!articleId) {
+      showToast("warning", "Please save the article first");
+      return;
+    }
+    if (!authUser?.authenticated || !authUser.user) {
+      showToast("warning", "Please log in to generate feedback");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const response = await fetch("/api/generate-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleId, authorId: authUser.user.id }),
+      });
+
+      if (response.ok) {
+        const newFeedbacks = await response.json();
+        if (newFeedbacks && newFeedbacks.length > 0) {
+          setFeedback((prev) => [...newFeedbacks, ...prev]);
+          setUnresolvedCount((prev) => prev + newFeedbacks.length);
+          showToast("success", `Generated ${newFeedbacks.length} AI feedback(s)!`);
+        } else {
+          showToast("info", "No feedback generated");
+        }
+      } else {
+        showToast("error", "Failed to generate feedback");
+      }
+    } catch (error) {
+      console.error("Error generating AI feedback:", error);
+      showToast("error", "Failed to generate feedback");
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -1158,7 +1198,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
             </div>
 
             {/* Add Comment Form */}
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-gray-100 space-y-2">
               <div className="flex gap-2">
                 <textarea
                   value={newComment}
@@ -1168,18 +1208,35 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                   rows={3}
                 />
               </div>
-              <button
-                onClick={handleSubmitComment}
-                disabled={!newComment.trim() || isSubmittingComment}
-                className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmittingComment ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || isSubmittingComment}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingComment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Submit
+                </button>
+                {isOwner && (
+                  <button
+                    onClick={handleGenerateAIFeedback}
+                    disabled={isGeneratingAI}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    title="Generate AI feedback"
+                  >
+                    {isGeneratingAI ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    AI
+                  </button>
                 )}
-                Submit Feedback
-              </button>
+              </div>
             </div>
 
             {/* Feedback List */}
@@ -1209,8 +1266,13 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-800 truncate">
-                              {item.author?.name || "Unknown"}
+                              {item.ai_generated ? "AI Reviewer" : (item.author?.name || "Unknown")}
                             </span>
+                            {item.ai_generated && (
+                              <span className="flex items-center gap-1 text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">
+                                <Sparkles className="w-3 h-3" /> AI
+                              </span>
+                            )}
                             {item.resolved && (
                               <span className="flex items-center gap-1 text-xs text-green-600 bg-green-100 px-1.5 py-0.5 rounded">
                                 <CheckCircle className="w-3 h-3" /> Resolved

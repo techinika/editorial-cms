@@ -66,6 +66,7 @@ export interface ArticleFeedback {
   feedback_content: string;
   resolved: boolean;
   resolved_at: string | null;
+  ai_generated: boolean;
   author?: {
     name: string | null;
     image_url: string | null;

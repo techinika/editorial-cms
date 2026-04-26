@@ -13,7 +13,7 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
-import { UserStats, getUserStats, getUserContributedArticles, getUserOwnArticles, getAuthorInfo, ContributorArticle } from "@/supabase/CRUD/querries";
+import { UserStats, getUserStats, getUserContributedArticles, getUserOwnArticles, getAuthorInfo, ContributorArticle, getAllStats } from "@/supabase/CRUD/querries";
 import { AuthResult } from "@/lib/auth";
 import { JoinedArticle } from "@/types/article";
 
@@ -38,8 +38,10 @@ export default function StatsPage({ user }: StatsPageProps) {
   const loadStats = async (userId: string) => {
     setLoading(true);
     try {
+      const isAdmin = user?.isAdmin;
+      
       const [statsData, ownData, contributedData, authorData] = await Promise.all([
-        getUserStats(userId),
+        isAdmin ? getAllStats() : getUserStats(userId),
         getUserOwnArticles(userId, 10),
         getUserContributedArticles(userId),
         getAuthorInfo(userId),
