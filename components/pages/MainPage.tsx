@@ -20,10 +20,13 @@ import {
   AlertTriangle,
   BarChart3,
   Clock,
+  ChevronDown,
+  User,
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import {
   getArticles,
+  getArticlesByStatus,
   searchArticles,
   getFilteredArticles,
   getCategories,
@@ -37,19 +40,21 @@ import Link from "next/link";
 import { useToast } from "@/components/Toast";
 
 interface MainPageProps {
-  initialArticles: JoinedArticle[];
+  initialArticles?: JoinedArticle[];
   user?: AuthResult;
 }
 
-export default function MainPage({ initialArticles, user }: MainPageProps) {
+export default function MainPage({ initialArticles = [], user }: MainPageProps) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [articles, setArticles] = useState<JoinedArticle[]>(initialArticles);
+  const [drafts, setDrafts] = useState<JoinedArticle[]>([]);
+  const [published, setPublished] = useState<JoinedArticle[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Filter states
   const [categories, setCategories] = useState<Category[]>([]);
@@ -189,12 +194,29 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
 
   useEffect(() => {
     getCategories().then(setCategories).catch(console.error);
+    loadDrafts();
+    loadPublished();
   }, []);
+
+  const loadDrafts = async () => {
+    setLoading(true);
+    const newDrafts = await getArticlesByStatus("draft", 0, 15);
+    setDrafts(newDrafts);
+    setLoading(false);
+  };
+
+  const loadPublished = async () => {
+    setLoading(true);
+    const newPublished = await getArticlesByStatus("published", 0, 15);
+    setPublished(newPublished);
+    setLoading(false);
+  };
 
   const loadMore = async () => {
     setLoading(true);
     const newArticles = await getArticles(page, 12);
-    setArticles((prev) => [...prev, ...newArticles]);
+    setDrafts((prev) => [...prev, ...newArticles.filter(a => a.status === "draft")]);
+    setPublished((prev) => [...prev, ...newArticles.filter(a => a.status === "published")]);
     setPage((prev) => prev + 1);
     setHasMore(newArticles.length === 12);
     setLoading(false);
@@ -204,15 +226,17 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
     async (query: string) => {
       setSearchQuery(query);
       if (!query.trim()) {
-        setArticles(initialArticles);
+        loadDrafts();
+        loadPublished();
         return;
       }
       setSearching(true);
       const results = await searchArticles(query);
-      setArticles(results);
+      setDrafts(results.filter(a => a.status === "draft"));
+      setPublished(results.filter(a => a.status === "published"));
       setSearching(false);
     },
-    [initialArticles],
+    [],
   );
 
   const applyFilters = useCallback(async () => {
@@ -226,9 +250,10 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
       filter.category_id = categoryFilter;
     }
 
-    const results = await getFilteredArticles(filter, 0, 12);
-    setArticles(results);
-    setHasMore(results.length === 12);
+    const results = await getFilteredArticles(filter, 0, 30);
+    setDrafts(results.filter(a => a.status === "draft"));
+    setPublished(results.filter(a => a.status === "published"));
+    setHasMore(results.length === 30);
     setPage(1);
     setLoading(false);
   }, [statusFilter, categoryFilter]);
@@ -236,12 +261,8 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
   const clearFilters = useCallback(async () => {
     setStatusFilter("");
     setCategoryFilter("");
-    setLoading(true);
-    const results = await getArticles(0, 12);
-    setArticles(results);
-    setHasMore(results.length === 12);
-    setPage(1);
-    setLoading(false);
+    loadDrafts();
+    loadPublished();
   }, []);
 
   const handleCategoryChange = (catId: string) => {
@@ -283,7 +304,8 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
     setDeleteLoading(true);
     const success = await deleteArticle(deletingArticle.id);
     if (success) {
-      setArticles((prev) => prev.filter((a) => a.id !== deletingArticle.id));
+      setDrafts((prev) => prev.filter((a) => a.id !== deletingArticle.id));
+      setPublished((prev) => prev.filter((a) => a.id !== deletingArticle.id));
     }
     setDeleteLoading(false);
     setShowDeleteModal(false);
@@ -306,11 +328,8 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
     });
 
     if (result) {
-      setArticles((prev) =>
-        prev.map((a) =>
-          a.id === unpublishArticle.id ? { ...a, status: "draft" } : a,
-        ),
-      );
+      setPublished((prev) => prev.filter((a) => a.id !== unpublishArticle.id));
+      setDrafts((prev) => [result as unknown as JoinedArticle, ...prev]);
     }
 
     setUnpublishLoading(false);
@@ -347,16 +366,19 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
 
         <div className="flex items-center gap-2">
           {user?.authenticated && user.user ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded-md transition-colors"
+              >
                 {user.profilePicture ? (
                   <img
                     src={user.profilePicture}
                     alt={user.user.user_metadata.full_name || "User"}
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-sm font-medium">
                     {(
                       user.user.user_metadata.full_name ||
                       user.user.email ||
@@ -366,22 +388,48 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
                       .toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm text-gray-700 font-medium">
-                  {user.user.user_metadata.full_name || user.user.email}
-                </span>
-                {user.isAdmin && (
-                  <span className="text-xs text-[#3182ce] bg-[#3182ce]/10 px-1.5 py-0.5 rounded">
-                    Admin
+                <div className="flex flex-col items-start">
+                  <span className="text-sm text-gray-700 font-medium">
+                    {user.user.user_metadata.full_name || user.user.email?.split("@")[0]}
                   </span>
-                )}
-              </div>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
-                className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors"
-                title="Account Settings"
-              >
-                <LogOut className="w-5 h-5" />
-              </Link>
+                  <span className="text-xs text-gray-500 truncate max-w-[120px]">
+                    {user.user.email}
+                  </span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+              
+              {showUserMenu && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-20">
+                    {user.isAdmin && (
+                      <div className="px-3 py-1 border-b border-gray-100">
+                        <span className="text-xs text-[#3182ce] font-medium">Admin</span>
+                      </div>
+                    )}
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="text-sm">Account Settings</span>
+                    </Link>
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_AUTH_URL}/signout?redirect=${typeof window !== "undefined" ? window.location.origin : ""}`}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 transition-colors"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">Logout</span>
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <Link
@@ -523,60 +571,44 @@ export default function MainPage({ initialArticles, user }: MainPageProps) {
         </section>
 
         <section>
-          {(() => {
-            const drafts = articles.filter(a => a.status === "draft");
-            const published = articles.filter(a => a.status === "published");
-            
-            return (
-              <>
-                {drafts.length > 0 && (
-                  <div className="mb-8">
-                    <h2 className="text-sm font-semibold text-yellow-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                      Drafts ({drafts.length})
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                      {drafts.map((article) => (
-                        <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {published.length > 0 && (
-                  <div>
-                    <h2 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      Published ({published.length})
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                      {published.map((article) => (
-                        <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {drafts.length === 0 && published.length === 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {articles.map((article) => (
-                      <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
-                    ))}
-                  </div>
-                )}
-              </>
-            );
-          })()}
+          {drafts.length > 0 && (
+            <div className="mb-10">
+              <h2 className="text-sm font-semibold text-yellow-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full" />
+                Drafts ({drafts.length})
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {drafts.map((article) => (
+                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {published.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                Published ({published.length})
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {published.map((article) => (
+                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {drafts.length === 0 && published.length === 0 && !loading && (
+            <div className="text-center py-12 text-gray-500">
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p>No articles found</p>
+            </div>
+          )}
 
-          {hasMore && !searchQuery && (
+          {loading && (
             <div className="mt-8 flex justify-center">
-              <button
-                onClick={loadMore}
-                disabled={loading}
-                className="px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-              >
-                {loading ? "Loading..." : "Load More"}
-              </button>
+              <span className="text-gray-500">Loading...</span>
             </div>
           )}
         </section>

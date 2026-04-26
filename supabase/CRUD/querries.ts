@@ -157,6 +157,40 @@ export const getArticles = async (
   }
 };
 
+export const getArticlesByStatus = async (
+  status: "draft" | "published",
+  page = 0,
+  limit = 15,
+): Promise<JoinedArticle[]> => {
+  const from = page * limit;
+  const to = from + limit - 1;
+
+  try {
+    const { data, error } = await supabase
+      .from("articles")
+      .select(
+        `
+        *,
+        author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
+        category:categories (id, name)
+      `,
+      )
+      .eq("status", status)
+      .order("updated_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error(`Error fetching ${status} articles:`, error);
+      return [];
+    }
+
+    return data as unknown as JoinedArticle[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
 export const searchArticles = async (
   query: string,
 ): Promise<JoinedArticle[]> => {
