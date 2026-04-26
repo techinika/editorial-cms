@@ -7,5 +7,8 @@ export default async function Home(): Promise<ReactNode> {
   const authResult = await checkAuthStatusServer();
   requireAuthor(authResult);
 
-  return <CMSDashboard user={authResult} />;
+  const initialDrafts = await getArticlesByStatus("draft", 0, 15);
+  const initialPublished = await getArticlesByStatus("published", 0, 15);
+
+  return <CMSDashboard user={authResult} initialDrafts={initialDrafts} initialPublished={initialPublished} />;
 }

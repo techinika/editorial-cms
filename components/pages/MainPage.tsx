@@ -42,14 +42,16 @@ import UserNav from "@/components/UserNav";
 
 interface MainPageProps {
   initialArticles?: JoinedArticle[];
+  initialDrafts?: JoinedArticle[];
+  initialPublished?: JoinedArticle[];
   user?: AuthResult;
 }
 
-export default function MainPage({ initialArticles = [], user }: MainPageProps) {
+export default function MainPage({ initialArticles = [], initialDrafts = [], initialPublished = [], user }: MainPageProps) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [drafts, setDrafts] = useState<JoinedArticle[]>([]);
-  const [published, setPublished] = useState<JoinedArticle[]>([]);
+  const [drafts, setDrafts] = useState<JoinedArticle[]>(initialDrafts);
+  const [published, setPublished] = useState<JoinedArticle[]>(initialPublished);
   const [pendingActivity, setPendingActivity] = useState<Record<string, ArticlePendingActivity>>({});
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -211,9 +213,9 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
 
   useEffect(() => {
     getCategories().then(setCategories).catch(console.error);
-    loadDrafts();
-    loadPublished();
     loadPendingActivity();
+    if (initialDrafts.length === 0) loadDrafts();
+    if (initialPublished.length === 0) loadPublished();
   }, []);
 
   const loadPendingActivity = async () => {
