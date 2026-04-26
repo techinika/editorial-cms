@@ -51,7 +51,7 @@ ${EDITORIAL_GUIDELINES}
 Article Title: ${article.title}
 Article Content: ${article.content ? article.content.substring(0, 8000) : 'No content'}
 
-Provide exactly 5 feedback points, one per line, each starting with a bullet point (-). 
+Provide exactly 5 feedback points as a numbered list (1. to 5.). 
 Each feedback should be 1-2 sentences, specific, actionable, and reference the guidelines above.
 Focus on: content quality, structure, accuracy, headers, sources, dates, readability, technology relevance.`;
 
@@ -59,12 +59,22 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
       model: "gpt-4.1-nano"
     });
 
+    console.log("AI raw response:", response);
+
     const feedbackText = String(response || "");
+    console.log("Feedback text:", feedbackText);
+    
     const feedbackLines = feedbackText.split("\n").filter((line: string) => line.trim());
+    console.log("Feedback lines:", feedbackLines);
     
     const feedbackPoints = feedbackLines
-      .filter((line: string) => line.includes("-") || (line.match(/^\d+\./) && line.length > 20))
+      .filter((line: string) => {
+        const trimmed = line.trim();
+        return trimmed.match(/^\d+[.)]/) || trimmed.startsWith("-") || trimmed.length > 30;
+      })
       .slice(0, 5);
+
+    console.log("Parsed feedback points:", feedbackPoints);
 
     const results = [];
     for (const feedback of feedbackPoints) {
@@ -79,6 +89,7 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
       }
     }
 
+    console.log("Created feedback count:", results.length);
     return NextResponse.json(results);
   } catch (error) {
     console.error("Error generating AI feedback:", error);
