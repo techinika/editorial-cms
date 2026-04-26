@@ -19,8 +19,10 @@ import {
   AlertTriangle,
   BarChart3,
   Clock,
+  MessageCircle,
+  Bell,
 } from "lucide-react";
-import { JoinedArticle } from "@/types/article";
+import { JoinedArticle, ArticlePendingActivity } from "@/types/article";
 import {
   getArticles,
   getArticlesByStatus,
@@ -29,6 +31,7 @@ import {
   getCategories,
   deleteArticle,
   updateArticle,
+  getAllPendingActivity,
 } from "@/supabase/CRUD/querries";
 import { useRouter } from "next/navigation";
 import { AuthResult } from "@/lib/auth";
@@ -47,6 +50,7 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
   const { showToast } = useToast();
   const [drafts, setDrafts] = useState<JoinedArticle[]>([]);
   const [published, setPublished] = useState<JoinedArticle[]>([]);
+  const [pendingActivity, setPendingActivity] = useState<Record<string, ArticlePendingActivity>>({});
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -83,6 +87,7 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
     onUnpublish,
     onDelete,
     copiedId,
+    activity,
   }: {
     article: JoinedArticle;
     onShare: (article: JoinedArticle) => void;
@@ -90,7 +95,12 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
     onUnpublish: (article: JoinedArticle) => void;
     onDelete: (article: JoinedArticle) => void;
     copiedId: string | null;
-  }) => (
+    activity?: ArticlePendingActivity;
+  }) => {
+    const hasActivity = activity && (activity.unresolvedFeedback > 0 || activity.unreadComments > 0);
+    const totalActivity = activity ? activity.unresolvedFeedback + activity.unreadComments : 0;
+
+    return (
     <div className="group cursor-pointer">
       <div className="aspect-[3/4] bg-white border border-gray-200 rounded-lg overflow-hidden group-hover:border-[#3182ce] transition-all relative">
         {article.image ? (
@@ -117,6 +127,14 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
           >
             {article.status}
           </span>
+        )}
+
+        {/* Pending Activity Badge */}
+        {hasActivity && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded">
+            <Bell className="w-3 h-3" />
+            {totalActivity}
+          </div>
         )}
 
         {/* Action Buttons Overlay */}
@@ -189,12 +207,23 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
       </div>
     </div>
   );
+  };
 
   useEffect(() => {
     getCategories().then(setCategories).catch(console.error);
     loadDrafts();
     loadPublished();
+    loadPendingActivity();
   }, []);
+
+  const loadPendingActivity = async () => {
+    const activity = await getAllPendingActivity();
+    const activityMap: Record<string, ArticlePendingActivity> = {};
+    for (const a of activity) {
+      activityMap[a.articleId] = a;
+    }
+    setPendingActivity(activityMap);
+  };
 
   const loadDrafts = async () => {
     setLoading(true);
@@ -487,6 +516,16 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
               <span className="text-sm font-medium">My Stats</span>
             </a>
 
+            <a href="/comments" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <MessageCircle
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">Comments</span>
+            </a>
+
             <a href="/pending" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Clock
@@ -508,7 +547,7 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {drafts.map((article) => (
-                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
+                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} activity={pendingActivity[article.id]} />
                 ))}
               </div>
             </div>
@@ -522,7 +561,7 @@ export default function MainPage({ initialArticles = [], user }: MainPageProps) 
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {published.map((article) => (
-                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} />
+                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} activity={pendingActivity[article.id]} />
                 ))}
               </div>
             </div>

@@ -36,6 +36,7 @@ export interface JoinedArticle extends Omit<
 > {
   author: Author | null;
   category: Category | null;
+  hasPendingActivity?: boolean;
 }
 
 export interface ArticleFormData {
@@ -77,9 +78,65 @@ export interface ArticleContributor {
   id: string;
   article_id: string;
   author_id: string;
-  contribution_type: "owner" | "contributor";
+  contribution_type?: string;
   author?: {
     name: string | null;
     image_url: string | null;
   } | null;
+}
+
+export interface Comment {
+  id: string;
+  created_at: string | null;
+  user_id: string;
+  article_id: string;
+  message: string;
+  status: string;
+  read: boolean | null;
+  user?: {
+    id: string;
+    user_metadata: {
+      full_name?: string;
+      avatar_url?: string;
+    };
+  } | null;
+  article?: {
+    id: string;
+    title: string;
+    slug: string;
+  } | null;
+}
+
+export interface ArticlePendingActivity {
+  articleId: string;
+  unreadComments: number;
+  unresolvedFeedback: number;
+}
+
+export interface Comment {
+  id: string;
+  created_at: string | null;
+  user_id: string;
+  article_id: string;
+  message: string;
+  status: string;
+  read: boolean | null;
+  user?: {
+    id: string;
+    user_metadata: {
+      full_name?: string;
+      avatar_url?: string;
+    };
+  } | null;
+  article?: {
+    id: string;
+    title: string;
+    slug: string;
+  } | null;
+}
+
+export interface ArticlePendingActivity {
+  articleId: string;
+  unreadComments: number;
+  unresolvedFeedback: number;
 }

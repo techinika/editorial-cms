@@ -1062,7 +1062,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               <InputField
                 label="Tags"
                 value={metadata.tags}
-                onChange={(value) => setMetadata((prev) => ({ ...prev, tags: value }))}
+                onChange={(value: string) => setMetadata((prev) => ({ ...prev, tags: value }))}
                 placeholder="React, Next.js, TypeScript"
               />
 
@@ -1070,7 +1070,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               <InputField
                 label="SEO Description"
                 value={metadata.seoDescription}
-                onChange={(value) =>
+                onChange={(value: string) =>
                   setMetadata((prev) => ({ ...prev, seoDescription: value }))
                 }
                 placeholder="Meta description for search engines..."
@@ -1079,9 +1079,14 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
               <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-md border border-amber-200">
                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
-                  Keep your SEO description under 160 characters for best results.
-                </p>
+                <div>
+                  <p className="text-xs text-amber-700">
+                    Keep your SEO description under 160 characters for best results.
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    {metadata.seoDescription.length}/160 characters
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
@@ -1378,11 +1383,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 <span className="text-sm font-medium text-gray-700">Contributors</span>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto">
-                {contributors.filter(c => c.contribution_type === "contributor").length === 0 ? (
+                {contributors.length === 0 ? (
                   <p className="text-xs text-gray-500">No contributors yet</p>
                 ) : (
                   contributors
-                    .filter(c => c.contribution_type === "contributor")
                     .map((contributor) => (
                       <div key={contributor.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
                         {contributor.author?.image_url ? (
@@ -1425,7 +1429,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                   >
                     <option value="" disabled>Add contributor...</option>
                     {allAuthors
-                      .filter(a => a.id !== initialArticle?.author?.id && !contributors.some(c => c.author_id === a.id && c.contribution_type === "contributor"))
+                      .filter(a => a.id !== initialArticle?.author?.id && !contributors.some(c => c.author_id === a.id))
                       .map((author) => (
                         <option key={author.id} value={author.id}>
                           {author.name}

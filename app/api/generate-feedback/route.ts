@@ -5,40 +5,28 @@ import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
 const EDITORIAL_GUIDELINES = `
 Techinika Editorial Guidelines v1.0
 
-These guidelines ensure all articles are accurate, readable, original, and professional:
-
 1. Writing Style: 
-- Each paragraph must be 5 lines or fewer
-- Avoid long blocks of text
-- Use clear language, avoid jargon
+- Each paragraph ≤ 5 lines
+- Use clear language, no jargon
 
-2. Accuracy & Sources:
-- Always use original sources (official announcements, websites)
-- Verify dates, names, URLs, claims before publishing
-- Include sources section at bottom
+2. Accuracy:
+- Use original sources (official websites)
+- Verify dates, names, URLs
+- Include sources at bottom
 
 3. Originality:
 - Do not copy other articles
-- Add value: context, technical explanation, impact analysis
+- Add unique context/explanation
 
-4. Headers:
-- Structure with: Introduction, What Happened, Why It Matters, Key Details, Sources
+4. Structure:
+- Use headers: Introduction, What Happened, Why It Matters, Key Details, Sources
 
 5. Dates:
 - Use exact dates: "April 8, 2026"
-- Avoid "yesterday", "today"
+- No "yesterday"/"today"
 
-6. Technology Relevance:
-- Only publish tech-related stories
-- Show technical impact
-
-7. Quality Checklist:
-- Paragraphs ≤ 5 lines
-- Sources included
-- Official links added
-- No exaggeration
-- No duplicate content
-- Headers used
+6. Tech Relevance:
+- Only tech-focused content
 `;
 
 export async function POST(request: Request) {
@@ -71,7 +59,7 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
       model: "gpt-4.1-nano"
     });
 
-    const feedbackText = response || "";
+    const feedbackText = response?.text || "";
     const feedbackLines = feedbackText.split("\n").filter((line: string) => line.trim());
     
     const feedbackPoints = feedbackLines

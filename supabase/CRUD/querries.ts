@@ -1,4 +1,12 @@
-import { JoinedArticle, ArticleFormData, Article, ArticleFeedback, ArticleContributor } from "@/types/article";
+import {
+  JoinedArticle,
+  ArticleFormData,
+  Article,
+  ArticleFeedback,
+  ArticleContributor,
+  Comment,
+  ArticlePendingActivity,
+} from "@/types/article";
 import { Category } from "@/types/category";
 import supabase from "../supabase";
 
@@ -89,7 +97,10 @@ export const updateArticle = async (
   }
 };
 
-export const publishArticle = async (id: string, publishedByUserId: string): Promise<Article | null> => {
+export const publishArticle = async (
+  id: string,
+  publishedByUserId: string,
+): Promise<Article | null> => {
   return updateArticle(id, {
     status: "published",
     published_at: new Date().toISOString(),
@@ -176,7 +187,7 @@ export const getArticlesByStatus = async (
       `,
       )
       .eq("status", status)
-.order("created_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .range(from, to);
 
     if (error) {
@@ -521,8 +532,7 @@ export const getUserContributedArticles = async (
     const { data, error } = await supabase
       .from("article_contributors")
       .select("article_id")
-      .eq("author_id", userId)
-      .neq("contribution_type", "owner");
+      .eq("author_id", userId);
 
     if (error) {
       console.error("Error fetching contributed articles:", error);
@@ -730,16 +740,19 @@ export const getUnresolvedFeedbackCount = async (
   }
 };
 
-export const getArticleContributors = async (articleId: string): Promise<ArticleContributor[]> => {
+export const getArticleContributors = async (
+  articleId: string,
+): Promise<ArticleContributor[]> => {
   try {
     const { data, error } = await supabase
       .from("article_contributors")
-      .select(`
+      .select(
+        `
         *,
         author:authors!author_id (name, image_url)
-      `)
-      .eq("article_id", articleId)
-      .order("created_at", { ascending: true });
+      `,
+      )
+      .eq("article_id", articleId);
 
     if (error) {
       console.error("Error fetching contributors:", error);
@@ -756,7 +769,6 @@ export const getArticleContributors = async (articleId: string): Promise<Article
 export const addContributor = async (
   articleId: string,
   authorId: string,
-  contributionType: "owner" | "contributor" = "contributor"
 ): Promise<ArticleContributor | null> => {
   try {
     const { data, error } = await supabase
@@ -764,12 +776,13 @@ export const addContributor = async (
       .insert({
         article_id: articleId,
         author_id: authorId,
-        contribution_type: contributionType,
       })
-      .select(`
+      .select(
+        `
         *,
         author:authors!author_id (name, image_url)
-      `)
+      `,
+      )
       .single();
 
     if (error) {
@@ -784,7 +797,9 @@ export const addContributor = async (
   }
 };
 
-export const removeContributor = async (contributorId: string): Promise<boolean> => {
+export const removeContributor = async (
+  contributorId: string,
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("article_contributors")
@@ -805,7 +820,7 @@ export const removeContributor = async (contributorId: string): Promise<boolean>
 
 export const updateArticleOwner = async (
   articleId: string,
-  newAuthorId: string
+  newAuthorId: string,
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -825,7 +840,9 @@ export const updateArticleOwner = async (
   }
 };
 
-export const getAllAuthors = async (): Promise<{ id: string; name: string; image_url: string | null }[]> => {
+export const getAllAuthors = async (): Promise<
+  { id: string; name: string; image_url: string | null }[]
+> => {
   try {
     const { data, error } = await supabase
       .from("authors")
@@ -845,7 +862,9 @@ export const getAllAuthors = async (): Promise<{ id: string; name: string; image
   }
 };
 
-export const getArticlesWithPendingFeedback = async (): Promise<JoinedArticle[]> => {
+export const getArticlesWithPendingFeedback = async (): Promise<
+  JoinedArticle[]
+> => {
   try {
     const { data: articlesWithFeedback, error: feedbackError } = await supabase
       .from("article_feedback")
@@ -861,15 +880,19 @@ export const getArticlesWithPendingFeedback = async (): Promise<JoinedArticle[]>
       return [];
     }
 
-    const articleIds = [...new Set(articlesWithFeedback.map(f => f.article_id))];
+    const articleIds = [
+      ...new Set(articlesWithFeedback.map((f) => f.article_id)),
+    ];
 
     const { data, error } = await supabase
       .from("articles")
-      .select(`
+      .select(
+        `
         *,
         author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
         category:categories (id, name)
-      `)
+      `,
+      )
       .in("id", articleIds)
       .order("created_at", { ascending: false });
 
@@ -885,48 +908,55 @@ export const getArticlesWithPendingFeedback = async (): Promise<JoinedArticle[]>
   }
 };
 
-export const getArticlesWithPendingFeedbackUser = async (userId: string, isAdmin: boolean): Promise<JoinedArticle[]> => {
+export const getArticlesWithPendingFeedbackUser = async (
+  userId: string,
+  isAdmin: boolean,
+): Promise<JoinedArticle[]> => {
   try {
     let articleIdsQuery;
-    
+
     if (isAdmin) {
       const { data: allFeedback } = await supabase
         .from("article_feedback")
         .select("article_id")
         .eq("resolved", false);
-      
+
       if (!allFeedback || allFeedback.length === 0) return [];
-      articleIdsQuery = [...new Set(allFeedback.map(f => f.article_id))];
+      articleIdsQuery = [...new Set(allFeedback.map((f) => f.article_id))];
     } else {
       const { data: userFeedback } = await supabase
         .from("article_feedback")
         .select("article_id")
         .eq("resolved", false);
-      
+
       if (!userFeedback || userFeedback.length === 0) return [];
-      const articleIds = [...new Set(userFeedback.map(f => f.article_id))];
-      
+      const articleIds = [...new Set(userFeedback.map((f) => f.article_id))];
+
       if (articleIds.length === 0) return [];
-      
+
       const { data: userArticles } = await supabase
         .from("articles")
         .select("id")
         .eq("author_id", userId);
-      
+
       if (!userArticles) return [];
-      const ownedArticleIds = userArticles.map(a => a.id);
-      articleIdsQuery = articleIds.filter((id: string) => ownedArticleIds.includes(id));
+      const ownedArticleIds = userArticles.map((a) => a.id);
+      articleIdsQuery = articleIds.filter((id: string) =>
+        ownedArticleIds.includes(id),
+      );
     }
 
     if (!articleIdsQuery || articleIdsQuery.length === 0) return [];
 
     const { data, error } = await supabase
       .from("articles")
-      .select(`
+      .select(
+        `
         *,
         author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
         category:categories (id, name)
-      `)
+      `,
+      )
       .in("id", articleIdsQuery)
       .order("created_at", { ascending: false });
 
@@ -942,7 +972,9 @@ export const getArticlesWithPendingFeedbackUser = async (userId: string, isAdmin
   }
 };
 
-export const getUnresolvedFeedbackCountByArticle = async (articleId: string): Promise<number> => {
+export const getUnresolvedFeedbackCountByArticle = async (
+  articleId: string,
+): Promise<number> => {
   try {
     const { count, error } = await supabase
       .from("article_feedback")
@@ -959,5 +991,295 @@ export const getUnresolvedFeedbackCountByArticle = async (articleId: string): Pr
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return 0;
+  }
+};
+
+export const getPendingActivityByArticle = async (
+  articleId: string,
+): Promise<ArticlePendingActivity> => {
+  try {
+    const [unresolvedFeedback, unreadComments] = await Promise.all([
+      getUnresolvedFeedbackCountByArticle(articleId),
+      getUnreadCommentsCountByArticle(articleId),
+    ]);
+
+    return {
+      articleId,
+      unresolvedFeedback,
+      unreadComments,
+    };
+  } catch (err) {
+    console.error("Error getting pending activity:", err);
+    return { articleId, unresolvedFeedback: 0, unreadComments: 0 };
+  }
+};
+
+export const getAllPendingActivity = async (): Promise<
+  ArticlePendingActivity[]
+> => {
+  try {
+    const { data: feedbackData, error: feedbackError } = await supabase
+      .from("article_feedback")
+      .select("article_id")
+      .eq("resolved", false);
+
+    if (feedbackError) {
+      console.error("Error fetching feedback:", feedbackError);
+    }
+
+    const { data: commentsData, error: commentsError } = await supabase
+      .from("comments")
+      .select("article_id")
+      .eq("read", false);
+
+    if (commentsError) {
+      console.error("Error fetching comments:", commentsError);
+    }
+
+    const activityMap = new Map<string, ArticlePendingActivity>();
+
+    if (feedbackData) {
+      for (const f of feedbackData) {
+        const existing = activityMap.get(f.article_id);
+        if (existing) {
+          existing.unresolvedFeedback += 1;
+        } else {
+          activityMap.set(f.article_id, {
+            articleId: f.article_id,
+            unresolvedFeedback: 1,
+            unreadComments: 0,
+          });
+        }
+      }
+    }
+
+    if (commentsData) {
+      for (const c of commentsData) {
+        const existing = activityMap.get(c.article_id);
+        if (existing) {
+          existing.unreadComments += 1;
+        } else {
+          activityMap.set(c.article_id, {
+            articleId: c.article_id,
+            unresolvedFeedback: 0,
+            unreadComments: 1,
+          });
+        }
+      }
+    }
+
+    return Array.from(activityMap.values());
+  } catch (err) {
+    console.error("Error getting all pending activity:", err);
+    return [];
+  }
+};
+
+export const getUnreadCommentsCountByArticle = async (
+  articleId: string,
+): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from("comments")
+      .select("*", { count: "exact", head: true })
+      .eq("article_id", articleId)
+      .eq("read", false);
+
+    if (error) {
+      console.error("Error counting unread comments:", error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return 0;
+  }
+};
+
+export const getArticleComments = async (
+  articleId: string,
+): Promise<Comment[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("comments")
+      .select(
+        `
+        *,
+        user:users!user_id (id, user_metadata)
+      `,
+      )
+      .eq("article_id", articleId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching comments:", error);
+      return [];
+    }
+
+    return data as unknown as Comment[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const getAllComments = async (): Promise<Comment[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("comments")
+      .select(
+        `
+        *,
+        user:users!user_id (id, user_metadata),
+        article:articles!article_id (id, title, slug)
+      `,
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all comments:", error);
+      return [];
+    }
+
+    return data as unknown as Comment[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const getUserComments = async (userId: string): Promise<Comment[]> => {
+  try {
+    const { data: userArticles } = await supabase
+      .from("articles")
+      .select("id")
+      .eq("author_id", userId);
+
+    if (!userArticles || userArticles.length === 0) {
+      return [];
+    }
+
+    const articleIds = userArticles.map((a) => a.id);
+
+    const { data, error } = await supabase
+      .from("comments")
+      .select(
+        `
+        *,
+        user:users!user_id (id, user_metadata),
+        article:articles!article_id (id, title, slug)
+      `,
+      )
+      .in("article_id", articleIds)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching user comments:", error);
+      return [];
+    }
+
+    return data as unknown as Comment[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const createComment = async (
+  articleId: string,
+  userId: string,
+  message: string,
+): Promise<Comment | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({
+        article_id: articleId,
+        user_id: userId,
+        message,
+        status: "published",
+        read: false,
+      })
+      .select(
+        `
+        *,
+        user:users!user_id (id, user_metadata),
+        article:articles!article_id (id, title, slug)
+      `,
+      )
+      .single();
+
+    if (error) {
+      console.error("Error creating comment:", error);
+      return null;
+    }
+
+    return data as unknown as Comment;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return null;
+  }
+};
+
+export const markCommentAsRead = async (
+  commentId: string,
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("comments")
+      .update({ read: true })
+      .eq("id", commentId);
+
+    if (error) {
+      console.error("Error marking comment as read:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const markAllCommentsAsReadByArticle = async (
+  articleId: string,
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("comments")
+      .update({ read: true })
+      .eq("article_id", articleId)
+      .eq("read", false);
+
+    if (error) {
+      console.error("Error marking comments as read:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const deleteComment = async (commentId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (error) {
+      console.error("Error deleting comment:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
   }
 };
