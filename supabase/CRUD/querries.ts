@@ -50,6 +50,7 @@ export const createArticle = async (
 export const updateArticle = async (
   id: string,
   data: Partial<ArticleFormData>,
+  publishedByUserId?: string,
 ): Promise<Article | null> => {
   try {
     const updateData: Record<string, unknown> = { ...data };
@@ -60,6 +61,13 @@ export const updateArticle = async (
 
     if (data.status === "draft" && !data.drafted_at) {
       updateData.drafted_at = new Date().toISOString();
+    }
+
+    if (data.status === "published" && !data.published_at) {
+      updateData.published_at = new Date().toISOString();
+      if (publishedByUserId) {
+        updateData.published_by = publishedByUserId;
+      }
     }
 
     const { data: article, error } = await supabase
@@ -81,10 +89,11 @@ export const updateArticle = async (
   }
 };
 
-export const publishArticle = async (id: string): Promise<Article | null> => {
+export const publishArticle = async (id: string, publishedByUserId: string): Promise<Article | null> => {
   return updateArticle(id, {
     status: "published",
     published_at: new Date().toISOString(),
+    published_by: publishedByUserId,
   });
 };
 

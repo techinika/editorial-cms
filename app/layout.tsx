@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import "./globals.css";
 
 import { Work_Sans } from "next/font/google";
+import { ToastProvider } from "@/components/Toast";
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -34,7 +35,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={workSans.className}>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

@@ -43,6 +43,7 @@ import {
   Plus,
   Users,
   Crown,
+  User,
 } from "lucide-react";
 import NextLink from "next/link";
 import {
@@ -62,6 +63,8 @@ import { ArticleFeedback } from "@/types/article";
 import { ArticleContributor } from "@/types/article";
 import { addFeedback, markFeedbackResolved } from "@/app/actions/feedback";
 import { addArticleContributor, removeArticleContributor, changeArticleOwner, fetchAllAuthors } from "@/app/actions/contributors";
+import { useToast } from "@/components/Toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Metadata {
   title: string;
@@ -88,6 +91,7 @@ interface ArticleEditorProps {
 }
 
 const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isOwner: initialIsOwner = true, isAdmin: initialIsAdmin = false, feedback: initialFeedback = [], unresolvedCount: initialUnresolvedCount = 0, contributors: initialContributors = [], allAuthors: initialAllAuthors = [], isNewArticle: initialIsNewArticle = false }: ArticleEditorProps) => {
+  const { showToast } = useToast();
   const [metadata, setMetadata] = useState<Metadata>({
     title: initialArticle?.title || "",
     slug: initialArticle?.slug || "",
@@ -121,6 +125,10 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
   const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(initialArticle?.author?.id || (initialAllAuthors.length > 0 ? initialAllAuthors[0].id : null));
   const [isUpdatingOwner, setIsUpdatingOwner] = useState(false);
   const [isAddingContributor, setIsAddingContributor] = useState(false);
+
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -198,7 +206,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
         if (url) {
           editor?.chain().focus().insertContent(`<img src="${url}" />`).run();
         } else {
-          alert("Failed to upload image");
+          showToast("error", "Failed to upload image");
         }
       }
     };
@@ -222,7 +230,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
             .insertContent(`<video src="${url}" controls />`)
             .run();
         } else {
-          alert("Failed to upload video");
+          showToast("error", "Failed to upload video");
         }
       }
     };
@@ -240,7 +248,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       if (url) {
         setMetadata((prev) => ({ ...prev, image: url }));
       } else {
-        alert("Failed to upload image");
+        showToast("error", "Failed to upload image");
       }
     }
   };
@@ -251,12 +259,12 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
 
   const handleSaveDraft = async () => {
     if (!metadata.title.trim()) {
-      alert("Please add a title");
+      showToast("warning", "Please add a title");
       return;
     }
 
     if (!authUser?.authenticated || !authUser.user) {
-      alert("Please log in to save drafts");
+      showToast("warning", "Please log in to save drafts");
       return;
     }
 
@@ -279,7 +287,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           author_name: authUser.user.user_metadata.full_name || null,
         });
         if (result) {
-          alert("Draft saved!");
+          showToast("success", "Draft saved!");
         }
       } else {
         const result = await createArticle({
@@ -296,46 +304,44 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
         });
         if (result) {
           setArticleId(result.id);
-          alert("Draft saved!");
+          showToast("success", "Draft saved!");
         }
       }
     } catch (error) {
       console.error("Error saving draft:", error);
-      alert("Failed to save draft");
+      showToast("error", "Failed to save draft");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublishCheck = () => {
     if (!metadata.title.trim()) {
-      alert("Please add a title");
+      showToast("warning", "Please add a title");
       return;
     }
     if (!editor?.getText().trim()) {
-      alert("Please add some content");
+      showToast("warning", "Please add some content");
       return;
     }
 
-    // For new articles: require at least one feedback before publishing
     if (isNewArticle && !isAdmin && unresolvedCount === 0) {
-      alert("Please add at least one feedback comment before publishing.");
+      showToast("warning", "Please add at least one feedback comment before publishing.");
       return;
     }
 
-    // For non-admin: require all feedback to be resolved before publishing
     if (isOwner && !isAdmin && unresolvedCount > 0) {
-      alert(`Please resolve all ${unresolvedCount} feedback item(s) before publishing.`);
+      showToast("warning", `Please resolve all ${unresolvedCount} feedback item(s) before publishing.`);
       return;
     }
 
-    // Admins can publish without feedback requirement
-    if (isAdmin && unresolvedCount > 0) {
-      alert(`Warning: This article has ${unresolvedCount} unresolved feedback(s). Publishing anyway.`);
-    }
+    setShowPublishModal(true);
+  };
 
+  const handlePublish = async () => {
     if (!authUser?.authenticated || !authUser.user) {
-      alert("Please log in to publish articles");
+      showToast("warning", "Please log in to publish articles");
+      setShowPublishModal(false);
       return;
     }
 
@@ -357,7 +363,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           status: "published",
           author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
-        });
+        }, authUser.user.id);
       } else {
         result = await createArticle({
           title: metadata.title,
@@ -376,24 +382,75 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       if (result) {
         setArticleId(result.id);
         setIsPublished(true);
-        alert("Article published successfully!");
+        showToast("success", "Article published successfully!");
       }
     } catch (error) {
       console.error("Error publishing:", error);
-      alert("Failed to publish article");
+      showToast("error", "Failed to publish article");
     } finally {
       setIsSaving(false);
+      setShowPublishModal(false);
+    }
+  };
+
+  const handleUpdateCheck = () => {
+    if (!metadata.title.trim()) {
+      showToast("warning", "Please add a title");
+      return;
+    }
+    if (!editor?.getText().trim()) {
+      showToast("warning", "Please add some content");
+      return;
+    }
+
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!authUser?.authenticated || !authUser.user) {
+      showToast("warning", "Please log in to update articles");
+      setShowUpdateModal(false);
+      return;
+    }
+
+    setIsSaving(true);
+    const htmlContent = editor?.getHTML() || "";
+
+    try {
+      const authorId = isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
+      const result = await updateArticle(articleId!, {
+        title: metadata.title,
+        content: htmlContent,
+        image: metadata.image,
+        category_id: metadata.category_id || null,
+        tags: metadata.tags,
+        summary: metadata.seoDescription,
+        read_time: `${metadata.readTime} min`,
+        status: isPublished ? "published" : "draft",
+        author_id: authorId,
+        author_name: authUser.user.user_metadata.full_name || null,
+      }, authUser.user.id);
+
+      if (result) {
+        showToast("success", "Article updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error updating:", error);
+      showToast("error", "Failed to update article");
+    } finally {
+      setIsSaving(false);
+      setShowUpdateModal(false);
     }
   };
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
     if (!authUser?.authenticated || !authUser.user) {
-      alert("Please log in to add feedback");
+      showToast("warning", "Please log in to add feedback");
       return;
     }
     if (!articleId) {
-      alert("Please save the article first");
+      showToast("warning", "Please save the article first");
       return;
     }
 
@@ -404,10 +461,11 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
         setFeedback((prev) => [result, ...prev]);
         setUnresolvedCount((prev) => prev + 1);
         setNewComment("");
+        showToast("success", "Feedback submitted!");
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      alert("Failed to submit feedback");
+      showToast("error", "Failed to submit feedback");
     } finally {
       setIsSubmittingComment(false);
     }
@@ -424,10 +482,11 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           )
         );
         setUnresolvedCount((prev) => Math.max(0, prev - 1));
+        showToast("success", "Feedback resolved!");
       }
     } catch (error) {
       console.error("Error resolving feedback:", error);
-      alert("Failed to resolve feedback");
+      showToast("error", "Failed to resolve feedback");
     }
   };
 
@@ -437,12 +496,12 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
     try {
       const success = await changeArticleOwner(articleId, selectedOwnerId);
       if (success) {
-        alert("Owner updated successfully!");
+        showToast("success", "Owner updated successfully!");
         window.location.reload();
       }
     } catch (error) {
       console.error("Error updating owner:", error);
-      alert("Failed to update owner");
+      showToast("error", "Failed to update owner");
     } finally {
       setIsUpdatingOwner(false);
     }
@@ -455,10 +514,11 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       const result = await addArticleContributor(articleId, authorId);
       if (result) {
         setContributors((prev) => [...prev, result]);
+        showToast("success", "Contributor added!");
       }
     } catch (error) {
       console.error("Error adding contributor:", error);
-      alert("Failed to add contributor");
+      showToast("error", "Failed to add contributor");
     } finally {
       setIsAddingContributor(false);
     }
@@ -470,10 +530,11 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
       const success = await removeArticleContributor(contributorId, articleId);
       if (success) {
         setContributors((prev) => prev.filter((c) => c.id !== contributorId));
+        showToast("success", "Contributor removed!");
       }
     } catch (error) {
       console.error("Error removing contributor:", error);
-      alert("Failed to remove contributor");
+      showToast("error", "Failed to remove contributor");
     }
   };
 
@@ -576,6 +637,12 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
             )}
             <span className="text-xs text-gray-400">
               {wordCount} words • {metadata.readTime} min read
+              {initialArticle?.author && (
+                <span className="ml-2 flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  {initialArticle.author.name}
+                </span>
+              )}
               {!isOwner && (
                 <span className="ml-2 text-blue-600 font-medium">• Review Mode</span>
               )}
@@ -684,8 +751,8 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
               </button>
 
               <button
-                onClick={handlePublish}
-                disabled={isSaving || isPublished}
+                onClick={isPublished ? handleUpdateCheck : handlePublishCheck}
+                disabled={isSaving}
                 className={`flex items-center gap-2 px-6 py-2 rounded-md font-semibold transition-all duration-200 ${
                   isPublished
                     ? "bg-green-100 text-green-700"
@@ -700,7 +767,7 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {isSaving ? "Publishing..." : isPublished ? "Published" : "Publish"}
+                {isSaving ? (isPublished ? "Updating..." : "Publishing...") : isPublished ? "Update" : "Publish"}
               </button>
             </>
           )}
@@ -1349,6 +1416,28 @@ const ArticleEditor = ({ authUser: initialAuthUser, article: initialArticle, isO
           </aside>
         )}
       </div>
+
+      <ConfirmModal
+        open={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        onConfirm={handlePublish}
+        title="Publish Article"
+        message={`Are you sure you want to publish "${metadata.title}"?`}
+        confirmLabel="Publish"
+        type="info"
+        loading={isSaving}
+      />
+
+      <ConfirmModal
+        open={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        onConfirm={handleUpdate}
+        title="Update Article"
+        message={`Are you sure you want to update "${metadata.title}"?`}
+        confirmLabel="Update"
+        type="info"
+        loading={isSaving}
+      />
     </div>
   );
 };
