@@ -1,16 +1,17 @@
 "use server";
 
-import { init } from "@heyputer/puter.js/src/init.cjs";
+import puter from "@heyputer/puter.js";
 import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
 import { revalidatePath } from "next/cache";
 
-const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
-const puter = puterAuthToken ? init(puterAuthToken) : null;
-
 export async function generateAIFeedback(articleId: string, authorId: string) {
-  if (!puter) {
+  const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
+  
+  if (!puterAuthToken) {
     throw new Error("Puter AI not configured");
   }
+
+  puter.setAuthToken(puterAuthToken);
 
   const article = await getArticleById(articleId);
   

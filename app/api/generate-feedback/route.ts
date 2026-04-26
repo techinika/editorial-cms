@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
-import { init } from "@heyputer/puter.js/src/init.cjs";
+import puter from "@heyputer/puter.js";
 import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
-
-const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
-
-if (!puterAuthToken) {
-  console.error("PUTER_AUTH_TOKEN environment variable is not set");
-}
-
-const puter = puterAuthToken ? init(puterAuthToken) : null;
 
 const EDITORIAL_GUIDELINES = `
 Techinika Editorial Guidelines v1.0
@@ -48,9 +40,13 @@ function isPuterError(response: unknown): response is PuterError {
 
 export async function POST(request: Request) {
   try {
-    if (!puter) {
+    const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
+    
+    if (!puterAuthToken) {
       return NextResponse.json({ error: "Puter AI not configured. Set PUTER_AUTH_TOKEN env variable." }, { status: 500 });
     }
+
+    puter.setAuthToken(puterAuthToken);
 
     const { articleId, authorId } = await request.json();
 
