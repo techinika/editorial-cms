@@ -27,6 +27,7 @@ export type Article = {
   author_name: string | null;
   drafted_at: string | null;
   published_at: string | null;
+  published_by: string | null;
 };
 
 export interface JoinedArticle extends Omit<
@@ -35,6 +36,7 @@ export interface JoinedArticle extends Omit<
 > {
   author: Author | null;
   category: Category | null;
+  hasPendingActivity?: boolean;
 }
 
 export interface ArticleFormData {
@@ -54,6 +56,7 @@ export interface ArticleFormData {
   drafted_at?: string | null;
   feedback?: string | null;
   published_at?: string | null;
+  published_by?: string | null;
 }
 
 export interface ArticleFeedback {
@@ -64,6 +67,7 @@ export interface ArticleFeedback {
   feedback_content: string;
   resolved: boolean;
   resolved_at: string | null;
+  ai_generated: boolean;
   author?: {
     name: string | null;
     image_url: string | null;
@@ -74,9 +78,34 @@ export interface ArticleContributor {
   id: string;
   article_id: string;
   author_id: string;
-  contribution_type: "owner" | "contributor";
+  contribution_type?: string;
   author?: {
     name: string | null;
     image_url: string | null;
   } | null;
+}
+
+export interface Comment {
+  id: string;
+  created_at: string | null;
+  user_id: string;
+  article_id: string;
+  message: string;
+  status: string;
+  read: boolean | null;
+  user?: {
+    id: string;
+    nickname: string | null;
+  } | null;
+  article?: {
+    id: string;
+    title: string;
+    slug: string;
+  } | null;
+}
+
+export interface ArticlePendingActivity {
+  articleId: string;
+  unreadComments: number;
+  unresolvedFeedback: number;
 }

@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@heyputer/puter.js": "^1.0.1",
     "@supabase/supabase-js": "^2.101.1",
     "@tiptap/extension-image": "^3.22.1",
     "@tiptap/extension-link": "^3.22.1",
