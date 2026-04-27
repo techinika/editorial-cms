@@ -21,6 +21,7 @@ import {
   Clock,
   MessageCircle,
   Bell,
+  Image,
 } from "lucide-react";
 import { JoinedArticle, ArticlePendingActivity } from "@/types/article";
 import {
@@ -536,6 +537,16 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
                 />
               </div>
               <span className="text-sm font-medium">Pending Review</span>
+            </a>
+
+            <a href="/assets" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Image
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">Assets</span>
             </a>
           </div>
         </section>
