@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   Check,
   Eye,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { Asset, AssetType, AssetFormData } from "@/types/asset";
 import {
@@ -29,6 +31,7 @@ import {
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
+import { upload } from "@imagekit/next";
 
 interface AssetsPageProps {
   user?: AuthResult;
@@ -48,9 +51,11 @@ export default function AssetsPage({ user }: AssetsPageProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [formName, setFormName] = useState("");
-  const [formUrl, setFormUrl] = useState("");
+  const [formUrl, setFormUrl] = useState<string>("");
   const [formType, setFormType] = useState<AssetType>("image");
   const [formLoading, setFormLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
@@ -112,6 +117,51 @@ export default function AssetsPage({ user }: AssetsPageProps) {
       loadAssets();
     }
   }, [typeFilter]);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    setUploading(true);
+    setSelectedFile(file);
+
+    try {
+      const authResponse = await fetch("/api/upload-auth");
+      const authData = await authResponse.json();
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        try {
+          const result = await upload({
+            file: reader.result as string,
+            fileName: file.name,
+            folder: "/assets",
+            publicKey: authData.publicKey,
+            token: authData.token,
+            signature: authData.signature,
+            expire: authData.expire,
+          });
+
+          if ((result as any)?.url) {
+            setFormUrl((result as any).url);
+          }
+          if (!formName) {
+            setFormName(file.name.split(".")[0]);
+          }
+          showToast("success", "File uploaded successfully!");
+        } catch (error) {
+          console.error("Upload error:", error);
+          showToast("error", "Failed to upload file");
+        } finally {
+          setUploading(false);
+        }
+      };
+    } catch (error) {
+      console.error("Auth error:", error);
+      showToast("error", "Failed to authenticate upload");
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,6 +241,7 @@ export default function AssetsPage({ user }: AssetsPageProps) {
     setFormName("");
     setFormUrl("");
     setFormType("image");
+    setSelectedFile(null);
   };
 
   const getAssetIcon = (type: AssetType) => {
@@ -383,16 +434,43 @@ export default function AssetsPage({ user }: AssetsPageProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL <span className="text-red-500">*</span>
+                    File <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="url"
-                    value={formUrl}
-                    onChange={(e) => setFormUrl(e.target.value)}
-                    placeholder="https://example.com/asset.jpg"
-                    required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce]"
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept={
+                        formType === "image"
+                          ? "image/*"
+                          : formType === "video"
+                          ? "video/*"
+                          : ".pdf,.doc,.docx,.txt"
+                      }
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      disabled={uploading}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#3182ce] file:text-white file:cursor-pointer hover:file:bg-[#2c5282] disabled:opacity-50"
+                    />
+                    {uploading && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </div>
+                    )}
+                    {formUrl && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <Check className="w-4 h-4" />
+                        File uploaded successfully
+                      </div>
+                    )}
+                    {!formUrl && !uploading && (
+                      <p className="text-xs text-gray-500">
+                        Upload a file to get started
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
