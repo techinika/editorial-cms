@@ -13,19 +13,14 @@ import {
   File,
   ExternalLink,
   AlertTriangle,
-  Check,
   Eye,
-  Upload,
   Loader2,
-  FileImage,
 } from "lucide-react";
-import { Asset, AssetType, AssetFormData } from "@/types/asset";
+import { Asset, AssetType } from "@/types/asset";
 import {
   getAssets,
   getAssetsByType,
   searchAssets,
-  createAsset,
-  updateAsset,
   deleteAsset,
   getAssetUsage,
 } from "@/supabase/CRUD/querries";
@@ -33,7 +28,7 @@ import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import AssetAssignModal from "@/components/AssetAssignModal";
-import { upload } from "@imagekit/next";
+import AssetEditModal from "@/components/AssetEditModal";
 
 interface AssetsPageProps {
   user?: AuthResult;
@@ -50,20 +45,8 @@ export default function AssetsPage({ user }: AssetsPageProps) {
 
   const [typeFilter, setTypeFilter] = useState<AssetType | "">("");
 
-  const [showForm, setShowForm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
-  const [formName, setFormName] = useState("");
-  const [formUrl, setFormUrl] = useState<string>("");
-  const [formType, setFormType] = useState<AssetType>("image");
-  const [formLoading, setFormLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [previewAsset, setPreviewAsset] = useState<{
-    name: string;
-    url: string;
-    type: AssetType;
-  } | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
@@ -109,19 +92,22 @@ export default function AssetsPage({ user }: AssetsPageProps) {
     setLoading(false);
   };
 
-  const handleSearch = useCallback(async (query: string) => {
-    setSearchQuery(query);
-    if (!query.trim()) {
-      loadAssets();
-      return;
-    }
-    setSearching(true);
-    const userId = user?.user?.id;
-    const isAdmin = user?.isAdmin || false;
-    const results = await searchAssets(query, userId, isAdmin);
-    setAssets(results);
-    setSearching(false);
-  }, [user]);
+  const handleSearch = useCallback(
+    async (query: string) => {
+      setSearchQuery(query);
+      if (!query.trim()) {
+        loadAssets();
+        return;
+      }
+      setSearching(true);
+      const userId = user?.user?.id;
+      const isAdmin = user?.isAdmin || false;
+      const results = await searchAssets(query, userId, isAdmin);
+      setAssets(results);
+      setSearching(false);
+    },
+    [user],
+  );
 
   useEffect(() => {
     if (typeFilter !== undefined) {
@@ -129,123 +115,30 @@ export default function AssetsPage({ user }: AssetsPageProps) {
     }
   }, [typeFilter]);
 
-  const handleFileUpload = async (file: File) => {
-    if (!file) return;
-
-    setUploading(true);
-    setSelectedFile(file);
-
-    try {
-      const authResponse = await fetch("/api/upload-auth");
-      const authData = await authResponse.json();
-
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = async () => {
-        try {
-          const result = await upload({
-            file: reader.result as string,
-            fileName: file.name,
-            folder: "/assets",
-            publicKey: authData.publicKey,
-            token: authData.token,
-            signature: authData.signature,
-            expire: authData.expire,
-          });
-
-          if ((result as any)?.url) {
-            const uploadedUrl = (result as any).url;
-            setFormUrl(uploadedUrl);
-            
-            const assetPreview = {
-              name: file.name.split(".")[0] || file.name,
-              url: uploadedUrl,
-              type: formType,
-            };
-            setPreviewAsset(assetPreview);
-            setShowPreviewModal(true);
-            
-            if (!formName) {
-              setFormName(assetPreview.name);
-            }
-          }
-        } catch (error) {
-          console.error("Upload error:", error);
-          showToast("error", "Failed to upload file");
-          setUploading(false);
-        }
-      };
-    } catch (error) {
-      console.error("Auth error:", error);
-      showToast("error", "Failed to authenticate upload");
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formName.trim() || !formUrl.trim()) return;
-
-    setFormLoading(true);
-
+  const handleAssetSave = (savedAsset: Asset) => {
     if (editingAsset) {
-      const result = await updateAsset(editingAsset.id, {
-        name: formName,
-        url: formUrl,
-        type: formType,
-      });
-      if (result) {
-        setAssets((prev) =>
-          prev.map((a) => (a.id === editingAsset.id ? result : a)),
-        );
-        resetForm();
-        showToast("success", "Asset updated successfully!");
-      }
+      // Update existing asset in state
+      setAssets((prev) =>
+        prev.map((assetItem) =>
+          assetItem.id === savedAsset.id ? savedAsset : assetItem,
+        ),
+      );
     } else {
-      const result = await createAsset({
-        name: formName,
-        url: formUrl,
-        type: formType,
-        author_id: user?.user?.id,
-      });
-      if (result) {
-        setAssets((prev) => [result, ...prev]);
-        resetForm();
-        showToast("success", "Asset added successfully!");
-      }
+      // Add new asset to state
+      setAssets((prev) => [savedAsset, ...prev]);
     }
-
-    setFormLoading(false);
-  };
-
-  const confirmAssetSave = async () => {
-    if (!previewAsset) return;
-    
-    setFormLoading(true);
-    setShowPreviewModal(false);
-
-    const result = await createAsset({
-      name: formName,
-      url: formUrl,
-      type: formType,
-      author_id: user?.user?.id,
-    });
-
-    if (result) {
-      setAssets((prev) => [result, ...prev]);
-      resetForm();
-      showToast("success", "Asset added successfully!");
-    }
-
-    setFormLoading(false);
+    setShowEditModal(false);
+    setEditingAsset(null);
   };
 
   const handleEdit = (asset: Asset) => {
     setEditingAsset(asset);
-    setFormName(asset.name);
-    setFormUrl(asset.url);
-    setFormType(asset.type);
-    setShowForm(true);
+    setShowEditModal(true);
+  };
+
+  const handleAddAssetClick = () => {
+    setEditingAsset(null); // Clear any asset being edited
+    setShowEditModal(true);
   };
 
   const handleDeleteClick = (asset: Asset) => {
@@ -276,16 +169,6 @@ export default function AssetsPage({ user }: AssetsPageProps) {
     setUsageLoading(false);
   };
 
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingAsset(null);
-    setFormName("");
-    setFormUrl("");
-    setFormType("image");
-    setSelectedFile(null);
-    setPreviewAsset(null);
-  };
-
   const getAssetIcon = (type: AssetType) => {
     switch (type) {
       case "image":
@@ -293,7 +176,9 @@ export default function AssetsPage({ user }: AssetsPageProps) {
       case "video":
         return <Video className="w-5 h-5 text-purple-500" />;
       case "doc":
-        return <File className="w-5 h-5 text-orange-500" />;
+        return <FileText className="w-5 h-5 text-orange-500" />;
+      default:
+        return <File className="w-5 h-5 text-gray-500" />;
     }
   };
 
@@ -316,19 +201,6 @@ export default function AssetsPage({ user }: AssetsPageProps) {
             <FileText className="text-white w-6 h-6" />
           </Link>
           <h1 className="text-xl font-medium">Assets</h1>
-        </div>
-
-        <div className="flex-1 max-w-2xl mx-12">
-          <div className="relative group">
-            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400 group-focus-within:text-[#3182ce]" />
-            <input
-              type="text"
-              placeholder="Search assets..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-12 pr-4 focus:bg-white focus:ring-2 focus:ring-[#3182ce]/20 transition-all outline-none"
-            />
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -387,7 +259,10 @@ export default function AssetsPage({ user }: AssetsPageProps) {
           </h2>
           <div className="flex flex-wrap gap-6">
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setEditingAsset(null); // Clear any asset being edited
+                setShowEditModal(true);
+              }}
               className="group text-left"
             >
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
@@ -408,152 +283,76 @@ export default function AssetsPage({ user }: AssetsPageProps) {
           </div>
         </section>
 
-        <div className="mb-6 flex items-center gap-4 flex-wrap">
-          <button
-            onClick={() => setTypeFilter("")}
-            className={`px-4 py-2 rounded-md transition-colors text-sm font-medium ${
-              typeFilter === ""
-                ? "bg-[#3182ce] text-white"
-                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setTypeFilter("image")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
-              typeFilter === "image"
-                ? "bg-[#3182ce] text-white"
-                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            <Image className="w-4 h-4" />
-            Images
-          </button>
-          <button
-            onClick={() => setTypeFilter("video")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
-              typeFilter === "video"
-                ? "bg-[#3182ce] text-white"
-                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            <Video className="w-4 h-4" />
-            Videos
-          </button>
-          <button
-            onClick={() => setTypeFilter("doc")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
-              typeFilter === "doc"
-                ? "bg-[#3182ce] text-white"
-                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            <File className="w-4 h-4" />
-            Documents
-          </button>
+        <div className="flex items-center gap-4 justify-between">
+          <div className="mb-6 flex items-center gap-4 flex-wrap">
+            <button
+              onClick={() => setTypeFilter("")}
+              className={`px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+                typeFilter === ""
+                  ? "bg-[#3182ce] text-white"
+                  : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setTypeFilter("image")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+                typeFilter === "image"
+                  ? "bg-[#3182ce] text-white"
+                  : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <Image className="w-4 h-4" />
+              Images
+            </button>
+            <button
+              onClick={() => setTypeFilter("video")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+                typeFilter === "video"
+                  ? "bg-[#3182ce] text-white"
+                  : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <Video className="w-4 h-4" />
+              Videos
+            </button>
+            <button
+              onClick={() => setTypeFilter("doc")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+                typeFilter === "doc"
+                  ? "bg-[#3182ce] text-white"
+                  : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <File className="w-4 h-4" />
+              Documents
+            </button>
+          </div>
+
+          <div className="relative group w-48">
+            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400 group-focus-within:text-[#3182ce]" />
+            <input
+              type="text"
+              placeholder="Search assets by name or URL..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-12 pr-4 focus:bg-white focus:ring-2 focus:ring-[#3182ce]/20 transition-all outline-none"
+            />
+          </div>
         </div>
 
-        {showForm && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-            <h3 className="text-lg font-semibold mb-4">
-              {editingAsset ? "Edit Asset" : "Add New Asset"}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="Asset name"
-                    required
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    File <span className="text-red-500">*</span>
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="file"
-                      accept={
-                        formType === "image"
-                          ? "image/*"
-                          : formType === "video"
-                          ? "video/*"
-                          : ".pdf,.doc,.docx,.txt"
-                      }
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file);
-                      }}
-                      disabled={uploading}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#3182ce] file:text-white file:cursor-pointer hover:file:bg-[#2c5282] disabled:opacity-50"
-                    />
-                    {uploading && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Uploading...
-                      </div>
-                    )}
-                    {formUrl && (
-                      <div className="flex items-center gap-2 text-sm text-green-600">
-                        <Check className="w-4 h-4" />
-                        File uploaded successfully
-                      </div>
-                    )}
-                    {!formUrl && !uploading && (
-                      <p className="text-xs text-gray-500">
-                        Upload a file to get started
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as AssetType)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-                  >
-                    <option value="image">Image</option>
-                    <option value="video">Video</option>
-                    <option value="doc">Document</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={formLoading || !formName.trim() || !formUrl.trim()}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium disabled:opacity-50"
-                >
-                  {formLoading ? (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : editingAsset ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {editingAsset ? "Update" : "Add Asset"}
-                </button>
-              </div>
-            </form>
-          </div>
+        {showEditModal && (
+          <AssetEditModal
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingAsset(null);
+            }}
+            asset={editingAsset}
+            user={user}
+            onSave={handleAssetSave}
+          />
         )}
 
         <section>
@@ -802,92 +601,6 @@ export default function AssetsPage({ user }: AssetsPageProps) {
         </div>
       )}
 
-      {showPreviewModal && previewAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => {
-              setShowPreviewModal(false);
-              setUploading(false);
-            }}
-          />
-          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Preview Asset
-              </h3>
-              <button
-                onClick={() => {
-                  setShowPreviewModal(false);
-                  setUploading(false);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-md"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              {previewAsset.type === "image" ? (
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={previewAsset.url}
-                    alt={previewAsset.name}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              ) : previewAsset.type === "video" ? (
-                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                  <Video className="w-16 h-16 text-gray-400" />
-                  <p className="text-sm text-gray-500 ml-2">Video Preview</p>
-                </div>
-              ) : (
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                  <File className="w-16 h-16 text-gray-400" />
-                  <p className="text-sm text-gray-500 ml-2">Document Preview</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Name:</span> {previewAsset.name}
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Type:</span> {previewAsset.type}
-              </p>
-              <p className="text-sm text-gray-600 truncate">
-                <span className="font-medium">URL:</span> {previewAsset.url}
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowPreviewModal(false);
-                  setUploading(false);
-                }}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmAssetSave}
-                disabled={formLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium disabled:opacity-50"
-              >
-                {formLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
-                Confirm & Save
-              </button>
-            </div>
-          </div>
-        </div>
-        )}
-
       {showAssignModal && assigningAsset && (
         <AssetAssignModal
           isOpen={showAssignModal}
@@ -896,6 +609,7 @@ export default function AssetsPage({ user }: AssetsPageProps) {
             setAssigningAsset(null);
           }}
           asset={assigningAsset}
+          user={user}
         />
       )}
     </div>

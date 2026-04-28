@@ -11,6 +11,7 @@ import {
   BarChart3,
   ArrowLeft,
   Calendar,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { UserStats, getUserStats, getUserContributedArticles, getUserOwnArticles, getAuthorInfo, ContributorArticle, getAllStats } from "@/supabase/CRUD/querries";
@@ -72,16 +73,13 @@ export default function StatsPage({ user }: StatsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="p-2 hover:bg-gray-100 rounded-md transition-colors">
-            <ArrowLeft className="w-5 h-5 text-gray-500" />
-          </Link>
-          <div className="bg-[#3182ce] p-2 rounded-lg">
-            <BarChart3 className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-medium">My Statistics</h1>
-        </div>
+       <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
+         <div className="flex items-center gap-4">
+           <div className="bg-[#3182ce] p-2 rounded-lg">
+             <BarChart3 className="text-white w-6 h-6" />
+           </div>
+           <h1 className="text-xl font-medium">My Statistics</h1>
+         </div>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
@@ -113,9 +111,30 @@ export default function StatsPage({ user }: StatsPageProps) {
             <LogOut className="w-5 h-5" />
           </a>
         </div>
-      </header>
+       </header>
 
-      <main className="max-w-7xl mx-auto p-8">
+       <section className="mb-6">
+         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+           Quick Actions
+         </h2>
+         <div className="flex flex-wrap gap-6">
+           <Link href="/create" className="group text-left">
+             <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+               <Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+             </div>
+             <span className="text-sm font-medium">New Article</span>
+           </Link>
+           
+           <Link href="/" className="group text-left">
+             <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+               <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+             </div>
+             <span className="text-sm font-medium">Articles</span>
+           </Link>
+         </div>
+       </section>
+
+       <main className="max-w-7xl mx-auto p-8">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-4 border-[#3182ce] border-t-transparent rounded-full animate-spin" />

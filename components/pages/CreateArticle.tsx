@@ -46,6 +46,7 @@ import {
   User,
   Edit2,
   Sparkles,
+  FileText,
 } from "lucide-react";
 import NextLink from "next/link";
 import {
@@ -928,9 +929,11 @@ const ArticleEditor = ({
 
           <UserNav user={authUser || undefined} />
         </div>
-      </header>
+       </header>
 
-      {/* TOOLBAR - Only show for owner */}
+
+
+       {/* TOOLBAR - Only show for owner */}
       {isOwner && (
         <div className="flex items-center justify-center py-2 bg-white border-b border-gray-200/60">
           <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-50/80 rounded-md border border-gray-200/50">

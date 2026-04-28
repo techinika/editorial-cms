@@ -99,6 +99,7 @@ export const getAssets = async (
   limit = 20,
   userId?: string | null,
   isAdmin = false,
+  searchQuery?: string,
 ): Promise<Asset[]> => {
   const from = page * limit;
   const to = from + limit - 1;
@@ -109,6 +110,10 @@ export const getAssets = async (
       .select(assetSelect)
       .order("created_at", { ascending: false })
       .range(from, to);
+
+    if (searchQuery) {
+      query = query.ilike("name", `%${searchQuery}%`);
+    }
 
     if (!isAdmin && userId) {
       query = query.eq("author_id", userId);
@@ -134,6 +139,7 @@ export const getAssetsByType = async (
   limit = 20,
   userId?: string | null,
   isAdmin = false,
+  searchQuery?: string,
 ): Promise<Asset[]> => {
   const from = page * limit;
   const to = from + limit - 1;
@@ -145,6 +151,10 @@ export const getAssetsByType = async (
       .eq("type", type)
       .order("created_at", { ascending: false })
       .range(from, to);
+
+    if (searchQuery) {
+      query = query.ilike("name", `%${searchQuery}%`);
+    }
 
     if (!isAdmin && userId) {
       query = query.eq("author_id", userId);

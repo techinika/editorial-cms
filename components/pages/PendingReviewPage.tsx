@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   FileText,
   Search,
   Clock,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import { AuthResult } from "@/lib/auth";
@@ -53,28 +55,43 @@ export default function PendingReviewPage({ user }: PendingReviewPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700">
-              ← Back
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Pending Review</h1>
-              <p className="text-sm text-gray-500">
-                Articles with feedback on your articles
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <UserNav user={user} />
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search */}
-        <div className="mb-8">
+       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 shadow-sm">
+         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+           <div>
+             <h1 className="text-2xl font-bold text-gray-900">Pending Review</h1>
+               <p className="text-sm text-gray-500">
+                 Articles with feedback on your articles
+               </p>
+           </div>
+           <div className="flex items-center">
+             <UserNav user={user} />
+           </div>
+         </div>
+       </header>
+       <main className="max-w-7xl mx-auto px-6 py-8">
+         <section className="mb-6">
+           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+             Quick Actions
+           </h2>
+           <div className="flex flex-wrap gap-6">
+             <Link href="/create" className="group text-left">
+               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                 <Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+               </div>
+               <span className="text-sm font-medium">New Article</span>
+             </Link>
+             
+             <Link href="/" className="group text-left">
+               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                 <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+               </div>
+               <span className="text-sm font-medium">Articles</span>
+             </Link>
+           </div>
+         </section>
+         
+         {/* Search */}
+         <div className="mb-8">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input

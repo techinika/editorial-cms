@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Loader2, User, Shield, ToggleLeft, ToggleRight, FileText, ArrowLeft, Check, X, Building } from "lucide-react";
+import { Search, Loader2, User, Shield, ToggleLeft, ToggleRight, FileText, ArrowLeft, Check, X, Building, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Author } from "@/types/author";
 import { UserCompany } from "@/types/user-company";
 import { getAllAuthorsWithRoles, updateAuthorRole, toggleAuthorAdmin, toggleAuthorActive, getCompanyRequests, getVerifiedUserCompanies, approveUserCompany, rejectUserCompany } from "@/supabase/CRUD/querries";
@@ -144,17 +145,13 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push("/")} className="flex items-center gap-2 hover:bg-gray-100 rounded-lg px-2 py-1">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-            <span className="text-sm text-gray-600">Back</span>
-          </button>
-          <div className="bg-[#3182ce] p-2 rounded-lg">
-            <FileText className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-medium">Blog CMS</h1>
-        </div>
+       <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
+         <div className="flex items-center gap-4">
+           <div className="bg-[#3182ce] p-2 rounded-lg">
+             <FileText className="text-white w-6 h-6" />
+           </div>
+           <h1 className="text-xl font-medium">Blog CMS</h1>
+         </div>
         <div className="flex items-center gap-3">
           {isAdmin && (
             <button
@@ -171,20 +168,47 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Authors & Users</h1>
-          <div className="relative w-80">
-            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-lg py-2.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-            />
-          </div>
-        </div>
+       <main className="max-w-6xl mx-auto p-6">
+         <section className="mb-6">
+           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+             Quick Actions
+           </h2>
+           <div className="flex flex-wrap gap-6">
+             <button
+               onClick={() => {
+                 // Navigate to create author form or similar action
+                 showToast("info", "Author creation would be implemented here");
+               }}
+               className="group text-left"
+             >
+               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                 <Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+               </div>
+               <span className="text-sm font-medium">Add New Author</span>
+             </button>
+             
+             <Link href="/" className="group text-left">
+               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                 <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+               </div>
+               <span className="text-sm font-medium">Articles</span>
+             </Link>
+           </div>
+         </section>
+         
+         <div className="flex items-center justify-between mb-6">
+           <h1 className="text-2xl font-bold text-gray-900">Authors & Users</h1>
+           <div className="relative w-80">
+             <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+             <input
+               type="text"
+               placeholder="Search users..."
+               value={search}
+               onChange={(e) => setSearch(e.target.value)}
+               className="w-full bg-white border border-gray-200 rounded-lg py-2.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+             />
+           </div>
+         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
