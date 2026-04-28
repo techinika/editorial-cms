@@ -8,9 +8,9 @@ export const updateArticleThumbnail = async (
   try {
     const { error } = await supabaseAdminClient
       .from("articles")
-      .update({ 
+      .update({
         thumbnail_id: assetId,
-        image_url: null,
+        image: null,
       })
       .eq("id", articleId);
 
@@ -83,7 +83,10 @@ export const getAllAuthorsWithRoles = async (
   try {
     let query = supabaseAdminClient
       .from("authors")
-      .select("*")
+      .select(`
+        *,
+        imageAsset:assets!image_ref (id, url)
+      `)
       .order("name", { ascending: true });
 
     if (search) {
@@ -207,14 +210,12 @@ export const createAuthor = async (
   lang: string = "en",
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
-      .from("authors")
-      .insert({
-        id: userId,
-        name,
-        role,
-        lang,
-      });
+    const { error } = await supabaseAdminClient.from("authors").insert({
+      id: userId,
+      name,
+      role,
+      lang,
+    });
 
     if (error) {
       console.error("Error creating author:", error);
@@ -228,9 +229,7 @@ export const createAuthor = async (
   }
 };
 
-export const deleteAuthor = async (
-  authorId: string,
-): Promise<boolean> => {
+export const deleteAuthor = async (authorId: string): Promise<boolean> => {
   try {
     const { error } = await supabaseAdminClient
       .from("authors")

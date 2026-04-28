@@ -16,4 +16,8 @@ export interface Author {
   linkedin_handle: string | null;
   role: string;
   active: boolean;
+  imageAsset?: {
+    id: string;
+    url: string;
+  } | null;
 }
