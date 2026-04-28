@@ -243,17 +243,46 @@ const ArticleEditor = ({
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         setUploadingEditorImage(true);
-        const url = await uploadArticleImageToCloudinary(file);
-        setUploadingEditorImage(false);
-        if (url) {
-          editor?.chain().focus().insertContent(`<img src="${url}" />`).run();
-        } else {
-          showToast("error", "Failed to upload image");
-        }
+        
+        // Read file as base64
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = async () => {
+          try {
+            // Upload through API that creates asset and tracks article_assets
+            const response = await fetch("/api/inline-upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                file: reader.result,
+                fileName: file.name,
+                articleId: articleId,
+                userId: authUser?.user?.id,
+              }),
+            });
+            
+            const data = await response.json();
+            setUploadingEditorImage(false);
+            
+            if (data.url) {
+              // Insert image with reference to asset ID
+              const assetId = data.assetId;
+              editor?.chain().focus().insertContent(
+                `<img src="${data.url}" data-asset-id="${assetId}" />`
+              ).run();
+              showToast("success", "Image uploaded!");
+            } else {
+              showToast("error", data.error || "Failed to upload image");
+            }
+          } catch (error) {
+            setUploadingEditorImage(false);
+            showToast("error", "Failed to upload image");
+          }
+        };
       }
     };
     input.click();
-  }, [editor]);
+  }, [editor, articleId, authUser]);
 
   const handleEditorVideoUpload = useCallback(async () => {
     const input = document.createElement("input");

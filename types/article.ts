@@ -1,5 +1,6 @@
 import { Author } from "./author";
 import { Category } from "./category";
+import { Asset } from "./asset";
 
 export type ArticleStatus = "draft" | "published" | "cancelled";
 
@@ -37,6 +38,7 @@ export interface JoinedArticle extends Omit<
 > {
   author: Author | null;
   category: Category | null;
+  thumbnailAsset: Asset | null;
   hasPendingActivity?: boolean;
 }
 

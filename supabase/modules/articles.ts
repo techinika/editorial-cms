@@ -11,7 +11,8 @@ const generateSlug = (title: string): string => {
 const articleSelect = `
   *,
   author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
-  category:categories (id, name)
+  category:categories (id, name),
+  thumbnailAsset:assets!thumbnail_id (id, created_at, updated_at, name, url, type, views, author_id)
 `;
 
 export const createArticle = async (
