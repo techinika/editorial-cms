@@ -17,6 +17,7 @@ import {
   Eye,
   Upload,
   Loader2,
+  FileImage,
 } from "lucide-react";
 import { Asset, AssetType, AssetFormData } from "@/types/asset";
 import {
@@ -56,6 +57,12 @@ export default function AssetsPage({ user }: AssetsPageProps) {
   const [formLoading, setFormLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewAsset, setPreviewAsset] = useState<{
+    name: string;
+    url: string;
+    type: AssetType;
+  } | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
@@ -143,16 +150,24 @@ export default function AssetsPage({ user }: AssetsPageProps) {
           });
 
           if ((result as any)?.url) {
-            setFormUrl((result as any).url);
+            const uploadedUrl = (result as any).url;
+            setFormUrl(uploadedUrl);
+            
+            const assetPreview = {
+              name: file.name.split(".")[0] || file.name,
+              url: uploadedUrl,
+              type: formType,
+            };
+            setPreviewAsset(assetPreview);
+            setShowPreviewModal(true);
+            
+            if (!formName) {
+              setFormName(assetPreview.name);
+            }
           }
-          if (!formName) {
-            setFormName(file.name.split(".")[0]);
-          }
-          showToast("success", "File uploaded successfully!");
         } catch (error) {
           console.error("Upload error:", error);
           showToast("error", "Failed to upload file");
-        } finally {
           setUploading(false);
         }
       };
@@ -194,6 +209,28 @@ export default function AssetsPage({ user }: AssetsPageProps) {
         resetForm();
         showToast("success", "Asset added successfully!");
       }
+    }
+
+    setFormLoading(false);
+  };
+
+  const confirmAssetSave = async () => {
+    if (!previewAsset) return;
+    
+    setFormLoading(true);
+    setShowPreviewModal(false);
+
+    const result = await createAsset({
+      name: formName,
+      url: formUrl,
+      type: formType,
+      author_id: user?.user?.id,
+    });
+
+    if (result) {
+      setAssets((prev) => [result, ...prev]);
+      resetForm();
+      showToast("success", "Asset added successfully!");
     }
 
     setFormLoading(false);
@@ -242,6 +279,7 @@ export default function AssetsPage({ user }: AssetsPageProps) {
     setFormUrl("");
     setFormType("image");
     setSelectedFile(null);
+    setPreviewAsset(null);
   };
 
   const getAssetIcon = (type: AssetType) => {
@@ -745,6 +783,92 @@ export default function AssetsPage({ user }: AssetsPageProps) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showPreviewModal && previewAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              setShowPreviewModal(false);
+              setUploading(false);
+            }}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Preview Asset
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  setUploading(false);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              {previewAsset.type === "image" ? (
+                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                  <img
+                    src={previewAsset.url}
+                    alt={previewAsset.name}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : previewAsset.type === "video" ? (
+                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                  <Video className="w-16 h-16 text-gray-400" />
+                  <p className="text-sm text-gray-500 ml-2">Video Preview</p>
+                </div>
+              ) : (
+                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                  <File className="w-16 h-16 text-gray-400" />
+                  <p className="text-sm text-gray-500 ml-2">Document Preview</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Name:</span> {previewAsset.name}
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Type:</span> {previewAsset.type}
+              </p>
+              <p className="text-sm text-gray-600 truncate">
+                <span className="font-medium">URL:</span> {previewAsset.url}
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  setUploading(false);
+                }}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAssetSave}
+                disabled={formLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {formLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                Confirm & Save
+              </button>
+            </div>
           </div>
         </div>
       )}

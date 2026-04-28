@@ -77,6 +77,7 @@ import {
 import { useToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import UserNav from "@/components/UserNav";
+import AssetSelectionModal from "@/components/AssetSelectionModal";
 
 interface Metadata {
   title: string;
@@ -136,6 +137,7 @@ const ArticleEditor = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingEditorImage, setUploadingEditorImage] = useState(false);
+  const [showAssetModal, setShowAssetModal] = useState(false);
   const [authUser, setAuthUser] = useState<AuthResult | null>(
     initialAuthUser || null,
   );
@@ -274,22 +276,6 @@ const ArticleEditor = ({
     };
     input.click();
   }, [editor]);
-
-  const handleThumbnailUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadingImage(true);
-      const url = await uploadThumbnailToCloudinary(file);
-      setUploadingImage(false);
-      if (url) {
-        setMetadata((prev) => ({ ...prev, image: url }));
-      } else {
-        showToast("error", "Failed to upload image");
-      }
-    }
-  };
 
   const removeThumbnail = () => {
     setMetadata((prev) => ({ ...prev, image: null }));
@@ -1066,15 +1052,12 @@ const ArticleEditor = ({
                         alt="Thumbnail"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
-                        <label className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-md cursor-pointer hover:bg-gray-100">
+                        <button
+                          onClick={() => setShowAssetModal(true)}
+                          className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-md cursor-pointer hover:bg-gray-100"
+                        >
                           Change
-                          <input
-                            type="file"
-                            hidden
-                            onChange={handleThumbnailUpload}
-                            accept="image/*"
-                          />
-                        </label>
+                        </button>
                         <button
                           onClick={removeThumbnail}
                           className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600"
@@ -1084,7 +1067,10 @@ const ArticleEditor = ({
                       </div>
                     </>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-50 transition-colors">
+                    <button
+                      onClick={() => setShowAssetModal(true)}
+                      className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
                       {uploadingImage ? (
                         <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
                       ) : (
@@ -1095,13 +1081,7 @@ const ArticleEditor = ({
                           </span>
                         </>
                       )}
-                      <input
-                        type="file"
-                        hidden
-                        onChange={handleThumbnailUpload}
-                        accept="image/*"
-                      />
-                    </label>
+                    </button>
                   )}
                 </div>
               </div>
@@ -1597,6 +1577,16 @@ const ArticleEditor = ({
         confirmLabel="Update"
         type="info"
         loading={isSaving}
+      />
+
+      <AssetSelectionModal
+        isOpen={showAssetModal}
+        onClose={() => setShowAssetModal(false)}
+        onSelect={(asset) => {
+          setMetadata((prev) => ({ ...prev, image: asset.url }));
+          setShowAssetModal(false);
+        }}
+        user={authUser || undefined}
       />
     </div>
   );
