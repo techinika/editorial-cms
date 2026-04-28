@@ -4,6 +4,24 @@ import { Asset } from "./asset";
 
 export type ArticleStatus = "draft" | "published" | "cancelled";
 
+export type BlockType = "paragraph" | "heading" | "image" | "quote" | "code" | "list";
+
+export type Block = {
+  id: string;
+  type: BlockType;
+  content: string;
+  level?: number;
+  assetId?: string | null;
+  language?: string;
+  url?: string;
+};
+
+export type TOCEntry = {
+  slug: string;
+  level: number;
+  title: string;
+};
+
 export type Article = {
   id: string;
   lang: string;
@@ -16,7 +34,8 @@ export type Article = {
   read_time: string | null;
   image: string | null;
   content: string;
-  table_of_contents: Record<string, unknown> | null;
+  blocks: Block[] | null;
+  table_of_contents: TOCEntry[] | null;
   tags: string | null;
   summary: string | null;
   views: number;
@@ -46,6 +65,7 @@ export interface ArticleFormData {
   title: string;
   slug?: string;
   content: string;
+  blocks?: Block[] | null;
   image?: string | null;
   category_id?: string | null;
   tags?: string;

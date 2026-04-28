@@ -76,8 +76,11 @@ import {
 } from "@/app/actions/contributors";
 import { useToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
+
 import UserNav from "@/components/UserNav";
+
 import AssetSelectionModal from "@/components/AssetSelectionModal";
+import { Block, TOCEntry, isLegacyContent, convertLegacyContent } from "@/lib/content-parser";
 
 interface Metadata {
   title: string;
@@ -171,6 +174,8 @@ const ArticleEditor = ({
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
+  const [parsedBlocks, setParsedBlocks] = useState<Block[]>([]);
+  const [toc, setToc] = useState<TOCEntry[]>([]);
 
   const editor = useEditor({
     extensions: [
@@ -201,6 +206,14 @@ const ArticleEditor = ({
           "prose prose-lg max-w-none focus:outline-none min-h-[500px] leading-relaxed text-gray-700",
       },
     },
+    onUpdate: ({ editor }) => {
+      if (editor) {
+        const html = editor.getHTML();
+        const result = convertLegacyContent(html);
+        setParsedBlocks(result.blocks);
+        setToc(result.toc);
+      }
+    },
   });
 
   const wordCount = editor?.getText().split(/\s+/).filter(Boolean).length || 0;
@@ -221,6 +234,14 @@ const ArticleEditor = ({
       fetchAllAuthors().then(setAllAuthors).catch(console.error);
     }
   }, []);
+
+  useEffect(() => {
+    if (editor && initialArticle?.content) {
+      const result = convertLegacyContent(initialArticle.content);
+      setParsedBlocks(result.blocks);
+      setToc(result.toc);
+    }
+  }, [editor, initialArticle?.content]);
 
   const setLink = useCallback(() => {
     if (linkUrl) {
@@ -333,6 +354,7 @@ const ArticleEditor = ({
         const result = await updateArticle(articleId, {
           title: metadata.title,
           content: htmlContent,
+          blocks: parsedBlocks,
           image: metadata.image,
           category_id: metadata.category_id || null,
           tags: metadata.tags,
@@ -350,6 +372,7 @@ const ArticleEditor = ({
         const result = await createArticle({
           title: metadata.title,
           content: htmlContent,
+          blocks: parsedBlocks,
           image: metadata.image,
           category_id: metadata.category_id || null,
           tags: metadata.tags,
@@ -422,6 +445,7 @@ const ArticleEditor = ({
           {
             title: metadata.title,
             content: htmlContent,
+            blocks: parsedBlocks,
             image: metadata.image,
             category_id: metadata.category_id || null,
             tags: metadata.tags,
@@ -438,6 +462,7 @@ const ArticleEditor = ({
         result = await createArticle({
           title: metadata.title,
           content: htmlContent,
+          blocks: parsedBlocks,
           image: metadata.image,
           category_id: metadata.category_id || null,
           tags: metadata.tags,
