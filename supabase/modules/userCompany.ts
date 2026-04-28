@@ -3,7 +3,7 @@ import { supabaseAdminClient } from "../supabase";
 
 const userCompanySelect = `
   *,
-  company:featured_startups (id, name, slug, logo),
+  company:featured_startups (id, name, slug, logo_url),
   addedByUser:authors!added_by (id, name)
 `;
 
@@ -75,7 +75,7 @@ export const approveUserCompany = async (
   try {
     const { error } = await supabaseAdminClient
       .from("user_company")
-      .update({ 
+      .update({
         status: "accepted",
         verified: true,
       })
@@ -99,7 +99,7 @@ export const rejectUserCompany = async (
   try {
     const { error } = await supabaseAdminClient
       .from("user_company")
-      .update({ 
+      .update({
         status: "rejected",
       })
       .eq("id", userCompanyId);
@@ -123,16 +123,14 @@ export const addUserCompany = async (
   addedBy: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
-      .from("user_company")
-      .insert({
-        user_id: userId,
-        company_id: companyId,
-        role,
-        added_by: addedBy,
-        status: "pending",
-        verified: false,
-      });
+    const { error } = await supabaseAdminClient.from("user_company").insert({
+      user_id: userId,
+      company_id: companyId,
+      role,
+      added_by: addedBy,
+      status: "pending",
+      verified: false,
+    });
 
     if (error) {
       console.error("Error adding user company:", error);

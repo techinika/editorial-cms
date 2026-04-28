@@ -1,12 +1,34 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Loader2, User, Shield, ToggleLeft, ToggleRight, FileText, ArrowLeft, Check, X, Building, Plus } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  User,
+  Shield,
+  ToggleLeft,
+  ToggleRight,
+  FileText,
+  ArrowLeft,
+  Check,
+  X,
+  Building,
+  Plus,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Author } from "@/types/author";
 import { UserCompany } from "@/types/user-company";
-import { getAllAuthorsWithRoles, updateAuthorRole, toggleAuthorAdmin, toggleAuthorActive, getCompanyRequests, getVerifiedUserCompanies, approveUserCompany, rejectUserCompany } from "@/supabase/CRUD/querries";
+import {
+  getAllAuthorsWithRoles,
+  updateAuthorRole,
+  toggleAuthorAdmin,
+  toggleAuthorActive,
+  getCompanyRequests,
+  getVerifiedUserCompanies,
+  approveUserCompany,
+  rejectUserCompany,
+} from "@/supabase/CRUD/querries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
 import UserNav from "@/components/UserNav";
@@ -119,8 +141,10 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
     }
   };
 
-  const authorsList = authors.filter(a => a.role === "author" || a.role === "manager");
-  const undecided = authors.filter(a => a.role === "undecided");
+  const authorsList = authors.filter(
+    (a) => a.role === "author" || a.role === "manager",
+  );
+  const undecided = authors.filter((a) => a.role === "undecided");
 
   if (!isAdmin) {
     return (
@@ -137,7 +161,9 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
         <div className="p-8 text-center">
           <Shield className="w-16 h-16 mx-auto text-gray-300 mb-4" />
           <h1 className="text-xl font-semibold text-gray-900">Access Denied</h1>
-          <p className="text-gray-500 mt-2">You need admin access to view this page.</p>
+          <p className="text-gray-500 mt-2">
+            You need admin access to view this page.
+          </p>
         </div>
       </div>
     );
@@ -145,19 +171,21 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-       <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-         <div className="flex items-center gap-4">
-           <div className="bg-[#3182ce] p-2 rounded-lg">
-             <FileText className="text-white w-6 h-6" />
-           </div>
-           <h1 className="text-xl font-medium">Blog CMS</h1>
-         </div>
+      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <div className="bg-[#3182ce] p-2 rounded-lg">
+            <FileText className="text-white w-6 h-6" />
+          </div>
+          <h1 className="text-xl font-medium">Blog CMS</h1>
+        </div>
         <div className="flex items-center gap-3">
           {isAdmin && (
             <button
               onClick={() => setShowCompanies(!showCompanies)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
-                showCompanies ? "bg-[#3182ce] text-white" : "bg-gray-100 text-gray-700"
+                showCompanies
+                  ? "bg-[#3182ce] text-white"
+                  : "bg-gray-100 text-gray-700"
               }`}
             >
               <Building className="w-4 h-4" />
@@ -168,47 +196,50 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
         </div>
       </header>
 
-       <main className="max-w-6xl mx-auto p-6">
-         <section className="mb-6">
-           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-             Quick Actions
-           </h2>
-           <div className="flex flex-wrap gap-6">
-             <button
-               onClick={() => {
-                 // Navigate to create author form or similar action
-                 showToast("info", "Author creation would be implemented here");
-               }}
-               className="group text-left"
-             >
-               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                 <Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-               </div>
-               <span className="text-sm font-medium">Add New Author</span>
-             </button>
-             
-             <Link href="/" className="group text-left">
-               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                 <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-               </div>
-               <span className="text-sm font-medium">Articles</span>
-             </Link>
-           </div>
-         </section>
-         
-         <div className="flex items-center justify-between mb-6">
-           <h1 className="text-2xl font-bold text-gray-900">Authors & Users</h1>
-           <div className="relative w-80">
-             <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-             <input
-               type="text"
-               placeholder="Search users..."
-               value={search}
-               onChange={(e) => setSearch(e.target.value)}
-               className="w-full bg-white border border-gray-200 rounded-lg py-2.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-             />
-           </div>
-         </div>
+      <main className="max-w-6xl mx-auto p-6">
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Quick Actions
+          </h2>
+          <div className="flex flex-wrap gap-6">
+            <button
+              onClick={() => {
+                // Navigate to create author form or similar action
+                showToast("info", "Author creation would be implemented here");
+              }}
+              className="group text-left"
+            >
+              <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-medium">Add New Author</span>
+            </button>
+
+            <Link href="/" className="group text-left">
+              <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <FileText
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">Articles</span>
+            </Link>
+          </div>
+        </section>
+
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Authors & Users</h1>
+          <div className="relative w-80">
+            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-lg py-2.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+            />
+          </div>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -218,16 +249,25 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
           <div className="space-y-8">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5" /> Authors & Managers ({authorsList.length})
+                <Shield className="w-5 h-5" /> Authors & Managers (
+                {authorsList.length})
               </h2>
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        User
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Role
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Admin
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Active
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -236,22 +276,32 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                              {author.image_url ? (
-                                <img src={author.image_url} alt={author.name} className="w-full h-full object-cover" />
+                              {author.imageAsset?.url ? (
+                                <img
+                                  src={author.imageAsset?.url}
+                                  alt={author.name}
+                                  className="w-full h-full object-cover"
+                                />
                               ) : (
                                 <User className="w-5 h-5 text-gray-400" />
                               )}
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{author.name}</p>
-                              <p className="text-sm text-gray-500">{author.username || "No username"}</p>
+                              <p className="font-medium text-gray-900">
+                                {author.name}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {author.username || "No username"}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <select
                             value={author.role}
-                            onChange={(e) => handleRoleChange(author.id, e.target.value)}
+                            onChange={(e) =>
+                              handleRoleChange(author.id, e.target.value)
+                            }
                             disabled={saving === author.id}
                             className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 disabled:opacity-50"
                           >
@@ -262,19 +312,31 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                         </td>
                         <td className="px-4 py-3">
                           <button
-                            onClick={() => handleAdminToggle(author.id, !author.is_admin)}
+                            onClick={() =>
+                              handleAdminToggle(author.id, !author.is_admin)
+                            }
                             disabled={saving === author.id}
                             className={`flex items-center gap-1 ${author.is_admin ? "text-green-600" : "text-gray-400"}`}
                           >
-                            {author.is_admin ? <Shield className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
-                            <span className="text-sm">{author.is_admin ? "Yes" : "No"}</span>
+                            {author.is_admin ? (
+                              <Shield className="w-5 h-5" />
+                            ) : (
+                              <Shield className="w-5 h-5" />
+                            )}
+                            <span className="text-sm">
+                              {author.is_admin ? "Yes" : "No"}
+                            </span>
                           </button>
                         </td>
                         <td className="px-4 py-3">
                           <button
-                            onClick={() => handleActiveToggle(author.id, !author.active)}
+                            onClick={() =>
+                              handleActiveToggle(author.id, !author.active)
+                            }
                             disabled={saving === author.id}
-                            className={author.active ? "text-green-600" : "text-red-600"}
+                            className={
+                              author.active ? "text-green-600" : "text-red-600"
+                            }
                           >
                             {author.active ? (
                               <ToggleRight className="w-8 h-5" />
@@ -288,7 +350,9 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                   </tbody>
                 </table>
                 {authorsList.length === 0 && (
-                  <div className="py-8 text-center text-gray-500">No authors found</div>
+                  <div className="py-8 text-center text-gray-500">
+                    No authors found
+                  </div>
                 )}
               </div>
             </div>
@@ -301,9 +365,15 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        User
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Role
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Active
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -312,22 +382,32 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                              {author.image_url ? (
-                                <img src={author.image_url} alt={author.name} className="w-full h-full object-cover" />
+                              {author.imageAsset?.url ? (
+                                <img
+                                  src={author.imageAsset?.url}
+                                  alt={author.name}
+                                  className="w-full h-full object-cover"
+                                />
                               ) : (
                                 <User className="w-5 h-5 text-gray-400" />
                               )}
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{author.name}</p>
-                              <p className="text-sm text-gray-500">{author.username || "No username"}</p>
+                              <p className="font-medium text-gray-900">
+                                {author.name}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {author.username || "No username"}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <select
                             value={author.role}
-                            onChange={(e) => handleRoleChange(author.id, e.target.value)}
+                            onChange={(e) =>
+                              handleRoleChange(author.id, e.target.value)
+                            }
                             disabled={saving === author.id}
                             className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 disabled:opacity-50"
                           >
@@ -338,9 +418,13 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                         </td>
                         <td className="px-4 py-3">
                           <button
-                            onClick={() => handleActiveToggle(author.id, !author.active)}
+                            onClick={() =>
+                              handleActiveToggle(author.id, !author.active)
+                            }
                             disabled={saving === author.id}
-                            className={author.active ? "text-green-600" : "text-red-600"}
+                            className={
+                              author.active ? "text-green-600" : "text-red-600"
+                            }
                           >
                             {author.active ? (
                               <ToggleRight className="w-8 h-5" />
@@ -354,7 +438,9 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                   </tbody>
                 </table>
                 {undecided.length === 0 && (
-                  <div className="py-8 text-center text-gray-500">No undecided users found</div>
+                  <div className="py-8 text-center text-gray-500">
+                    No undecided users found
+                  </div>
                 )}
               </div>
             </div>
@@ -364,67 +450,99 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
         {showCompanies && (
           <div className="space-y-8">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-600" /> Verified Managers ({verifiedCompanies.length})
+              <h2 className="text-lg font-semibold text-gray-900 mb-2 mt-8 flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-600" /> Verified Managers (
+                {verifiedCompanies.length})
               </h2>
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        User
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Company
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Role
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {verifiedCompanies.map((uc) => (
                       <tr key={uc.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{uc.addedByUser?.name || "Unknown"}</p>
+                          <p className="font-medium text-gray-900">
+                            {uc.addedByUser?.name || "Unknown"}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{uc.company?.name || "Unknown"}</p>
+                          <p className="font-medium text-gray-900">
+                            {uc.company?.name || "Unknown"}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-sm text-gray-600">{uc.role}</span>
+                          <span className="text-sm text-gray-600">
+                            {uc.role}
+                          </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {verifiedCompanies.length === 0 && (
-                  <div className="py-8 text-center text-gray-500">No verified managers</div>
+                  <div className="py-8 text-center text-gray-500">
+                    No verified managers
+                  </div>
                 )}
               </div>
             </div>
 
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Building className="w-5 h-5" /> Company Requests ({companyRequests.length})
+                <Building className="w-5 h-5" /> Company Requests (
+                {companyRequests.length})
               </h2>
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        User
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Company
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {companyRequests.map((uc) => (
                       <tr key={uc.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{uc.addedByUser?.name || "Unknown"}</p>
+                          <p className="font-medium text-gray-900">
+                            {uc.addedByUser?.name || "Unknown"}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{uc.company?.name || "Unknown"}</p>
+                          <p className="font-medium text-gray-900">
+                            {uc.company?.name || "Unknown"}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-sm px-2 py-1 rounded ${
-                            uc.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
-                          }`}>
+                          <span
+                            className={`text-sm px-2 py-1 rounded ${
+                              uc.status === "rejected"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
                             {uc.status}
                           </span>
                         </td>
@@ -449,7 +567,9 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                   </tbody>
                 </table>
                 {companyRequests.length === 0 && (
-                  <div className="py-8 text-center text-gray-500">No pending requests</div>
+                  <div className="py-8 text-center text-gray-500">
+                    No pending requests
+                  </div>
                 )}
               </div>
             </div>
