@@ -32,6 +32,7 @@ import {
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
+import AssetAssignModal from "@/components/AssetAssignModal";
 import { upload } from "@imagekit/next";
 
 interface AssetsPageProps {
@@ -74,6 +75,9 @@ export default function AssetsPage({ user }: AssetsPageProps) {
     articles: Array<{ id: string; title: string; slug: string; field: string }>;
   }>({ articles: [] });
   const [usageLoading, setUsageLoading] = useState(false);
+
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assigningAsset, setAssigningAsset] = useState<Asset | null>(null);
 
   useEffect(() => {
     loadAssets();
@@ -624,6 +628,17 @@ export default function AssetsPage({ user }: AssetsPageProps) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              setAssigningAsset(asset);
+                              setShowAssignModal(true);
+                            }}
+                            className="p-1.5 bg-white/90 rounded-md hover:bg-white text-[#3182ce] shadow-sm"
+                            title="Assign"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleDeleteClick(asset);
                             }}
                             className="p-1.5 bg-white/90 rounded-md hover:bg-white text-red-600 shadow-sm"
@@ -871,6 +886,17 @@ export default function AssetsPage({ user }: AssetsPageProps) {
             </div>
           </div>
         </div>
+        )}
+
+      {showAssignModal && assigningAsset && (
+        <AssetAssignModal
+          isOpen={showAssignModal}
+          onClose={() => {
+            setShowAssignModal(false);
+            setAssigningAsset(null);
+          }}
+          asset={assigningAsset}
+        />
       )}
     </div>
   );

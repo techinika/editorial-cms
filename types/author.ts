@@ -6,4 +6,5 @@ export interface Author {
   bio: string | null;
   image_url: string | null;
   external_link: string | null;
+  image_ref: string | null;
 }
