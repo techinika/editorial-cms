@@ -24,7 +24,7 @@ import { useToast } from "@/components/Toast";
 interface AssetSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (asset: Asset) => void;
+  onSelect: (asset: Asset, field?: "thumbnail" | "content") => void;
   currentAssetId?: string | null;
   user?: { id?: string; isAdmin?: boolean };
 }
@@ -358,7 +358,7 @@ export default function AssetSelectionModal({
                 {assets.map((asset) => (
                   <div
                     key={asset.id}
-                    onClick={() => onSelect(asset)}
+                    onClick={() => onSelect(asset, "thumbnail")}
                     className={`group cursor-pointer ${
                       currentAssetId === asset.id ? "ring-2 ring-[#3182ce]" : ""
                     }`}

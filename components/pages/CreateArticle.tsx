@@ -87,6 +87,7 @@ interface Metadata {
   readTime: number;
   category_id: string;
   image: string | null;
+  thumbnail_id: string | null;
 }
 
 const PRIMARY_COLOR = "#3182ce";
@@ -123,6 +124,7 @@ const ArticleEditor = ({
     readTime: parseInt(initialArticle?.read_time || "5") || 5,
     category_id: initialArticle?.category?.id || "",
     image: initialArticle?.image || null,
+    thumbnail_id: (initialArticle as any)?.thumbnail_id || null,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -310,6 +312,7 @@ const ArticleEditor = ({
           status: "draft",
           author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
+          thumbnail_id: metadata.thumbnail_id || null,
         });
         if (result) {
           showToast("success", "Draft saved!");
@@ -326,6 +329,7 @@ const ArticleEditor = ({
           status: "draft",
           author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
+          thumbnail_id: metadata.thumbnail_id || null,
         });
         if (result) {
           setArticleId(result.id);
@@ -397,6 +401,7 @@ const ArticleEditor = ({
             status: "published",
             author_id: authorId,
             author_name: authUser.user.user_metadata.full_name || null,
+            thumbnail_id: metadata.thumbnail_id || null,
           },
           authUser.user.id,
         );
@@ -1582,8 +1587,13 @@ const ArticleEditor = ({
       <AssetSelectionModal
         isOpen={showAssetModal}
         onClose={() => setShowAssetModal(false)}
-        onSelect={(asset) => {
-          setMetadata((prev) => ({ ...prev, image: asset.url }));
+        onSelect={(asset, field) => {
+          // Set the thumbnail image URL and store the asset ID
+          setMetadata((prev) => ({ 
+            ...prev, 
+            image: asset.url,
+            thumbnail_id: asset.id 
+          }));
           setShowAssetModal(false);
         }}
         user={authUser || undefined}
