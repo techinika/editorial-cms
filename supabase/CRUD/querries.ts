@@ -17,8 +17,14 @@ export * from "../modules/articleAssets";
 export {
   getAllArticles,
   getAllAuthors,
+  getAllAuthorsWithRoles,
   updateArticleThumbnail,
   updateAuthorImageRef,
+  updateAuthorRole,
+  toggleAuthorAdmin,
+  toggleAuthorActive,
+  createAuthor,
+  deleteAuthor,
 } from "../modules/assign";
 
 export type { ArticleFilter } from "../modules/articles";

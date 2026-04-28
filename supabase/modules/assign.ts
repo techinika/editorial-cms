@@ -1,4 +1,5 @@
 import { supabaseAdminClient } from "../supabase";
+import { Author } from "@/types/author";
 
 export const updateArticleThumbnail = async (
   articleId: string,
@@ -9,7 +10,7 @@ export const updateArticleThumbnail = async (
       .from("articles")
       .update({ 
         thumbnail_id: assetId,
-        image_url: null, // Will be fetched from asset when displaying
+        image_url: null,
       })
       .eq("id", articleId);
 
@@ -76,6 +77,33 @@ export const getAllArticles = async (
   }
 };
 
+export const getAllAuthorsWithRoles = async (
+  search?: string,
+): Promise<Author[]> => {
+  try {
+    let query = supabaseAdminClient
+      .from("authors")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (search) {
+      query = query.ilike("name", `%${search}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching authors:", error);
+      return [];
+    }
+
+    return data as unknown as Author[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
 export const getAllAuthors = async (
   search?: string,
   limit = 20,
@@ -84,6 +112,7 @@ export const getAllAuthors = async (
     let query = supabaseAdminClient
       .from("authors")
       .select("id, name, image_url")
+      .eq("role", "author")
       .order("name", { ascending: true })
       .limit(limit);
 
@@ -102,5 +131,120 @@ export const getAllAuthors = async (
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
+  }
+};
+
+export const updateAuthorRole = async (
+  authorId: string,
+  role: string,
+): Promise<boolean> => {
+  try {
+    const { error } = await supabaseAdminClient
+      .from("authors")
+      .update({ role })
+      .eq("id", authorId);
+
+    if (error) {
+      console.error("Error updating author role:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const toggleAuthorAdmin = async (
+  authorId: string,
+  isAdmin: boolean,
+): Promise<boolean> => {
+  try {
+    const { error } = await supabaseAdminClient
+      .from("authors")
+      .update({ is_admin: isAdmin })
+      .eq("id", authorId);
+
+    if (error) {
+      console.error("Error toggling admin:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const toggleAuthorActive = async (
+  authorId: string,
+  active: boolean,
+): Promise<boolean> => {
+  try {
+    const { error } = await supabaseAdminClient
+      .from("authors")
+      .update({ active })
+      .eq("id", authorId);
+
+    if (error) {
+      console.error("Error toggling active:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const createAuthor = async (
+  userId: string,
+  name: string,
+  role: string = "author",
+  lang: string = "en",
+): Promise<boolean> => {
+  try {
+    const { error } = await supabaseAdminClient
+      .from("authors")
+      .insert({
+        id: userId,
+        name,
+        role,
+        lang,
+      });
+
+    if (error) {
+      console.error("Error creating author:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
+  }
+};
+
+export const deleteAuthor = async (
+  authorId: string,
+): Promise<boolean> => {
+  try {
+    const { error } = await supabaseAdminClient
+      .from("authors")
+      .delete()
+      .eq("id", authorId);
+
+    if (error) {
+      console.error("Error deleting author:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
   }
 };

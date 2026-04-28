@@ -5,15 +5,19 @@ import { X, Search, Check, Loader2, FileText, Image } from "lucide-react";
 import { Asset, AssetType } from "@/types/asset";
 import { getAllArticles, getAllAuthors, updateArticleThumbnail, updateAuthorImageRef } from "@/supabase/CRUD/querries";
 import { useToast } from "@/components/Toast";
+import { AuthResult } from "@/lib/auth";
 
 interface AssetAssignModalProps {
   isOpen: boolean;
   onClose: () => void;
   asset: Asset;
+  user?: AuthResult;
 }
 
-export default function AssetAssignModal({ isOpen, onClose, asset }: AssetAssignModalProps) {
+export default function AssetAssignModal({ isOpen, onClose, asset, user }: AssetAssignModalProps) {
   const { showToast } = useToast();
+  const isAdmin = user?.isAdmin || false;
+  const currentUserId = user?.user?.id;
   const [assignType, setAssignType] = useState<"article" | "author">("article");
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Array<{ id: string; title?: string; name?: string; slug?: string }>>([]);
@@ -36,17 +40,28 @@ export default function AssetAssignModal({ isOpen, onClose, asset }: AssetAssign
       setLoading(true);
       if (assignType === "article") {
         const data = await getAllArticles(search, 10);
-        setResults(data);
+        const filteredData = isAdmin 
+          ? data 
+          : data.filter((a: any) => a.author?.id === currentUserId);
+        setResults(filteredData);
       } else {
         const data = await getAllAuthors(search);
-        setResults(data);
+        const filteredData = isAdmin 
+          ? data 
+          : data.filter((a: any) => a.id === currentUserId);
+        setResults(filteredData);
       }
       setLoading(false);
     };
     searchData();
-  }, [search, assignType]);
+  }, [search, assignType, isAdmin, currentUserId]);
 
   const handleAssign = async (targetId: string) => {
+    if (assignType === "author" && !isAdmin && targetId !== currentUserId) {
+      showToast("error", "You can only assign to your own profile");
+      return;
+    }
+    
     setSaving(true);
     let success = false;
     if (assignType === "article") {
