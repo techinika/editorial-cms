@@ -31,3 +31,6 @@ export type { ArticleFilter } from "../modules/articles";
 export type { UserStats } from "../modules/stats";
 export type { ContributorArticle } from "../modules/contributors";
 export type { Asset, AssetFormData, AssetType } from "@/types/asset";
+export type { UserCompany, FeaturedStartup } from "@/types/user-company";
+
+export * from "../modules/userCompany";

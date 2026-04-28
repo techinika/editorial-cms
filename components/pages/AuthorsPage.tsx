@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Loader2, User, Shield, ToggleLeft, ToggleRight, FileText } from "lucide-react";
+import { Search, Loader2, User, Shield, ToggleLeft, ToggleRight, FileText, ArrowLeft, Check, X, Building } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Author } from "@/types/author";
-import { getAllAuthorsWithRoles, updateAuthorRole, toggleAuthorAdmin, toggleAuthorActive } from "@/supabase/CRUD/querries";
+import { UserCompany } from "@/types/user-company";
+import { getAllAuthorsWithRoles, updateAuthorRole, toggleAuthorAdmin, toggleAuthorActive, getCompanyRequests, getVerifiedUserCompanies, approveUserCompany, rejectUserCompany } from "@/supabase/CRUD/querries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
 import UserNav from "@/components/UserNav";
@@ -20,11 +21,17 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
+  const [companyRequests, setCompanyRequests] = useState<UserCompany[]>([]);
+  const [verifiedCompanies, setVerifiedCompanies] = useState<UserCompany[]>([]);
+  const [showCompanies, setShowCompanies] = useState(false);
 
   const isAdmin = user?.isAdmin || false;
 
   useEffect(() => {
     loadAuthors();
+    if (isAdmin) {
+      loadCompanyData();
+    }
   }, []);
 
   const loadAuthors = async () => {
@@ -34,12 +41,43 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
     setLoading(false);
   };
 
+  const loadCompanyData = async () => {
+    const requests = await getCompanyRequests();
+    const verified = await getVerifiedUserCompanies();
+    setCompanyRequests(requests);
+    setVerifiedCompanies(verified);
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       loadAuthors();
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  const handleApproveCompany = async (id: string) => {
+    setSaving(id);
+    const success = await approveUserCompany(id);
+    setSaving(null);
+    if (success) {
+      showToast("success", "Company request approved");
+      loadCompanyData();
+    } else {
+      showToast("error", "Failed to approve");
+    }
+  };
+
+  const handleRejectCompany = async (id: string) => {
+    setSaving(id);
+    const success = await rejectUserCompany(id);
+    setSaving(null);
+    if (success) {
+      showToast("success", "Company request rejected");
+      loadCompanyData();
+    } else {
+      showToast("error", "Failed to reject");
+    }
+  };
 
   const handleRoleChange = async (authorId: string, role: string) => {
     if (!isAdmin) return;
@@ -108,12 +146,29 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
     <div className="min-h-screen bg-gray-50">
       <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
         <div className="flex items-center gap-4">
+          <button onClick={() => router.push("/")} className="flex items-center gap-2 hover:bg-gray-100 rounded-lg px-2 py-1">
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+            <span className="text-sm text-gray-600">Back</span>
+          </button>
           <div className="bg-[#3182ce] p-2 rounded-lg">
             <FileText className="text-white w-6 h-6" />
           </div>
           <h1 className="text-xl font-medium">Blog CMS</h1>
         </div>
-        <UserNav user={user} />
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              onClick={() => setShowCompanies(!showCompanies)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                showCompanies ? "bg-[#3182ce] text-white" : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              Companies
+            </button>
+          )}
+          <UserNav user={user} />
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-6">
@@ -276,6 +331,101 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
                 </table>
                 {undecided.length === 0 && (
                   <div className="py-8 text-center text-gray-500">No undecided users found</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showCompanies && (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-600" /> Verified Managers ({verifiedCompanies.length})
+              </h2>
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {verifiedCompanies.map((uc) => (
+                      <tr key={uc.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{uc.addedByUser?.name || "Unknown"}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{uc.company?.name || "Unknown"}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-gray-600">{uc.role}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {verifiedCompanies.length === 0 && (
+                  <div className="py-8 text-center text-gray-500">No verified managers</div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Building className="w-5 h-5" /> Company Requests ({companyRequests.length})
+              </h2>
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {companyRequests.map((uc) => (
+                      <tr key={uc.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{uc.addedByUser?.name || "Unknown"}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{uc.company?.name || "Unknown"}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-sm px-2 py-1 rounded ${
+                            uc.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
+                          }`}>
+                            {uc.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 flex gap-2">
+                          <button
+                            onClick={() => handleApproveCompany(uc.id)}
+                            disabled={saving === uc.id}
+                            className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+                          >
+                            <Check className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleRejectCompany(uc.id)}
+                            disabled={saving === uc.id}
+                            className="p-1 text-red-600 hover:text-red-700 disabled:opacity-50"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {companyRequests.length === 0 && (
+                  <div className="py-8 text-center text-gray-500">No pending requests</div>
                 )}
               </div>
             </div>
