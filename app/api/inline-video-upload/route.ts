@@ -10,20 +10,12 @@ export async function POST(request: NextRequest) {
       fileName, 
       articleId, 
       userId, 
-      fileType = "image",
       folder = "/article-content" 
     } = body;
 
     if (!file || !fileName) {
       return NextResponse.json(
         { error: "File and fileName are required" },
-        { status: 400 }
-      );
-    }
-
-    if (!["image", "video", "doc"].includes(fileType)) {
-      return NextResponse.json(
-        { error: "Invalid file type" },
         { status: 400 }
       );
     }
@@ -47,7 +39,7 @@ export async function POST(request: NextRequest) {
     const fileUrl = (result as any)?.url;
     if (!fileUrl) {
       return NextResponse.json(
-        { error: "Failed to upload file" },
+        { error: "Failed to upload video" },
         { status: 500 }
       );
     }
@@ -55,7 +47,7 @@ export async function POST(request: NextRequest) {
     const asset = await createAsset({
       name: fileName,
       url: fileUrl,
-      type: fileType,
+      type: "video",
       author_id: userId,
     });
 
@@ -76,9 +68,9 @@ export async function POST(request: NextRequest) {
       asset,
     });
   } catch (error) {
-    console.error("Inline upload error:", error);
+    console.error("Inline video upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload file" },
+      { error: "Failed to upload video" },
       { status: 500 }
     );
   }

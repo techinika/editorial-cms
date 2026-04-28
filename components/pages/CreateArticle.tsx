@@ -313,21 +313,43 @@ const ArticleEditor = ({
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         setUploadingEditorImage(true);
-        const url = await uploadArticleVideoToCloudinary(file);
-        setUploadingEditorImage(false);
-        if (url) {
-          editor
-            ?.chain()
-            .focus()
-            .insertContent(`<video src="${url}" controls />`)
-            .run();
-        } else {
-          showToast("error", "Failed to upload video");
-        }
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = async () => {
+          try {
+            const response = await fetch("/api/inline-video-upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                file: reader.result,
+                fileName: file.name,
+                articleId: articleId,
+                userId: authUser?.user?.id,
+              }),
+            });
+            
+            const data = await response.json();
+            setUploadingEditorImage(false);
+            
+            if (data.url) {
+              const assetId = data.assetId;
+              editor?.chain().focus().insertContent(
+                `<video src="${data.url}" controls data-asset-id="${assetId}" />`
+              ).run();
+              showToast("success", "Video uploaded!");
+            } else {
+              showToast("error", data.error || "Failed to upload video");
+            }
+          } catch (error) {
+            setUploadingEditorImage(false);
+            showToast("error", "Failed to upload video");
+          }
+        };
       }
     };
     input.click();
-  }, [editor]);
+  }, [editor, articleId, authUser]);
 
   const removeThumbnail = () => {
     setMetadata((prev) => ({ ...prev, image: null }));
