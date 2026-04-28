@@ -106,9 +106,9 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
     return (
     <div className="group cursor-pointer">
       <div className="aspect-[3/4] bg-white border border-gray-200 rounded-lg overflow-hidden group-hover:border-[#3182ce] transition-all relative">
-        {article.image ? (
+        {article.image || article.thumbnailAsset?.url ? (
           <img
-            src={article.image || ""}
+            src={article.thumbnailAsset?.url || article.image || ""}
             alt={article.title}
             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
           />
