@@ -10,10 +10,25 @@ export const createAsset = async (
   data: AssetFormData,
 ): Promise<Asset | null> => {
   try {
+    let name = data.name;
+    
+    // Check if name exists, append unique suffix
+    const { data: existing } = await supabaseAdminClient
+      .from("assets")
+      .select("id")
+      .eq("name", name)
+      .maybeSingle();
+    
+    if (existing) {
+      const ext = name.includes(".") ? "." + name.split(".").pop() : "";
+      const base = ext ? name.replace(ext, "") : name;
+      name = `${base}_${Date.now()}${ext}`;
+    }
+
     const { data: asset, error } = await supabaseAdminClient
       .from("assets")
       .insert({
-        name: data.name,
+        name,
         url: data.url,
         type: data.type,
         author_id: data.author_id || null,
