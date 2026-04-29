@@ -5,6 +5,7 @@ export interface Campaign {
   total_sent: number;
   total_failed: number;
   total_recipients: number;
+  open_rate?: number;
   status: 'draft' | 'sending' | 'sent' | 'failed';
   sent_at?: string;
   created_at: string;

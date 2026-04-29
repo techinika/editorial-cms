@@ -395,6 +395,116 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
           </button>
         </div>
 
+        {/* Campaigns List */}
+        <section>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            All Campaigns ({totalCount})
+          </h2>
+
+          {campaigns.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Mail className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium">No campaigns yet</p>
+              <p className="text-sm mt-2">Create your first email campaign to get started</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subject
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Recipients
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Open Rate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sent Date
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {campaigns.map((campaign) => (
+                    <tr key={campaign.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{campaign.subject}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(campaign.created_at).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(campaign.status)}`}>
+                          {campaign.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {campaign.total_recipients || 0}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {campaign.open_rate ? `${campaign.open_rate}%` : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {campaign.sent_at ? new Date(campaign.sent_at).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setViewingCampaign(campaign);
+                              setShowViewModal(true);
+                            }}
+                            className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {campaign.status === 'draft' && (
+                            <button
+                              onClick={() => handleSendCampaign(campaign)}
+                              className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md"
+                              title="Send"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteClick(campaign)}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {hasMore && !searchQuery && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={loadMore}
+                    disabled={loading}
+                    className="px-6 py-2 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {loading ? "Loading..." : "Load More"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Create Campaign Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
