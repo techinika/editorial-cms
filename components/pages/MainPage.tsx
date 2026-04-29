@@ -508,7 +508,7 @@ export default function MainPage({
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Quick Actions
           </h2>
-          <div className="flex flex-wrap justify-between gap-6">
+          <div className="flex flex-wrap gap-6">
             <button
               className="group text-left"
               onClick={() => router.push("/create")}
@@ -554,50 +554,59 @@ export default function MainPage({
             </a>
 
             <a href="/assets" className="group text-left">
-               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                 <Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-               </div>
-               <span className="text-sm font-medium">Assets</span>
-             </a>
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-medium">Assets</span>
+            </a>
 
-              {user?.isAdmin && (
-                <a href="/ads" className="group text-left">
-                  <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                    <Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-sm font-medium">Ads</span>
-                </a>
-              )}
+            {user?.isAdmin && (
+              <a href="/ads" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <Image
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Ads</span>
+              </a>
+            )}
 
-              {user?.isAdmin && (
-                <a href="/subscribers" className="group text-left">
-                  <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                    <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-sm font-medium">Subscribers</span>
-                </a>
-              )}
+            {user?.isAdmin && (
+              <a href="/subscribers" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <FileText
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Subscribers</span>
+              </a>
+            )}
 
-              {user?.isAdmin && (
-                <a href="/campaigns" className="group text-left">
-                  <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                    <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-sm font-medium">Campaigns</span>
-                </a>
-              )}
+            {user?.isAdmin && (
+              <a href="/campaigns" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <FileText
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Campaigns</span>
+              </a>
+            )}
 
-             {user?.isAdmin && (
-               <a href="/authors" className="group text-left">
-                 <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                   <User
-                     className="w-12 h-12 text-[#3182ce]"
-                     strokeWidth={1.5}
-                   />
-                 </div>
-                 <span className="text-sm font-medium">Authors</span>
-               </a>
-             )}
+            {user?.isAdmin && (
+              <a href="/authors" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <User
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Authors</span>
+              </a>
+            )}
           </div>
         </section>
 

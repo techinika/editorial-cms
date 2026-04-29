@@ -14,7 +14,17 @@ import {
   Calendar,
   BarChart3,
 } from "lucide-react";
-import { Campaign, CampaignFormData } from "@/types/campaign";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import Strike from "@tiptap/extension-strike";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import {
+  Campaign,
+  CampaignFormData,
+} from "@/types/campaign";
 import {
   getCampaigns,
   getCampaignById,
@@ -29,6 +39,7 @@ import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import { getSubscribersCount } from "@/supabase/CRUD/querries";
+import { DEFAULT_TEMPLATES, EmailTemplate } from "@/types/email-template";
 
 interface CampaignsPageProps {
   user?: AuthResult;
@@ -47,6 +58,7 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSubject, setNewSubject] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
   // View campaign modal
   const [showViewModal, setShowViewModal] = useState(false);
@@ -62,10 +74,45 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
   const [sendingCampaign, setSendingCampaign] = useState<Campaign | null>(null);
   const [isSending, setIsSending] = useState(false);
 
+  // Email editor
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: "Compose your email...",
+      }),
+      Underline,
+      Strike,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-[#3182ce] underline hover:text-[#2c5282] cursor-pointer",
+        },
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: "rounded-md max-w-full h-auto",
+        },
+      }),
+    ],
+    content: newBody,
+    immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+      setNewBody(editor.getHTML());
+    },
+  });
+
   useEffect(() => {
     loadCampaigns();
     loadCount();
   }, []);
+
+  // Update editor content when template changes
+  useEffect(() => {
+    if (editor && newBody) {
+      editor.commands.setContent(newBody);
+    }
+  }, [selectedTemplate]);
 
   const loadCampaigns = async () => {
     setLoading(true);
@@ -124,6 +171,8 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
       setShowCreateModal(false);
       setNewSubject("");
       setNewBody("");
+      setSelectedTemplate("");
+      if (editor) editor.commands.setContent("");
       loadCount();
     }
   };
@@ -189,6 +238,17 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
     }
   };
 
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = DEFAULT_TEMPLATES.find((t) => t.id === templateId);
+    if (template) {
+      setNewBody(template.body);
+      if (editor) {
+        editor.commands.setContent(template.body);
+      }
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'sent':
@@ -239,6 +299,264 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
                       .toUpperCase()}
                   </div>
                 )}
+                <span className="text-sm text-gray-700 font-medium">
+                  {user.user.user_metadata.full_name || user.user.email}
+                </span>
+                {user.isAdmin && (
+                  <span className="text-xs text-[#3182ce] bg-[#3182ce]/10 px-1.5 py-0.5 rounded">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <Link
+                href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
+                className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors"
+                title="Account Settings"
+              >
+                <X className="w-5 h-5" />
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
+              className="px-4 py-2 text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors text-sm font-medium"
+            >
+              Log In
+            </Link>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto p-8">
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Quick Actions
+          </h2>
+          <div className="flex flex-wrap gap-6">
+            <button
+              onClick={() => {
+                setNewSubject("");
+                setNewBody("");
+                setSelectedTemplate("");
+                if (editor) editor.commands.setContent("");
+                setShowCreateModal(true);
+              }}
+              className="group text-left"
+            >
+              <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Mail className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-medium">Create Campaign</span>
+            </button>
+
+            <Link href="/subscribers" className="group text-left">
+              <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Mail className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-medium">Subscribers</span>
+            </Link>
+
+            <Link href="/" className="group text-left">
+              <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <FileText
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <span className="text-sm font-medium">Articles</span>
+            </Link>
+          </div>
+        </section>
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="relative group w-48">
+            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400 group-focus-within:text-[#3182ce]" />
+            <input
+              type="text"
+              placeholder="Search campaigns..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-12 pr-4 focus:bg-white focus:ring-2 focus:ring-[#3182ce]/20 transition-all outline-none"
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              setNewSubject("");
+              setNewBody("");
+              setSelectedTemplate("");
+              if (editor) editor.commands.setContent("");
+              setShowCreateModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium"
+          >
+            <Mail className="w-4 h-4" />
+            Create Campaign
+          </button>
+        </div>
+
+        {/* Create Campaign Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowCreateModal(false)}
+            />
+            <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Create New Campaign
+                </h3>
+                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-md">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Templates
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => handleTemplateSelect(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                  >
+                    <option value="">Select a template...</option>
+                    {DEFAULT_TEMPLATES.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                    placeholder="Email subject..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Body * (WYSIWYG Editor)
+                  </label>
+                  <div className="border border-gray-200 rounded-md overflow-hidden">
+                    {editor && (
+                      <div className="bg-gray-50 border-b border-gray-200 p-2 flex items-center gap-1 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().toggleBold().run()}
+                          className={`p-1.5 rounded ${editor.isActive("bold") ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          <strong>B</strong>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().toggleItalic().run()}
+                          className={`p-1.5 rounded ${editor.isActive("italic") ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          <em>I</em>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().toggleUnderline().run()}
+                          className={`p-1.5 rounded ${editor.isActive("underline") ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          <u>U</u>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().toggleStrike().run()}
+                          className={`p-1.5 rounded ${editor.isActive("strike") ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          <s>S</s>
+                        </button>
+                        <div className="w-px h-6 bg-gray-300 mx-1" />
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().setParagraph().run()}
+                          className={`p-1.5 rounded ${editor.isActive("paragraph") ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          P
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().toggleHeading({ level: 1 }).run()}
+                          className={`p-1.5 rounded ${editor.isActive("heading", { level: 1 }) ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          H1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().toggleHeading({ level: 2 }).run()}
+                          className={`p-1.5 rounded ${editor.isActive("heading", { level: 2 }) ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          H2
+                        </button>
+                        <div className="w-px h-6 bg-gray-300 mx-1" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = window.prompt("Enter URL:");
+                            if (url) {
+                              editor.chain().setLink({ href: url }).run();
+                            }
+                          }}
+                          className={`p-1.5 rounded ${editor.isActive("link") ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                        >
+                          Link
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().unsetLink().run()}
+                          className="p-1.5 rounded hover:bg-gray-100"
+                        >
+                          Unlink
+                        </button>
+                      </div>
+                    )}
+                    <div className="p-4 min-h-[300px] prose prose-sm max-w-none">
+                      <EditorContent editor={editor} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-700">
+                    <strong>Note:</strong> You can save as draft and send later, or send immediately after creating.
+                    Available template variables: {{site_url}}, {{unsubscribe_url}}, {{article_1_url}}, etc.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateCampaign}
+                  className="px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium"
+                >
+                  Save as Draft
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
                 <span className="text-sm text-gray-700 font-medium">
                   {user.user.user_metadata.full_name || user.user.email}
                 </span>
