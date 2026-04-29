@@ -171,6 +171,7 @@ const ArticleEditor = ({
   const [isUpdatingOwner, setIsUpdatingOwner] = useState(false);
   const [isAddingContributor, setIsAddingContributor] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -243,6 +244,35 @@ const ArticleEditor = ({
       setToc(result.toc);
     }
   }, [editor, initialArticle?.content]);
+
+  // Handle browser beforeunload for unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && !isSaving) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges, isSaving]);
+
+  // Set hasUnsavedChanges when editor content changes
+  useEffect(() => {
+    if (editor) {
+      const handleUpdate = () => {
+        if (!isSaving) {
+          setHasUnsavedChanges(true);
+        }
+      };
+      editor.on("update", handleUpdate);
+      return () => {
+        editor.off("update", handleUpdate);
+      };
+    }
+  }, [editor, isSaving]);
 
   const setLink = useCallback(() => {
     if (linkUrl) {
@@ -390,6 +420,7 @@ const ArticleEditor = ({
         });
         if (result) {
           showToast("success", "Draft saved!");
+          setHasUnsavedChanges(false);
         }
       } else {
         const result = await createArticle({
@@ -409,6 +440,7 @@ const ArticleEditor = ({
         if (result) {
           setArticleId(result.id);
           showToast("success", "Draft saved!");
+          setHasUnsavedChanges(false);
         }
       }
     } catch (error) {

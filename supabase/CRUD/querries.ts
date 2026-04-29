@@ -34,3 +34,5 @@ export type { Asset, AssetFormData, AssetType } from "@/types/asset";
 export type { UserCompany, FeaturedStartup } from "@/types/user-company";
 
 export * from "../modules/userCompany";
+export * from "../modules/ads";
+export * from "../modules/topBanner";

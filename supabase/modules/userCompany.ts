@@ -144,15 +144,48 @@ export const addUserCompany = async (
   }
 };
 
-export const getFeaturedStartups = async (): Promise<FeaturedStartup[]> => {
+export const getFeaturedStartups = async (
+  page = 0,
+  limit = 50,
+): Promise<FeaturedStartup[]> => {
+  const from = page * limit;
+  const to = from + limit - 1;
+
   try {
     const { data, error } = await supabaseAdminClient
       .from("featured_startups")
       .select("*")
-      .order("name", { ascending: true });
+      .order("name", { ascending: true })
+      .range(from, to);
 
     if (error) {
       console.error("Error fetching startups:", error);
+      return [];
+    }
+
+    return data as unknown as FeaturedStartup[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const searchFeaturedStartups = async (
+  query: string,
+): Promise<FeaturedStartup[]> => {
+  if (!query.trim()) {
+    return getFeaturedStartups();
+  }
+
+  try {
+    const { data, error } = await supabaseAdminClient
+      .from("featured_startups")
+      .select("*")
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error searching startups:", error);
       return [];
     }
 

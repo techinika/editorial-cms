@@ -175,6 +175,14 @@ export const updateArticle = async (
       updateData.table_of_contents = extractTOC(blocks);
     }
 
+    // Remove blocks/table_of_contents from update if not provided to avoid errors
+    if (!updateData.blocks) {
+      delete updateData.blocks;
+    }
+    if (!updateData.table_of_contents) {
+      delete updateData.table_of_contents;
+    }
+
     const { data: article, error } = await supabaseAdminClient
       .from("articles")
       .update(updateData)
