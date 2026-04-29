@@ -153,9 +153,9 @@ export default function AdsPage({ user }: AdsPageProps) {
     setTopBannersSearchQuery("");
   }, [activeTab]);
 
-  const loadAds = async () => {
+  const loadAds = async (filters?: { location?: string; banner_type?: string }) => {
     setAdsLoading(true);
-    const data = await getBannerAds(0, 20);
+    const data = await getBannerAds(0, 20, filters);
     setAds(data);
     setAdsHasMore(data.length === 20);
     setAdsLoading(false);
@@ -228,30 +228,19 @@ export default function AdsPage({ user }: AdsPageProps) {
 
   useEffect(() => {
     if (activeTab === "banner_ads") {
+      // Use server-side filtering
+      const filters: { location?: string; banner_type?: string } = {};
+      if (locationFilter) filters.location = locationFilter;
+      if (typeFilter) filters.banner_type = typeFilter;
+
       if (locationFilter || typeFilter) {
-        applyAdFilters();
+        loadAds(filters);
       } else {
         // Reload all ads when filters are cleared
         loadAds();
       }
     }
   }, [locationFilter, typeFilter, activeTab]);
-
-  const applyAdFilters = async () => {
-    setAdsLoading(true);
-    let filtered = [...ads];
-
-    if (locationFilter) {
-      filtered = filtered.filter((ad) => ad.location === locationFilter);
-    }
-
-    if (typeFilter) {
-      filtered = filtered.filter((ad) => ad.banner_type === typeFilter);
-    }
-
-    setAds(filtered);
-    setAdsLoading(false);
-  };
 
   const handleSaveAd = async (formData: BannerAdFormData) => {
     if (editingAd) {

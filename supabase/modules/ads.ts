@@ -10,16 +10,28 @@ const bannerAdSelect = `
 export const getBannerAds = async (
   page = 0,
   limit = 12,
+  filters?: {
+    location?: string;
+    banner_type?: string;
+  },
 ): Promise<BannerAd[]> => {
   const from = page * limit;
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    let query = supabaseAdminClient
       .from("banner_ads")
       .select(bannerAdSelect)
-      .order("created_at", { ascending: false })
-      .range(from, to);
+      .order("created_at", { ascending: false });
+
+    if (filters?.location) {
+      query = query.eq("location", filters.location);
+    }
+    if (filters?.banner_type) {
+      query = query.eq("banner_type", filters.banner_type);
+    }
+
+    const { data, error } = await query.range(from, to);
 
     if (error) {
       console.error("Error fetching banner ads:", error);
