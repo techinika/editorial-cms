@@ -37,3 +37,4 @@ export * from "../modules/userCompany";
 export * from "../modules/ads";
 export * from "../modules/topBanner";
 export * from "../modules/subscribers";
+export * from "../modules/campaign";
