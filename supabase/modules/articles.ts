@@ -1,4 +1,4 @@
-import { JoinedArticle, ArticleFormData, Article } from "@/types/article";
+import { JoinedArticle, ArticleFormData, Article, Block, TOCEntry } from "@/types/article";
 import { supabaseAdminClient } from "../supabase";
 
 const generateSlug = (title: string): string => {
@@ -8,10 +8,89 @@ const generateSlug = (title: string): string => {
     .replace(/(^-|-$)/g, "");
 };
 
+const generateBlockId = (): string => {
+  return `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+const generateHeadingSlug = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+};
+
+const parseHtmlToBlocks = (html: string): Block[] => {
+  if (!html || !html.trim()) return [];
+  
+  const blocks: Block[] = [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const root = doc.body;
+  
+  const processElement = (el: Element): Block | null => {
+    const tagName = el.tagName.toLowerCase();
+    const text = el.textContent?.trim() || "";
+    
+    if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
+      const level = parseInt(tagName.replace("h", ""));
+      return { id: generateBlockId(), type: "heading" as const, content: text, level };
+    }
+    if (tagName === "img") {
+      const src = el.getAttribute("src") || "";
+      return { id: generateBlockId(), type: "image" as const, content: el.getAttribute("alt") || "", url: src };
+    }
+    if (tagName === "pre") {
+      const codeEl = el.querySelector("code");
+      return { 
+        id: generateBlockId(), 
+        type: "code" as const, 
+        content: codeEl?.textContent || text,
+        language: codeEl?.getAttribute("class")?.replace("language-", "") || ""
+      };
+    }
+    if (tagName === "blockquote") {
+      return { id: generateBlockId(), type: "quote" as const, content: text };
+    }
+    if (tagName === "ul" || tagName === "ol") {
+      const items = Array.from(el.querySelectorAll("li")).map(li => li.textContent?.trim() || "");
+      return { id: generateBlockId(), type: "list" as const, content: JSON.stringify({ ordered: tagName === "ol", items }) };
+    }
+    if (tagName === "p" || text) {
+      if (!text) return null;
+      return { id: generateBlockId(), type: "paragraph" as const, content: text };
+    }
+    return null;
+  };
+  
+  const traverse = (parent: Element) => {
+    for (const child of Array.from(parent.children)) {
+      const block = processElement(child);
+      if (block) blocks.push(block);
+      else if (["div", "section", "article"].includes(child.tagName.toLowerCase())) {
+        traverse(child);
+      }
+    }
+  };
+  
+  traverse(root);
+  return blocks;
+};
+
+const extractTOC = (blocks: Block[]): TOCEntry[] => {
+  return blocks
+    .filter(b => b.type === "heading")
+    .map(b => ({
+      slug: generateHeadingSlug(b.content),
+      level: b.level || 2,
+      title: b.content
+    }));
+};
+
 const articleSelect = `
   *,
   author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
-  category:categories (id, name)
+  category:categories (id, name),
+  thumbnailAsset:assets!thumbnail_id (id, created_at, updated_at, name, url, type, views, author_id)
 `;
 
 export const createArticle = async (
@@ -19,10 +98,18 @@ export const createArticle = async (
 ): Promise<Article | null> => {
   try {
     const slug = data.slug || generateSlug(data.title);
+    
+    let blocks = data.blocks || [];
+    let table_of_contents = [] as TOCEntry[];
+    
+    if (data.content && blocks.length === 0) {
+      blocks = parseHtmlToBlocks(data.content);
+      table_of_contents = extractTOC(blocks);
+    } else if (data.content) {
+      table_of_contents = extractTOC(blocks);
+    }
 
-    const { data: article, error } = await supabaseAdminClient
-      .from("articles")
-      .insert({
+    const insertData: Record<string, unknown> = {
         title: data.title,
         slug,
         content: data.content,
@@ -36,7 +123,17 @@ export const createArticle = async (
         author_id: data.author_id || null,
         author_name: data.author_name || null,
         drafted_at: data.status === "draft" ? new Date().toISOString() : null,
-      })
+      };
+
+    // Only include blocks/table_of_contents if we have them
+    if (blocks.length > 0) {
+      insertData.blocks = blocks;
+      insertData.table_of_contents = table_of_contents;
+    }
+
+    const { data: article, error } = await supabaseAdminClient
+      .from("articles")
+      .insert(insertData)
       .select()
       .single();
 
@@ -73,6 +170,23 @@ export const updateArticle = async (
       if (publishedByUserId) {
         updateData.published_by = publishedByUserId;
       }
+    }
+    
+    if (data.content && data.blocks) {
+      updateData.blocks = data.blocks;
+      updateData.table_of_contents = extractTOC(data.blocks);
+    } else if (data.content && !data.blocks) {
+      const blocks = parseHtmlToBlocks(data.content);
+      updateData.blocks = blocks;
+      updateData.table_of_contents = extractTOC(blocks);
+    }
+
+    // Remove blocks/table_of_contents from update if not provided to avoid errors
+    if (updateData.blocks === undefined) {
+      delete updateData.blocks;
+    }
+    if (updateData.table_of_contents === undefined) {
+      delete updateData.table_of_contents;
     }
 
     const { data: article, error } = await supabaseAdminClient

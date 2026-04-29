@@ -13,7 +13,8 @@ import {
   BarChart3, 
   Clock,
   Settings,
-  X
+  X,
+  Image
 } from "lucide-react";
 import { AuthResult } from "@/lib/auth";
 
@@ -41,6 +42,7 @@ export default function CMSNavbar({ user, title = "Blog CMS", showBack, navLinks
     { href: "/categories", icon: <Tag className="w-5 h-5" />, label: "Categories" },
     { href: "/stats", icon: <BarChart3 className="w-5 h-5" />, label: "Stats" },
     { href: "/pending", icon: <Clock className="w-5 h-5" />, label: "Pending" },
+    { href: "/assets", icon: <Image className="w-5 h-5" />, label: "Assets" },
   ];
 
   const links = navLinks || defaultNavLinks;

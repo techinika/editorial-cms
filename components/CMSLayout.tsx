@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, User, LogOut, FileText, Plus, Tag, BarChart3, Clock, MessageSquare } from "lucide-react";
+import { ChevronDown, User, LogOut, FileText, Plus, Tag, BarChart3, Clock, MessageSquare, Image } from "lucide-react";
 import { AuthResult } from "@/lib/auth";
 
 interface CMSLayoutProps {
@@ -41,10 +41,14 @@ export default function CMSLayout({ user, children }: CMSLayoutProps) {
             <BarChart3 className="w-5 h-5" />
           </Link>
           
-          <Link href="/pending" className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors" title="Pending Review">
+           <Link href="/pending" className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors" title="Pending Review">
             <Clock className="w-5 h-5" />
           </Link>
-          
+           
+           <Link href="/assets" className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors" title="Assets">
+            <Image className="w-5 h-5" />
+          </Link>
+           
           <UserMenu user={user} />
         </div>
       </header>

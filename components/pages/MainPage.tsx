@@ -21,6 +21,8 @@ import {
   Clock,
   MessageCircle,
   Bell,
+  Image,
+  User,
 } from "lucide-react";
 import { JoinedArticle, ArticlePendingActivity } from "@/types/article";
 import {
@@ -47,12 +49,19 @@ interface MainPageProps {
   user?: AuthResult;
 }
 
-export default function MainPage({ initialArticles = [], initialDrafts = [], initialPublished = [], user }: MainPageProps) {
+export default function MainPage({
+  initialArticles = [],
+  initialDrafts = [],
+  initialPublished = [],
+  user,
+}: MainPageProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [drafts, setDrafts] = useState<JoinedArticle[]>(initialDrafts);
   const [published, setPublished] = useState<JoinedArticle[]>(initialPublished);
-  const [pendingActivity, setPendingActivity] = useState<Record<string, ArticlePendingActivity>>({});
+  const [pendingActivity, setPendingActivity] = useState<
+    Record<string, ArticlePendingActivity>
+  >({});
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -99,116 +108,122 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
     copiedId: string | null;
     activity?: ArticlePendingActivity;
   }) => {
-    const hasActivity = activity && (activity.unresolvedFeedback > 0 || activity.unreadComments > 0);
-    const totalActivity = activity ? activity.unresolvedFeedback + activity.unreadComments : 0;
+    const hasActivity =
+      activity &&
+      (activity.unresolvedFeedback > 0 || activity.unreadComments > 0);
+    const totalActivity = activity
+      ? activity.unresolvedFeedback + activity.unreadComments
+      : 0;
 
     return (
-    <div className="group cursor-pointer">
-      <div className="aspect-[3/4] bg-white border border-gray-200 rounded-lg overflow-hidden group-hover:border-[#3182ce] transition-all relative">
-        {article.image ? (
-          <img
-            src={article.image || ""}
-            alt={article.title}
-            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <FileText className="w-12 h-12 text-gray-300" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent" />
-        {article.status && (
-          <span
-            className={`absolute top-2 right-2 px-2 py-0.5 text-xs font-medium rounded ${
-              article.status === "published"
-                ? "bg-green-100 text-green-700"
-                : article.status === "draft"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {article.status}
-          </span>
-        )}
-
-        {/* Pending Activity Badge */}
-        {hasActivity && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded">
-            <Bell className="w-3 h-3" />
-            {totalActivity}
-          </div>
-        )}
-
-        {/* Action Buttons Overlay */}
-        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onShare(article);
-              }}
-              className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
-              title="Copy link"
+      <div className="group cursor-pointer">
+        <div className="aspect-[3/4] bg-white border border-gray-200 rounded-lg overflow-hidden group-hover:border-[#3182ce] transition-all relative">
+          {article.image || article.thumbnailAsset?.url ? (
+            <img
+              src={article.thumbnailAsset?.url || article.image || ""}
+              alt={article.title}
+              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+              <FileText className="w-12 h-12 text-gray-300" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent" />
+          {article.status && (
+            <span
+              className={`absolute top-2 right-2 px-2 py-0.5 text-xs font-medium rounded ${
+                article.status === "published"
+                  ? "bg-green-100 text-green-700"
+                  : article.status === "draft"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-gray-100 text-gray-700"
+              }`}
             >
-              {copiedId === article.id ? (
-                <Check className="w-4 h-4 text-green-600" />
-              ) : (
-                <Share2 className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(article.id);
-              }}
-              className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
-              title="Edit"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            {article.status === "published" && (
+              {article.status}
+            </span>
+          )}
+
+          {/* Pending Activity Badge */}
+          {hasActivity && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded">
+              <Bell className="w-3 h-3" />
+              {totalActivity}
+            </div>
+          )}
+
+          {/* Action Buttons Overlay */}
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onUnpublish(article);
+                  onShare(article);
                 }}
                 className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
-                title="Unpublish"
+                title="Copy link"
               >
-                <EyeOff className="w-4 h-4" />
+                {copiedId === article.id ? (
+                  <Check className="w-4 h-4 text-green-600" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
               </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(article.id);
+                }}
+                className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
+                title="Edit"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              {article.status === "published" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUnpublish(article);
+                  }}
+                  className="p-1.5 bg-white/90 rounded-md hover:bg-white text-gray-700 shadow-sm"
+                  title="Unpublish"
+                >
+                  <EyeOff className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(article);
+                }}
+                className="p-1.5 bg-white/90 rounded-md hover:bg-white text-red-600 shadow-sm"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-3">
+          <h3 className="text-sm font-medium text-gray-900 truncate w-full leading-tight">
+            {article.title}
+          </h3>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              <FileText className="w-3 h-3 text-[#3182ce]" />
+              {article.category?.name || "Uncategorized"}
+            </p>
+            {article.author && (
+              <p className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="truncate max-w-[80px]">
+                  {article.author.name}
+                </span>
+              </p>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(article);
-              }}
-              className="p-1.5 bg-white/90 rounded-md hover:bg-white text-red-600 shadow-sm"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>
-      <div className="mt-3">
-        <h3 className="text-sm font-medium text-gray-900 truncate w-full leading-tight">
-          {article.title}
-        </h3>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <FileText className="w-3 h-3 text-[#3182ce]" />
-            {article.category?.name || "Uncategorized"}
-          </p>
-          {article.author && (
-            <p className="text-xs text-gray-400 flex items-center gap-1">
-              <span className="truncate max-w-[80px]">{article.author.name}</span>
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+    );
   };
 
   useEffect(() => {
@@ -244,29 +259,32 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
   const loadMore = async () => {
     setLoading(true);
     const newArticles = await getArticles(page, 12);
-    setDrafts((prev) => [...prev, ...newArticles.filter(a => a.status === "draft")]);
-    setPublished((prev) => [...prev, ...newArticles.filter(a => a.status === "published")]);
+    setDrafts((prev) => [
+      ...prev,
+      ...newArticles.filter((a) => a.status === "draft"),
+    ]);
+    setPublished((prev) => [
+      ...prev,
+      ...newArticles.filter((a) => a.status === "published"),
+    ]);
     setPage((prev) => prev + 1);
     setHasMore(newArticles.length === 12);
     setLoading(false);
   };
 
-  const handleSearch = useCallback(
-    async (query: string) => {
-      setSearchQuery(query);
-      if (!query.trim()) {
-        loadDrafts();
-        loadPublished();
-        return;
-      }
-      setSearching(true);
-      const results = await searchArticles(query);
-      setDrafts(results.filter(a => a.status === "draft"));
-      setPublished(results.filter(a => a.status === "published"));
-      setSearching(false);
-    },
-    [],
-  );
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      loadDrafts();
+      loadPublished();
+      return;
+    }
+    setSearching(true);
+    const results = await searchArticles(query);
+    setDrafts(results.filter((a) => a.status === "draft"));
+    setPublished(results.filter((a) => a.status === "published"));
+    setSearching(false);
+  }, []);
 
   const applyFilters = useCallback(async () => {
     setLoading(true);
@@ -280,8 +298,8 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
     }
 
     const results = await getFilteredArticles(filter, 0, 30);
-    setDrafts(results.filter(a => a.status === "draft"));
-    setPublished(results.filter(a => a.status === "published"));
+    setDrafts(results.filter((a) => a.status === "draft"));
+    setPublished(results.filter((a) => a.status === "published"));
     setHasMore(results.length === 30);
     setPage(1);
     setLoading(false);
@@ -530,13 +548,65 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
 
             <a href="/pending" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                <Clock
-                  className="w-12 h-12 text-[#3182ce]"
-                  strokeWidth={1.5}
-                />
+                <Clock className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Pending Review</span>
             </a>
+
+            <a href="/assets" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-medium">Assets</span>
+            </a>
+
+            {user?.isAdmin && (
+              <a href="/ads" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <Image
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Ads</span>
+              </a>
+            )}
+
+            {user?.isAdmin && (
+              <a href="/subscribers" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <FileText
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Subscribers</span>
+              </a>
+            )}
+
+            {user?.isAdmin && (
+              <a href="/campaigns" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <FileText
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Campaigns</span>
+              </a>
+            )}
+
+            {user?.isAdmin && (
+              <a href="/authors" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <User
+                    className="w-12 h-12 text-[#3182ce]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <span className="text-sm font-medium">Authors</span>
+              </a>
+            )}
           </div>
         </section>
 
@@ -549,12 +619,21 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {drafts.map((article) => (
-                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} activity={pendingActivity[article.id]} />
+                  <ArticleCard
+                    key={article.id}
+                    article={article}
+                    onShare={handleShare}
+                    onEdit={handleEdit}
+                    onUnpublish={handleUnpublishClick}
+                    onDelete={handleDeleteClick}
+                    copiedId={copiedId}
+                    activity={pendingActivity[article.id]}
+                  />
                 ))}
               </div>
             </div>
           )}
-          
+
           {published.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -563,12 +642,21 @@ export default function MainPage({ initialArticles = [], initialDrafts = [], ini
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {published.map((article) => (
-                  <ArticleCard key={article.id} article={article} onShare={handleShare} onEdit={handleEdit} onUnpublish={handleUnpublishClick} onDelete={handleDeleteClick} copiedId={copiedId} activity={pendingActivity[article.id]} />
+                  <ArticleCard
+                    key={article.id}
+                    article={article}
+                    onShare={handleShare}
+                    onEdit={handleEdit}
+                    onUnpublish={handleUnpublishClick}
+                    onDelete={handleDeleteClick}
+                    copiedId={copiedId}
+                    activity={pendingActivity[article.id]}
+                  />
                 ))}
               </div>
             </div>
           )}
-          
+
           {drafts.length === 0 && published.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500">
               <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />

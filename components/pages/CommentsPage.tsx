@@ -12,6 +12,8 @@ import {
   Filter,
   X,
   AlertTriangle,
+  Plus,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -150,9 +152,31 @@ export default function CommentsPage({ user }: CommentsPageProps) {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto p-8">
-        {/* Search and Filter */}
-        <div className="mb-6 flex items-center gap-4">
+       <main className="max-w-5xl mx-auto p-8">
+         {/* Quick Actions */}
+         <section className="mb-6">
+           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+             Quick Actions
+           </h2>
+           <div className="flex flex-wrap gap-6">
+             <Link href="/create" className="group text-left">
+               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                 <Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+               </div>
+               <span className="text-sm font-medium">New Article</span>
+             </Link>
+             
+             <Link href="/" className="group text-left">
+               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                 <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+               </div>
+               <span className="text-sm font-medium">Articles</span>
+             </Link>
+           </div>
+         </section>
+         
+         {/* Search and Filter */}
+         <div className="mb-6 flex items-center gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
             <input
