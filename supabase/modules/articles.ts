@@ -109,14 +109,10 @@ export const createArticle = async (
       table_of_contents = extractTOC(blocks);
     }
 
-    const { data: article, error } = await supabaseAdminClient
-      .from("articles")
-      .insert({
+    const insertData: Record<string, unknown> = {
         title: data.title,
         slug,
         content: data.content,
-        blocks,
-        table_of_contents,
         image: data.image || null,
         category_id: data.category_id || null,
         tags: data.tags || null,
@@ -127,7 +123,17 @@ export const createArticle = async (
         author_id: data.author_id || null,
         author_name: data.author_name || null,
         drafted_at: data.status === "draft" ? new Date().toISOString() : null,
-      })
+      };
+
+    // Only include blocks/table_of_contents if we have them
+    if (blocks.length > 0) {
+      insertData.blocks = blocks;
+      insertData.table_of_contents = table_of_contents;
+    }
+
+    const { data: article, error } = await supabaseAdminClient
+      .from("articles")
+      .insert(insertData)
       .select()
       .single();
 
@@ -176,10 +182,10 @@ export const updateArticle = async (
     }
 
     // Remove blocks/table_of_contents from update if not provided to avoid errors
-    if (!updateData.blocks) {
+    if (updateData.blocks === undefined) {
       delete updateData.blocks;
     }
-    if (!updateData.table_of_contents) {
+    if (updateData.table_of_contents === undefined) {
       delete updateData.table_of_contents;
     }
 
