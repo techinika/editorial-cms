@@ -157,6 +157,12 @@ const ArticleEditor = ({
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [showVideoOptions, setShowVideoOptions] = useState(false);
 
+  // Image/Video editing state
+  const [editingAsset, setEditingAsset] = useState<{ type: "image" | "video"; element: any } | null>(null);
+  const [assetAltText, setAssetAltText] = useState("");
+  const [assetCaption, setAssetCaption] = useState("");
+  const [showAssetEditModal, setShowAssetEditModal] = useState(false);
+
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -404,6 +410,67 @@ const ArticleEditor = ({
       showToast("success", "Video inserted!");
     }
   }, [editor, inlineAssetType]);
+
+  // Handle clicking on images/videos in the editor
+  const handleAssetClick = useCallback((e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const img = target.closest('img') as HTMLImageElement;
+    const video = target.closest('video') as HTMLVideoElement;
+
+    if (img) {
+      const assetId = img.getAttribute('data-asset-id');
+      const src = img.getAttribute('src') || '';
+      const alt = img.getAttribute('alt') || '';
+      setEditingAsset({ type: 'image', element: img });
+      setAssetAltText(alt);
+      setAssetCaption(''); // Caption would need to be stored separately
+      setShowAssetEditModal(true);
+    } else if (video) {
+      const assetId = video.getAttribute('data-asset-id');
+      const src = video.getAttribute('src') || '';
+      setEditingAsset({ type: 'video', element: video });
+      setAssetAltText('');
+      setAssetCaption('');
+      setShowAssetEditModal(true);
+    }
+  }, []);
+
+  // Update asset alt text
+  const updateAssetAltText = useCallback(() => {
+    if (!editingAsset) return;
+    const { type, element } = editingAsset;
+    if (type === 'image') {
+      element.setAttribute('alt', assetAltText);
+      // Trigger editor update
+      const html = editor?.getHTML() || '';
+      const result = convertLegacyContent(html);
+      setParsedBlocks(result.blocks);
+      setToc(result.toc);
+    }
+    setShowAssetEditModal(false);
+    setEditingAsset(null);
+    showToast('success', 'Alt text updated!');
+  }, [editingAsset, assetAltText, editor]);
+
+  // Swap asset (choose new asset)
+  const handleSwapAsset = useCallback(() => {
+    setShowAssetEditModal(false);
+    if (editingAsset?.type === 'image') {
+      handleInlineImageSelect();
+    } else if (editingAsset?.type === 'video') {
+      handleInlineVideoSelect();
+    }
+  }, [editingAsset]);
+
+  // Remove asset from article
+  const handleRemoveAsset = useCallback(() => {
+    if (!editingAsset) return;
+    const { element } = editingAsset;
+    element.remove();
+    setShowAssetEditModal(false);
+    setEditingAsset(null);
+    showToast('success', 'Asset removed from article');
+  }, [editingAsset, editor]);
 
   const handleEditorVideoUpload = useCallback(() => {
     const input = document.createElement("input");
@@ -1870,6 +1937,93 @@ const ArticleEditor = ({
         user={authUser || undefined}
         filterType={inlineAssetType}
       />
+
+      {/* Asset Edit Modal for editing alt text/caption or removing/swapping */}
+      {showAssetEditModal && editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowAssetEditModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">
+                {editingAsset.type === "image" ? "Edit Image" : "Edit Video"}
+              </h3>
+              <button
+                onClick={() => setShowAssetEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {editingAsset.type === "image" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Alt Text
+                  </label>
+                  <input
+                    type="text"
+                    value={assetAltText}
+                    onChange={(e) => setAssetAltText(e.target.value)}
+                    placeholder="Describe the image..."
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Caption (optional)
+                </label>
+                <input
+                  type="text"
+                  value={assetCaption}
+                  onChange={(e) => setAssetCaption(e.target.value)}
+                  placeholder="Add a caption..."
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border-t bg-gray-50">
+              <button
+                onClick={handleRemoveAsset}
+                className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              >
+                Remove from Article
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAssetEditModal(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSwapAsset}
+                  className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
+                  style={{ backgroundColor: PRIMARY_COLOR }}
+                >
+                  Swap Asset
+                </button>
+                {editingAsset.type === "image" && (
+                  <button
+                    onClick={updateAssetAltText}
+                    className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
+                    style={{ backgroundColor: PRIMARY_COLOR }}
+                  >
+                    Update Alt Text
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

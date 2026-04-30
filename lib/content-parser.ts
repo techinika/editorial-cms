@@ -44,23 +44,27 @@ export const parseHtmlToBlocks = (html: string): Block[] => {
         };
       }
       case "img": {
+        const src = element.getAttribute("src") || "";
         const alt = element.getAttribute("alt") || "";
         const assetId = element.getAttribute("data-asset-id") || undefined;
-        // Only store assetId reference, not the direct URL
+        // Store both URL (for immediate display) and assetId (for reference)
         return {
           id: generateBlockId(),
           type: "image",
           content: alt,
+          url: src,
           assetId,
         };
       }
       case "video": {
+        const src = element.getAttribute("src") || "";
         const assetId = element.getAttribute("data-asset-id") || undefined;
-        // Only store assetId reference, not the direct URL
+        // Store both URL (for immediate display) and assetId (for reference)
         return {
           id: generateBlockId(),
           type: "video",
           content: "",
+          url: src,
           assetId,
         };
       }
@@ -168,8 +172,8 @@ export const blocksToHtml = (blocks: Block[], assetUrlMap?: Record<string, strin
         case "heading":
           return `<h${block.level}>${block.content}</h${block.level}>`;
         case "image":
-          // Get URL from asset map if available, otherwise use a placeholder
-          const imageUrl = block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "";
+          // Use block's URL if available, otherwise try asset map
+          const imageUrl = block.url || (block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "");
           const imgAttrs = block.assetId ? ` data-asset-id="${block.assetId}"` : "";
           return `<img src="${imageUrl}" alt="${block.content}"${imgAttrs} />`;
         case "code":
@@ -189,8 +193,8 @@ export const blocksToHtml = (blocks: Block[], assetUrlMap?: Record<string, strin
         case "link":
           return `<a href="${block.href}" class="text-[#3182ce] underline hover:text-[#2c5282]">${block.content}</a>`;
         case "video":
-          // Get URL from asset map if available
-          const videoUrl = block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "";
+          // Use block's URL if available, otherwise try asset map
+          const videoUrl = block.url || (block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "");
           return `<video controls class="rounded-md max-w-full h-auto" src="${videoUrl}" ${block.assetId ? `data-asset-id="${block.assetId}"` : ""}></video>`;
         case "paragraph":
         default:
