@@ -44,13 +44,34 @@ export const parseHtmlToBlocks = (html: string): Block[] => {
         };
       }
       case "img": {
-        const src = element.getAttribute("src") || "";
         const alt = element.getAttribute("alt") || "";
+        const assetId = element.getAttribute("data-asset-id") || undefined;
+        // Only store assetId reference, not the direct URL
         return {
           id: generateBlockId(),
           type: "image",
           content: alt,
-          url: src,
+          assetId,
+        };
+      }
+      case "video": {
+        const assetId = element.getAttribute("data-asset-id") || undefined;
+        // Only store assetId reference, not the direct URL
+        return {
+          id: generateBlockId(),
+          type: "video",
+          content: "",
+          assetId,
+        };
+      }
+      case "a": {
+        const href = element.getAttribute("href") || "";
+        const linkText = element.textContent?.trim() || "";
+        return {
+          id: generateBlockId(),
+          type: "link",
+          content: linkText,
+          href,
         };
       }
       case "pre": {
@@ -140,14 +161,17 @@ export const generateHeadingSlug = (text: string): string => {
   return generateSlug(text);
 };
 
-export const blocksToHtml = (blocks: Block[]): string => {
+export const blocksToHtml = (blocks: Block[], assetUrlMap?: Record<string, string>): string => {
   return blocks
     .map((block) => {
       switch (block.type) {
         case "heading":
           return `<h${block.level}>${block.content}</h${block.level}>`;
         case "image":
-          return `<img src="${block.url}" alt="${block.content}" />`;
+          // Get URL from asset map if available, otherwise use a placeholder
+          const imageUrl = block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "";
+          const imgAttrs = block.assetId ? ` data-asset-id="${block.assetId}"` : "";
+          return `<img src="${imageUrl}" alt="${block.content}"${imgAttrs} />`;
         case "code":
           return `<pre><code class="language-${block.language}">${block.content}</code></pre>`;
         case "quote":
@@ -162,6 +186,12 @@ export const blocksToHtml = (blocks: Block[]): string => {
             return "";
           }
         }
+        case "link":
+          return `<a href="${block.href}" class="text-[#3182ce] underline hover:text-[#2c5282]">${block.content}</a>`;
+        case "video":
+          // Get URL from asset map if available
+          const videoUrl = block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "";
+          return `<video controls class="rounded-md max-w-full h-auto" src="${videoUrl}" ${block.assetId ? `data-asset-id="${block.assetId}"` : ""}></video>`;
         case "paragraph":
         default:
           return `<p>${block.content}</p>`;

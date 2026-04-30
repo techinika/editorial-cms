@@ -107,7 +107,12 @@ export default function AdsPage({ user }: AdsPageProps) {
 
   useEffect(() => {
     if (activeTab === "banner_ads") {
-      loadAds();
+      // Build filters from current state
+      const filters: { location?: string; banner_type?: string } = {};
+      if (locationFilter) filters.location = locationFilter;
+      if (typeFilter) filters.banner_type = typeFilter;
+      loadAds(filters);
+
       // Set up realtime subscription for banner_ads
       const channel = supabaseAdminClient
         .channel('banner_ads_changes')
@@ -116,7 +121,11 @@ export default function AdsPage({ user }: AdsPageProps) {
           { event: '*', schema: 'public', table: 'banner_ads' },
           (payload) => {
             console.log('Realtime update:', payload);
-            loadAds();
+            // Reload with current filters
+            const currentFilters: { location?: string; banner_type?: string } = {};
+            if (locationFilter) currentFilters.location = locationFilter;
+            if (typeFilter) currentFilters.banner_type = typeFilter;
+            loadAds(currentFilters);
           }
         )
         .subscribe();
@@ -126,6 +135,7 @@ export default function AdsPage({ user }: AdsPageProps) {
       };
     } else {
       loadTopBanners();
+
       // Set up realtime subscription for top_banner
       const channel = supabaseAdminClient
         .channel('top_banner_changes')
@@ -143,7 +153,7 @@ export default function AdsPage({ user }: AdsPageProps) {
         supabaseAdminClient.removeChannel(channel);
       };
     }
-  }, [activeTab]);
+  }, [activeTab, locationFilter, typeFilter]);
 
   // Reset filters when switching tabs
   useEffect(() => {
@@ -193,7 +203,11 @@ export default function AdsPage({ user }: AdsPageProps) {
     async (query: string) => {
       setAdsSearchQuery(query);
       if (!query.trim()) {
-        loadAds();
+        // Reload with current filters applied
+        const filters: { location?: string; banner_type?: string } = {};
+        if (locationFilter) filters.location = locationFilter;
+        if (typeFilter) filters.banner_type = typeFilter;
+        loadAds(filters);
         return;
       }
       setAdsSearching(true);
@@ -206,7 +220,7 @@ export default function AdsPage({ user }: AdsPageProps) {
       setAds(filtered);
       setAdsSearching(false);
     },
-    [ads],
+    [ads, locationFilter, typeFilter],
   );
 
   const handleTopBannersSearch = useCallback(
@@ -233,12 +247,8 @@ export default function AdsPage({ user }: AdsPageProps) {
       if (locationFilter) filters.location = locationFilter;
       if (typeFilter) filters.banner_type = typeFilter;
 
-      if (locationFilter || typeFilter) {
-        loadAds(filters);
-      } else {
-        // Reload all ads when filters are cleared
-        loadAds();
-      }
+      // Always call loadAds - if no filters, it loads all ads
+      loadAds(filters);
     }
   }, [locationFilter, typeFilter, activeTab]);
 

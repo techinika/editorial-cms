@@ -3,6 +3,8 @@
 import puter from "@heyputer/puter.js";
 import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
 import { revalidatePath } from "next/cache";
+import { blocksToHtml } from "@/lib/content-parser";
+import { Block } from "@/types/article";
 
 export async function generateAIFeedback(articleId: string, authorId: string) {
   const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
@@ -19,10 +21,19 @@ export async function generateAIFeedback(articleId: string, authorId: string) {
     throw new Error("Article not found");
   }
 
+  // Use blocks with asset URLs if available, otherwise fall back to content
+  let articleContent = '';
+  if (article.blocks && Array.isArray(article.blocks) && article.blocks.length > 0) {
+    const assetUrlMap = (article as any).assetUrlMap || {};
+    articleContent = blocksToHtml(article.blocks as Block[], assetUrlMap);
+  } else {
+    articleContent = article.content || '';
+  }
+
   const prompt = `You are an expert article reviewer. Analyze the following article and provide 5 constructive feedback points that would help improve it. Each feedback should be specific, actionable, and helpful.
 
 Article Title: ${article.title}
-Article Content: ${article.content.substring(0, 5000)}
+Article Content: ${articleContent.substring(0, 5000)}
 
 Provide 5 feedback points, one per line, each starting with a bullet point (-). Each feedback should be 1-2 sentences maximum and focused on:
 - Content quality and clarity
