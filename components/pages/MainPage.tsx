@@ -34,7 +34,7 @@ import {
   deleteArticle,
   updateArticle,
   getAllPendingActivity,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { useRouter } from "next/navigation";
 import { AuthResult } from "@/lib/auth";
 import { Category } from "@/types/category";

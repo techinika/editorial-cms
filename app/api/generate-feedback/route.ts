@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import puter from "@heyputer/puter.js";
-import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
+import { createFeedback, getArticleById } from "@/supabase/CRUD/queries";
 import { blocksToHtml } from "@/lib/content-parser";
 import { Block } from "@/types/article";
 

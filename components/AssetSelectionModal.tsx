@@ -17,7 +17,7 @@ import {
   getAssetsByType,
   searchAssets,
   createAsset,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { upload } from "@imagekit/next";
 import { useToast } from "@/components/Toast";
 

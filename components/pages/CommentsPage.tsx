@@ -24,7 +24,7 @@ import {
   markCommentAsRead,
   markAllCommentsAsReadByArticle,
   deleteComment,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { Comment } from "@/types/article";
 import { useToast } from "@/components/Toast";
 import UserNav from "@/components/UserNav";

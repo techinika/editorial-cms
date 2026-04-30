@@ -31,22 +31,22 @@ import {
   createBannerAd,
   updateBannerAd,
   deleteBannerAd,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   getTopBanners,
   createTopBanner,
   updateTopBanner,
   deleteTopBanner,
   getActiveTopBanners,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   getAssets,
   searchAssets,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   getFeaturedStartups,
   searchFeaturedStartups,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { Asset } from "@/types/asset";
 import { FeaturedStartup } from "@/types/user-company";
 import { AuthResult } from "@/lib/auth";

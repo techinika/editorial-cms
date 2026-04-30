@@ -26,7 +26,7 @@ import {
   deleteSubscriber,
   getActiveSubscribers,
   getSubscribersCount,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";

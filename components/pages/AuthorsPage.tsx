@@ -28,7 +28,7 @@ import {
   getVerifiedUserCompanies,
   approveUserCompany,
   rejectUserCompany,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
 import UserNav from "@/components/UserNav";

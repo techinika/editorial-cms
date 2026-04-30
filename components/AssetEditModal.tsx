@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, ChangeEvent } from "react";
 import { X, Loader2, Check, Upload, FileText, Image, Video, File, AlertTriangle } from "lucide-react";
 import { Asset, AssetType, AssetFormData } from "@/types/asset";
-import { createAsset, updateAsset } from "@/supabase/CRUD/querries";
+import { createAsset, updateAsset } from "@/supabase/CRUD/queries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
 import { upload } from "@imagekit/next";

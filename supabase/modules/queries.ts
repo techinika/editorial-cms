@@ -1,9 +1,12 @@
 import { supabaseAdminClient } from "../supabase";
 import { Query, QueryFilter } from "@/types/query";
 
-export const createQuery = async (
-  data: { email: string; message: string; subject?: string; name?: string }
-): Promise<Query | null> => {
+export const createQuery = async (data: {
+  email: string;
+  message: string;
+  subject?: string;
+  name?: string;
+}): Promise<Query | null> => {
   try {
     const { data: query, error } = await supabaseAdminClient
       .from("queries")
@@ -31,14 +34,14 @@ export const createQuery = async (
 export const getQueries = async (
   page = 0,
   limit = 20,
-  filter?: QueryFilter
+  filter?: QueryFilter,
 ): Promise<Query[]> => {
   const from = page * limit;
   const to = from + limit - 1;
 
   try {
     let query = supabaseAdminClient
-      .from("queries")
+      .from("querries")
       .select("*")
       .order("created_at", { ascending: false })
       .range(from, to);
@@ -50,7 +53,7 @@ export const getQueries = async (
     const { data, error } = await query;
 
     if (error) {
-      console.error("Error fetching queries:", error);
+      console.error("Error fetching querries:", error);
       return [];
     }
 
@@ -63,11 +66,11 @@ export const getQueries = async (
 
 export const updateQueryFeedback = async (
   id: number,
-  feedback: string
+  feedback: string,
 ): Promise<Query | null> => {
   try {
     const { data, error } = await supabaseAdminClient
-      .from("queries")
+      .from("querries")
       .update({ feedback })
       .eq("id", id)
       .select()
@@ -88,7 +91,7 @@ export const updateQueryFeedback = async (
 export const deleteQuery = async (id: number): Promise<boolean> => {
   try {
     const { error } = await supabaseAdminClient
-      .from("queries")
+      .from("querries")
       .delete()
       .eq("id", id);
 

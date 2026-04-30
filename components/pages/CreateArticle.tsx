@@ -53,7 +53,7 @@ import {
   createArticle,
   updateArticle,
   getCategories,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   uploadThumbnailToCloudinary,
   uploadArticleImageToCloudinary,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createQuery } from "@/supabase/CRUD/querries";
+import { createQuery } from "@/supabase/CRUD/queries";
 
 export async function POST(request: Request) {
   try {

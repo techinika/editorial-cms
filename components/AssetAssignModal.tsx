@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Search, Check, Loader2, FileText, Image } from "lucide-react";
 import { Asset, AssetType } from "@/types/asset";
-import { getAllArticles, getAllAuthors, updateArticleThumbnail, updateAuthorImageRef } from "@/supabase/CRUD/querries";
+import { getAllArticles, getAllAuthors, updateArticleThumbnail, updateAuthorImageRef } from "@/supabase/CRUD/queries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
 

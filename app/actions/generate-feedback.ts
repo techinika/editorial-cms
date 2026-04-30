@@ -1,7 +1,7 @@
 "use server";
 
 import puter from "@heyputer/puter.js";
-import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
+import { createFeedback, getArticleById } from "@/supabase/CRUD/queries";
 import { revalidatePath } from "next/cache";
 import { blocksToHtml } from "@/lib/content-parser";
 import { Block } from "@/types/article";
