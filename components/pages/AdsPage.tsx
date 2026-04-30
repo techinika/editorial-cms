@@ -34,7 +34,6 @@ import {
 } from "@/supabase/CRUD/querries";
 import {
   getTopBanners,
-  getTopBannerById,
   createTopBanner,
   updateTopBanner,
   deleteTopBanner,
@@ -210,8 +209,16 @@ export default function AdsPage({ user }: AdsPageProps) {
         loadAds(filters);
         return;
       }
+      // Don't search while filters are active - clear filters first
+      if (locationFilter || typeFilter) {
+        setLocationFilter("");
+        setTypeFilter("");
+        // After clearing filters, search will be triggered again by the useEffect
+        return;
+      }
       setAdsSearching(true);
-      const filtered = ads.filter(
+      const data = await getBannerAds(0, 20);
+      const filtered = data.filter(
         (ad) =>
           ad.title.toLowerCase().includes(query.toLowerCase()) ||
           ad.description?.toLowerCase().includes(query.toLowerCase()) ||
@@ -220,7 +227,7 @@ export default function AdsPage({ user }: AdsPageProps) {
       setAds(filtered);
       setAdsSearching(false);
     },
-    [ads, locationFilter, typeFilter],
+    [locationFilter, typeFilter],
   );
 
   const handleTopBannersSearch = useCallback(
@@ -1418,8 +1425,8 @@ function AdEditModal({
          </form>
        </div>
      </div>
-   );
- }
+  );
+}
 
 // Top Banner Edit Modal Component
 function TopBannerEditModal({
