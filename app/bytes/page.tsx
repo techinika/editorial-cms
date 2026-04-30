@@ -17,10 +17,7 @@ import {
   Globe,
   RefreshCw,
 } from "lucide-react";
-import {
-  useEditor,
-  EditorContent,
-} from "@tiptap/react";
+import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Strike from "@tiptap/extension-strike";
@@ -36,7 +33,7 @@ import {
 import { QuickByte, QuickByteFormData } from "@/types/quickByte";
 import { AuthResult, checkAuthStatus } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
-import Link from "next/link";
+import NextLink from "next/link";
 import { supabaseAdminClient } from "@/supabase/supabase";
 
 interface BytesPageProps {
@@ -90,7 +87,8 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4 text-gray-700",
+        class:
+          "prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4 text-gray-700",
       },
     },
   });
@@ -132,14 +130,14 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
     if (!user?.authenticated) return;
 
     const channel = supabaseAdminClient
-      .channel('quick_bytes_changes')
+      .channel("quick_bytes_changes")
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'quick_bytes' },
+        "postgres_changes",
+        { event: "*", schema: "public", table: "quick_bytes" },
         (payload) => {
-          console.log('Realtime update:', payload);
+          console.log("Realtime update:", payload);
           loadBytes();
-        }
+        },
       )
       .subscribe();
 
@@ -204,11 +202,16 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
 
       if (editingByte) {
         // Use updateQuickByteWithUser to set updated_by
-        const { updateQuickByteWithUser } = await import("@/supabase/CRUD/queries");
-        const updated = await updateQuickByteWithUser(editingByte.id, dataToSave, user?.user?.id || "");
+        const { updateQuickByteWithUser } =
+          await import("@/supabase/CRUD/queries");
+        const updated = await updateQuickByteWithUser(
+          editingByte.id,
+          dataToSave,
+          user?.user?.id || "",
+        );
         if (updated) {
           setBytes((prev) =>
-            prev.map((b) => (b.id === updated.id ? updated : b))
+            prev.map((b) => (b.id === updated.id ? updated : b)),
           );
           showToast("success", "Quick byte updated successfully!");
         }
@@ -268,11 +271,15 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You need to be logged in to access this page.</p>
-          <Link href="/" className="text-[#3182ce] hover:underline">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Access Denied
+          </h1>
+          <p className="text-gray-600 mb-4">
+            You need to be logged in to access this page.
+          </p>
+          <NextLink href="/" className="text-[#3182ce] hover:underline">
             Go back home
-          </Link>
+          </NextLink>
         </div>
       </div>
     );
@@ -283,12 +290,12 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
         <div className="flex items-center gap-4">
-          <Link
+          <NextLink
             href="/"
             className="bg-[#3182ce] p-2 rounded-lg hover:bg-[#2c5282] transition-colors"
           >
             <FileText className="text-white w-6 h-6" />
-          </Link>
+          </NextLink>
           <h1 className="text-xl font-medium">Quick Bytes</h1>
         </div>
 
@@ -322,21 +329,21 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                   </span>
                 )}
               </div>
-              <Link
+              <NextLink
                 href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
                 className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors"
                 title="Account Settings"
               >
                 <AlertCircle className="w-5 h-5" />
-              </Link>
+              </NextLink>
             </div>
           ) : (
-            <Link
+            <NextLink
               href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
               className="px-4 py-2 text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors text-sm font-medium"
             >
               Log In
-            </Link>
+            </NextLink>
           )}
         </div>
       </header>
@@ -355,26 +362,32 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
               <span className="text-sm font-medium">Create Quick Byte</span>
             </button>
 
-            <Link href="/" className="group text-left">
+            <NextLink href="/" className="group text-left">
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+                <FileText
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
               </div>
               <span className="text-sm font-medium">Articles</span>
-            </Link>
+            </NextLink>
 
-            <Link href="/assets" className="group text-left">
+            <NextLink href="/assets" className="group text-left">
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Assets</span>
-            </Link>
+            </NextLink>
 
-            <Link href="/stats" className="group text-left">
+            <NextLink href="/stats" className="group text-left">
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                <BarChart3 className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+                <BarChart3
+                  className="w-12 h-12 text-[#3182ce]"
+                  strokeWidth={1.5}
+                />
               </div>
               <span className="text-sm font-medium">Stats</span>
-            </Link>
+            </NextLink>
           </div>
         </section>
 
@@ -432,7 +445,9 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
               className="p-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               title="Refresh"
             >
-              <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`w-5 h-5 text-gray-600 ${loading ? "animate-spin" : ""}`}
+              />
             </button>
           </div>
         </div>
@@ -490,11 +505,14 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {new Date(byte.created_at).toLocaleDateString()}
-                          {byte.updated_at && byte.updated_at !== byte.created_at && (
-                            <span className="text-gray-400">
-                              (updated {new Date(byte.updated_at).toLocaleDateString()})
-                            </span>
-                          )}
+                          {byte.updated_at &&
+                            byte.updated_at !== byte.created_at && (
+                              <span className="text-gray-400">
+                                (updated{" "}
+                                {new Date(byte.updated_at).toLocaleDateString()}
+                                )
+                              </span>
+                            )}
                         </span>
                         {byte.link && (
                           <span className="flex items-center gap-1">
@@ -531,7 +549,7 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                   </div>
 
                   {byte.summary && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-md p-3 mb-3">
+                    <div className="bg-blue-50 rounded-md p-3 mb-3">
                       <p className="text-sm text-blue-800">{byte.summary}</p>
                     </div>
                   )}
@@ -631,7 +649,10 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                 <textarea
                   value={formData.summary || ""}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, summary: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      summary: e.target.value,
+                    }))
                   }
                   rows={2}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 resize-none"
@@ -675,7 +696,9 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => editor?.chain().focus().toggleItalic().run()}
+                      onClick={() =>
+                        editor?.chain().focus().toggleItalic().run()
+                      }
                       className={`p-1.5 rounded hover:bg-gray-200 transition-colors ${
                         editor?.isActive("italic") ? "bg-gray-200" : ""
                       }`}
@@ -685,7 +708,9 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                      onClick={() =>
+                        editor?.chain().focus().toggleUnderline().run()
+                      }
                       className={`p-1.5 rounded hover:bg-gray-200 transition-colors ${
                         editor?.isActive("underline") ? "bg-gray-200" : ""
                       }`}
@@ -695,7 +720,9 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => editor?.chain().focus().toggleStrike().run()}
+                      onClick={() =>
+                        editor?.chain().focus().toggleStrike().run()
+                      }
                       className={`p-1.5 rounded hover:bg-gray-200 transition-colors ${
                         editor?.isActive("strike") ? "bg-gray-200" : ""
                       }`}
