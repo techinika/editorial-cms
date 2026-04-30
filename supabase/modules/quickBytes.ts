@@ -58,6 +58,7 @@ export const createQuickByte = async (data: QuickByteFormData): Promise<QuickByt
         summary: data.summary || null,
         status: data.status || "draft",
         lang: data.lang || "en",
+        created_by: data.created_by || null,
       })
       .select()
       .single();
@@ -83,6 +84,35 @@ export const updateQuickByte = async (
       .from("quick_bytes")
       .update({
         ...data,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating quick byte:", error);
+      return null;
+    }
+
+    return quickByte as QuickByte;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return null;
+  }
+};
+
+export const updateQuickByteWithUser = async (
+  id: string,
+  data: Partial<QuickByteFormData>,
+  userId: string,
+): Promise<QuickByte | null> => {
+  try {
+    const { data: quickByte, error } = await supabaseAdminClient
+      .from("quick_bytes")
+      .update({
+        ...data,
+        updated_by: userId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

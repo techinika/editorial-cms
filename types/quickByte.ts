@@ -2,6 +2,8 @@ export interface QuickByte {
   id: string;
   created_at: string;
   updated_at?: string;
+  created_by?: string | null;
+  updated_by?: string | null;
   lang: string;
   title: string;
   content: string;
@@ -18,4 +20,5 @@ export interface QuickByteFormData {
   link?: string | null;
   summary?: string | null;
   status?: 'draft' | 'published';
+  created_by?: string;
 }

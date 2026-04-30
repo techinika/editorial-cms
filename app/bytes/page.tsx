@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FileText,
   Search,
@@ -103,7 +103,7 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
     try {
       const auth = await checkAuthStatus();
       setUser(auth);
-      if (auth.isAdmin) {
+      if (auth.authenticated) {
         loadBytes();
       }
     } catch (err) {
@@ -129,7 +129,7 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
 
   // Real-time subscription
   useEffect(() => {
-    if (!user?.isAdmin) return;
+    if (!user?.authenticated) return;
 
     const channel = supabaseAdminClient
       .channel('quick_bytes_changes')
@@ -146,7 +146,7 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
     return () => {
       supabaseAdminClient.removeChannel(channel);
     };
-  }, [user?.isAdmin]);
+  }, [user?.authenticated]);
 
   const filteredBytes = bytes.filter((b) => {
     if (filter !== "all" && b.status !== filter) return false;
@@ -171,6 +171,7 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
       summary: "",
       status: "draft",
       lang: "en",
+      created_by: user?.user?.id,
     });
     editor?.commands.setContent("");
     setShowEditModal(true);
@@ -202,7 +203,9 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
       const dataToSave = { ...formData, content };
 
       if (editingByte) {
-        const updated = await updateQuickByte(editingByte.id, dataToSave);
+        // Use updateQuickByteWithUser to set updated_by
+        const { updateQuickByteWithUser } = await import("@/supabase/CRUD/queries");
+        const updated = await updateQuickByteWithUser(editingByte.id, dataToSave, user?.user?.id || "");
         if (updated) {
           setBytes((prev) =>
             prev.map((b) => (b.id === updated.id ? updated : b))
@@ -210,7 +213,11 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
           showToast("success", "Quick byte updated successfully!");
         }
       } else {
-        const created = await createQuickByte(dataToSave);
+        // Set created_by for new bytes
+        const created = await createQuickByte({
+          ...dataToSave,
+          created_by: user?.user?.id,
+        });
         if (created) {
           setBytes((prev) => [created, ...prev]);
           showToast("success", "Quick byte created successfully!");
@@ -256,13 +263,13 @@ export default function BytesPage({ user: initialUser }: BytesPageProps) {
     );
   }
 
-  if (!user?.isAdmin) {
+  if (!user?.authenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You need admin privileges to access this page.</p>
+          <p className="text-gray-600 mb-4">You need to be logged in to access this page.</p>
           <Link href="/" className="text-[#3182ce] hover:underline">
             Go back home
           </Link>
