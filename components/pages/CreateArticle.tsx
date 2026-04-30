@@ -100,6 +100,7 @@ interface Metadata {
   category_id: string;
   image: string | null;
   thumbnail_id: string | null;
+  sponsored: boolean;
 }
 
 const PRIMARY_COLOR = "#3182ce";
@@ -136,7 +137,8 @@ const ArticleEditor = ({
     readTime: parseInt(initialArticle?.read_time || "5") || 5,
     category_id: initialArticle?.category?.id || "",
     image: initialArticle?.image || null,
-    thumbnail_id: (initialArticle as any)?.thumbnail_id || null,
+    thumbnail_id: initialArticle?.thumbnail_id || null,
+    sponsored: initialArticle?.sponsored || false,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -1476,6 +1478,31 @@ const ArticleEditor = ({
                 placeholder="Meta description for search engines..."
                 multiline
               />
+
+              {/* Sponsored Article */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Sponsored Article
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMetadata((prev) => ({ ...prev, sponsored: !prev.sponsored }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                      metadata.sponsored ? 'bg-[#3182ce]' : 'bg-gray-300'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                        metadata.sponsored ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm text-gray-700">
+                    {metadata.sponsored ? 'Yes, this is a sponsored article' : 'No, this is not sponsored'}
+                  </span>
+                </div>
+              </div>
 
               <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-md border border-amber-200">
                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />

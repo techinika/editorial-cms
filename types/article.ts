@@ -50,6 +50,7 @@ export type Article = {
   published_at: string | null;
   published_by: string | null;
   thumbnail_id: string | null;
+  sponsored: boolean | null;
 };
 
 export interface JoinedArticle extends Omit<
@@ -82,6 +83,7 @@ export interface ArticleFormData {
   published_at?: string | null;
   published_by?: string | null;
   thumbnail_id?: string | null;
+  sponsored?: boolean;
 }
 
 export interface ArticleFeedback {

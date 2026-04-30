@@ -183,6 +183,7 @@ export const createArticle = async (
         author_id: data.author_id || null,
         author_name: data.author_name || null,
         drafted_at: data.status === "draft" ? new Date().toISOString() : null,
+        sponsored: data.sponsored || false,
       };
 
     // Only include blocks/table_of_contents if we have them
@@ -252,6 +253,11 @@ export const updateArticle = async (
       const blocks = parseHtmlToBlocks(data.content);
       updateData.blocks = blocks;
       updateData.table_of_contents = extractTOC(blocks);
+    }
+
+    // Handle sponsored field
+    if (data.sponsored !== undefined) {
+      updateData.sponsored = data.sponsored;
     }
 
     // Clean up undefined values
