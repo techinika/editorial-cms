@@ -31,23 +31,22 @@ import {
   createBannerAd,
   updateBannerAd,
   deleteBannerAd,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   getTopBanners,
-  getTopBannerById,
   createTopBanner,
   updateTopBanner,
   deleteTopBanner,
   getActiveTopBanners,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   getAssets,
   searchAssets,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   getFeaturedStartups,
   searchFeaturedStartups,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { Asset } from "@/types/asset";
 import { FeaturedStartup } from "@/types/user-company";
 import { AuthResult } from "@/lib/auth";
@@ -80,8 +79,6 @@ export default function AdsPage({ user }: AdsPageProps) {
   // Top Banners state
   const [topBanners, setTopBanners] = useState<TopBanner[]>([]);
   const [topBannersLoading, setTopBannersLoading] = useState(true);
-  const [topBannersPage, setTopBannersPage] = useState(1);
-  const [topBannersHasMore, setTopBannersHasMore] = useState(true);
   const [topBannersSearchQuery, setTopBannersSearchQuery] = useState("");
 
   // Modal states
@@ -107,7 +104,12 @@ export default function AdsPage({ user }: AdsPageProps) {
 
   useEffect(() => {
     if (activeTab === "banner_ads") {
-      loadAds();
+      // Build filters from current state
+      const filters: { location?: string; banner_type?: string } = {};
+      if (locationFilter) filters.location = locationFilter;
+      if (typeFilter) filters.banner_type = typeFilter;
+      loadAds(filters);
+
       // Set up realtime subscription for banner_ads
       const channel = supabaseAdminClient
         .channel('banner_ads_changes')
@@ -116,7 +118,11 @@ export default function AdsPage({ user }: AdsPageProps) {
           { event: '*', schema: 'public', table: 'banner_ads' },
           (payload) => {
             console.log('Realtime update:', payload);
-            loadAds();
+            // Reload with current filters
+            const currentFilters: { location?: string; banner_type?: string } = {};
+            if (locationFilter) currentFilters.location = locationFilter;
+            if (typeFilter) currentFilters.banner_type = typeFilter;
+            loadAds(currentFilters);
           }
         )
         .subscribe();
@@ -126,6 +132,7 @@ export default function AdsPage({ user }: AdsPageProps) {
       };
     } else {
       loadTopBanners();
+
       // Set up realtime subscription for top_banner
       const channel = supabaseAdminClient
         .channel('top_banner_changes')
@@ -143,7 +150,7 @@ export default function AdsPage({ user }: AdsPageProps) {
         supabaseAdminClient.removeChannel(channel);
       };
     }
-  }, [activeTab]);
+  }, [activeTab, locationFilter, typeFilter]);
 
   // Reset filters when switching tabs
   useEffect(() => {
@@ -173,19 +180,8 @@ export default function AdsPage({ user }: AdsPageProps) {
 
   const loadTopBanners = async () => {
     setTopBannersLoading(true);
-    const data = await getTopBanners(0, 20);
+    const data = await getTopBanners();
     setTopBanners(data);
-    setTopBannersHasMore(data.length === 20);
-    setTopBannersLoading(false);
-  };
-
-  const loadMoreTopBanners = async () => {
-    if (topBannersLoading || !topBannersHasMore) return;
-    setTopBannersLoading(true);
-    const newBanners = await getTopBanners(topBannersPage, 20);
-    setTopBanners((prev) => [...prev, ...newBanners]);
-    setTopBannersPage((prev) => prev + 1);
-    setTopBannersHasMore(newBanners.length === 20);
     setTopBannersLoading(false);
   };
 
@@ -193,11 +189,23 @@ export default function AdsPage({ user }: AdsPageProps) {
     async (query: string) => {
       setAdsSearchQuery(query);
       if (!query.trim()) {
-        loadAds();
+        // Reload with current filters applied
+        const filters: { location?: string; banner_type?: string } = {};
+        if (locationFilter) filters.location = locationFilter;
+        if (typeFilter) filters.banner_type = typeFilter;
+        loadAds(filters);
+        return;
+      }
+      // Don't search while filters are active - clear filters first
+      if (locationFilter || typeFilter) {
+        setLocationFilter("");
+        setTypeFilter("");
+        // After clearing filters, search will be triggered again by the useEffect
         return;
       }
       setAdsSearching(true);
-      const filtered = ads.filter(
+      const data = await getBannerAds(0, 20);
+      const filtered = data.filter(
         (ad) =>
           ad.title.toLowerCase().includes(query.toLowerCase()) ||
           ad.description?.toLowerCase().includes(query.toLowerCase()) ||
@@ -206,7 +214,7 @@ export default function AdsPage({ user }: AdsPageProps) {
       setAds(filtered);
       setAdsSearching(false);
     },
-    [ads],
+    [locationFilter, typeFilter],
   );
 
   const handleTopBannersSearch = useCallback(
@@ -233,12 +241,8 @@ export default function AdsPage({ user }: AdsPageProps) {
       if (locationFilter) filters.location = locationFilter;
       if (typeFilter) filters.banner_type = typeFilter;
 
-      if (locationFilter || typeFilter) {
-        loadAds(filters);
-      } else {
-        // Reload all ads when filters are cleared
-        loadAds();
-      }
+      // Always call loadAds - if no filters, it loads all ads
+      loadAds(filters);
     }
   }, [locationFilter, typeFilter, activeTab]);
 
@@ -886,18 +890,6 @@ export default function AdsPage({ user }: AdsPageProps) {
                       </div>
                     ))}
                   </div>
-
-                  {topBannersHasMore && !topBannersSearchQuery && (
-                    <div className="mt-8 flex justify-center">
-                      <button
-                        onClick={loadMoreTopBanners}
-                        disabled={topBannersLoading}
-                        className="px-6 py-2 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
-                      >
-                        {topBannersLoading ? "Loading..." : "Load More"}
-                      </button>
-                    </div>
-                  )}
                 </>
               )}
             </section>
@@ -1408,8 +1400,8 @@ function AdEditModal({
          </form>
        </div>
      </div>
-   );
- }
+  );
+}
 
 // Top Banner Edit Modal Component
 function TopBannerEditModal({

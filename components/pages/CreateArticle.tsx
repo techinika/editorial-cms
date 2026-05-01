@@ -53,7 +53,7 @@ import {
   createArticle,
   updateArticle,
   getCategories,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import {
   uploadThumbnailToCloudinary,
   uploadArticleImageToCloudinary,
@@ -81,7 +81,15 @@ import ConfirmModal from "@/components/ConfirmModal";
 import UserNav from "@/components/UserNav";
 
 import AssetSelectionModal from "@/components/AssetSelectionModal";
-import { Block, TOCEntry, isLegacyContent, convertLegacyContent } from "@/lib/content-parser";
+import { Block, TOCEntry, isLegacyContent, convertLegacyContent, blocksToHtml } from "@/lib/content-parser";
+
+// Helper to build asset URL map from blocks (for preview)
+const buildAssetUrlMapFromBlocks = (blocks: Block[]): Record<string, string> => {
+  const map: Record<string, string> = {};
+  // This is a client-side helper - in preview mode we use the URLs already in the editor
+  // For now, we'll rely on the server-side assetUrlMap
+  return map;
+};
 
 interface Metadata {
   title: string;
@@ -92,6 +100,7 @@ interface Metadata {
   category_id: string;
   image: string | null;
   thumbnail_id: string | null;
+  sponsored: boolean;
 }
 
 const PRIMARY_COLOR = "#3182ce";
@@ -128,7 +137,8 @@ const ArticleEditor = ({
     readTime: parseInt(initialArticle?.read_time || "5") || 5,
     category_id: initialArticle?.category?.id || "",
     image: initialArticle?.image || null,
-    thumbnail_id: (initialArticle as any)?.thumbnail_id || null,
+    thumbnail_id: initialArticle?.thumbnail_id || null,
+    sponsored: initialArticle?.sponsored || false,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -144,6 +154,29 @@ const ArticleEditor = ({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingEditorImage, setUploadingEditorImage] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
+  const [showInlineAssetModal, setShowInlineAssetModal] = useState(false);
+  const [inlineAssetType, setInlineAssetType] = useState<"image" | "video">("image");
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showVideoOptions, setShowVideoOptions] = useState(false);
+
+  // Image/Video editing state
+  const [editingAsset, setEditingAsset] = useState<{ type: "image" | "video"; element: any } | null>(null);
+  const [assetAltText, setAssetAltText] = useState("");
+  const [assetCaption, setAssetCaption] = useState("");
+  const [showAssetEditModal, setShowAssetEditModal] = useState(false);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.relative')) {
+        setShowImageOptions(false);
+        setShowVideoOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [authUser, setAuthUser] = useState<AuthResult | null>(
     initialAuthUser || null,
   );
@@ -176,10 +209,14 @@ const ArticleEditor = ({
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
-  const [parsedBlocks, setParsedBlocks] = useState<Block[]>([]);
-  const [toc, setToc] = useState<TOCEntry[]>([]);
 
-  const editor = useEditor({
+    const [parsedBlocks, setParsedBlocks] = useState<Block[]>([]);
+  const [toc, setToc] = useState<TOCEntry[]>([]);
+  const [articleFormat, setArticleFormat] = useState<"html" | "blocks">(
+    initialArticle?.blocks && initialArticle.blocks.length > 0 ? "blocks" : "html"
+  );
+
+    const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
@@ -217,6 +254,21 @@ const ArticleEditor = ({
       }
     },
   });
+
+  // Handle block parsing based on format
+  useEffect(() => {
+    if (editor && articleFormat === "blocks") {
+      const html = editor.getHTML();
+      const result = convertLegacyContent(html);
+      setParsedBlocks(result.blocks);
+      setToc(result.toc);
+    } else {
+      setParsedBlocks([]);
+      setToc([]);
+    }
+  }, [articleFormat, editor]);
+
+
 
   const wordCount = editor?.getText().split(/\s+/).filter(Boolean).length || 0;
   const estimatedReadTime = Math.max(1, Math.ceil(wordCount / 200));
@@ -336,46 +388,134 @@ const ArticleEditor = ({
     input.click();
   }, [editor, articleId, authUser]);
 
-  const handleEditorVideoUpload = useCallback(async () => {
+  const handleInlineImageSelect = useCallback(() => {
+    setInlineAssetType("image");
+    setShowInlineAssetModal(true);
+  }, []);
+
+  const handleInlineVideoSelect = useCallback(() => {
+    setInlineAssetType("video");
+    setShowInlineAssetModal(true);
+  }, []);
+
+  const handleExistingAssetSelect = useCallback(async (assetId: string, assetUrl: string) => {
+    setShowInlineAssetModal(false);
+    if (inlineAssetType === "image") {
+      editor?.chain().focus().insertContent(
+        `<img src="${assetUrl}" alt="" data-asset-id="${assetId}" />`
+      ).run();
+      showToast("success", "Image inserted!");
+    } else {
+      editor?.chain().focus().insertContent(
+        `<video src="${assetUrl}" controls data-asset-id="${assetId}"></video>`
+      ).run();
+      showToast("success", "Video inserted!");
+    }
+  }, [editor, inlineAssetType]);
+
+  // Handle clicking on images/videos in the editor
+  const handleAssetClick = useCallback((e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const img = target.closest('img') as HTMLImageElement;
+    const video = target.closest('video') as HTMLVideoElement;
+
+    if (img) {
+      const assetId = img.getAttribute('data-asset-id');
+      const src = img.getAttribute('src') || '';
+      const alt = img.getAttribute('alt') || '';
+      setEditingAsset({ type: 'image', element: img });
+      setAssetAltText(alt);
+      setAssetCaption(''); // Caption would need to be stored separately
+      setShowAssetEditModal(true);
+    } else if (video) {
+      const assetId = video.getAttribute('data-asset-id');
+      const src = video.getAttribute('src') || '';
+      setEditingAsset({ type: 'video', element: video });
+      setAssetAltText('');
+      setAssetCaption('');
+      setShowAssetEditModal(true);
+    }
+  }, []);
+
+  // Update asset alt text
+  const updateAssetAltText = useCallback(() => {
+    if (!editingAsset) return;
+    const { type, element } = editingAsset;
+    if (type === 'image') {
+      element.setAttribute('alt', assetAltText);
+      // Trigger editor update
+      const html = editor?.getHTML() || '';
+      const result = convertLegacyContent(html);
+      setParsedBlocks(result.blocks);
+      setToc(result.toc);
+    }
+    setShowAssetEditModal(false);
+    setEditingAsset(null);
+    showToast('success', 'Alt text updated!');
+  }, [editingAsset, assetAltText, editor]);
+
+  // Swap asset (choose new asset)
+  const handleSwapAsset = useCallback(() => {
+    setShowAssetEditModal(false);
+    if (editingAsset?.type === 'image') {
+      handleInlineImageSelect();
+    } else if (editingAsset?.type === 'video') {
+      handleInlineVideoSelect();
+    }
+  }, [editingAsset]);
+
+  // Remove asset from article
+  const handleRemoveAsset = useCallback(() => {
+    if (!editingAsset) return;
+    const { element } = editingAsset;
+    element.remove();
+    setShowAssetEditModal(false);
+    setEditingAsset(null);
+    showToast('success', 'Asset removed from article');
+  }, [editingAsset, editor]);
+
+  const handleEditorVideoUpload = useCallback(() => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "video/*";
-    input.onchange = async (e) => {
+    input.onchange = (e: Event) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         setUploadingEditorImage(true);
-        
+
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onloadend = async () => {
-          try {
-            const response = await fetch("/api/inline-video-upload", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                file: reader.result,
-                fileName: file.name,
-                articleId: articleId,
-                userId: authUser?.user?.id,
-              }),
-            });
-            
-            const data = await response.json();
-            setUploadingEditorImage(false);
-            
-            if (data.url) {
-              const assetId = data.assetId;
-              editor?.chain().focus().insertContent(
-                `<video src="${data.url}" controls data-asset-id="${assetId}" />`
-              ).run();
-              showToast("success", "Video uploaded!");
-            } else {
-              showToast("error", data.error || "Failed to upload video");
+        reader.onloadend = () => {
+          (async () => {
+            try {
+              const response = await fetch("/api/inline-video-upload", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  file: reader.result,
+                  fileName: file.name,
+                  articleId: articleId,
+                  userId: authUser?.user?.id,
+                }),
+              });
+
+              const data = await response.json();
+              setUploadingEditorImage(false);
+
+              if (data.url) {
+                const assetId = data.assetId;
+                editor?.chain().focus().insertContent(
+                  `<video src="${data.url}" controls data-asset-id="${assetId}"></video>`
+                ).run();
+                showToast("success", "Video uploaded!");
+              } else {
+                showToast("error", data.error || "Failed to upload video");
+              }
+            } catch (error) {
+              setUploadingEditorImage(false);
+              showToast("error", "Failed to upload video");
             }
-          } catch (error) {
-            setUploadingEditorImage(false);
-            showToast("error", "Failed to upload video");
-          }
+          })();
         };
       }
     };
@@ -407,7 +547,7 @@ const ArticleEditor = ({
         const result = await updateArticle(articleId, {
           title: metadata.title,
           content: htmlContent,
-          blocks: parsedBlocks,
+          blocks: articleFormat === "blocks" ? parsedBlocks : null,
           image: metadata.image,
           category_id: metadata.category_id || null,
           tags: metadata.tags,
@@ -494,13 +634,14 @@ const ArticleEditor = ({
       let result;
       const authorId =
         isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
+      const blocksToSave = articleFormat === "blocks" ? parsedBlocks : null;
       if (articleId) {
         result = await updateArticle(
           articleId,
           {
             title: metadata.title,
             content: htmlContent,
-            blocks: parsedBlocks,
+            blocks: blocksToSave,
             image: metadata.image,
             category_id: metadata.category_id || null,
             tags: metadata.tags,
@@ -517,7 +658,7 @@ const ArticleEditor = ({
         result = await createArticle({
           title: metadata.title,
           content: htmlContent,
-          blocks: parsedBlocks,
+          blocks: blocksToSave,
           image: metadata.image,
           category_id: metadata.category_id || null,
           tags: metadata.tags,
@@ -873,6 +1014,31 @@ const ArticleEditor = ({
                   • Published
                 </span>
               )}
+              {isOwner && (
+                <span className="ml-2 flex items-center gap-1">
+                  <span className="text-xs text-gray-500">Format:</span>
+                  <button
+                    onClick={() => setArticleFormat("html")}
+                    className={`px-2 py-0.5 text-xs rounded ${
+                      articleFormat === "html"
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    HTML
+                  </button>
+                  <button
+                    onClick={() => setArticleFormat("blocks")}
+                    className={`px-2 py-0.5 text-xs rounded ${
+                      articleFormat === "blocks"
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    Blocks
+                  </button>
+                </span>
+              )}
             </span>
           </div>
         </div>
@@ -1122,29 +1288,81 @@ const ArticleEditor = ({
               )}
             </div>
 
-            <ToolbarButton
-              onClick={handleEditorImageUpload}
-              title="Add Image"
-              disabled={uploadingEditorImage}
-            >
-              {uploadingEditorImage ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ImagePlus className="w-4 h-4" />
+            <div className="relative">
+              <ToolbarButton
+                onClick={() => setShowImageOptions(!showImageOptions)}
+                title="Add Image"
+                disabled={uploadingEditorImage}
+              >
+                {uploadingEditorImage ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="w-4 h-4" />
+                )}
+              </ToolbarButton>
+              {showImageOptions && (
+                <div className="absolute top-full mt-2 left-0 bg-white rounded-md shadow-xl border border-gray-200 py-1 z-50 min-w-[160px]">
+                  <button
+                    onClick={() => {
+                      setShowImageOptions(false);
+                      handleEditorImageUpload();
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    Upload New Image
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowImageOptions(false);
+                      handleInlineImageSelect();
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Choose Existing
+                  </button>
+                </div>
               )}
-            </ToolbarButton>
+            </div>
 
-            <ToolbarButton
-              onClick={handleEditorVideoUpload}
-              title="Add Video"
-              disabled={uploadingEditorImage}
-            >
-              {uploadingEditorImage ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Video className="w-4 h-4" />
+            <div className="relative">
+              <ToolbarButton
+                onClick={() => setShowVideoOptions(!showVideoOptions)}
+                title="Add Video"
+                disabled={uploadingEditorImage}
+              >
+                {uploadingEditorImage ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Video className="w-4 h-4" />
+                )}
+              </ToolbarButton>
+              {showVideoOptions && (
+                <div className="absolute top-full mt-2 left-0 bg-white rounded-md shadow-xl border border-gray-200 py-1 z-50 min-w-[160px]">
+                  <button
+                    onClick={() => {
+                      setShowVideoOptions(false);
+                      handleEditorVideoUpload();
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Video className="w-4 h-4" />
+                    Upload New Video
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowVideoOptions(false);
+                      handleInlineVideoSelect();
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Video className="w-4 h-4" />
+                    Choose Existing
+                  </button>
+                </div>
               )}
-            </ToolbarButton>
+            </div>
           </div>
         </div>
       )}
@@ -1261,6 +1479,31 @@ const ArticleEditor = ({
                 multiline
               />
 
+              {/* Sponsored Article */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Sponsored Article
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMetadata((prev) => ({ ...prev, sponsored: !prev.sponsored }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                      metadata.sponsored ? 'bg-[#3182ce]' : 'bg-gray-300'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                        metadata.sponsored ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm text-gray-700">
+                    {metadata.sponsored ? 'Yes, this is a sponsored article' : 'No, this is not sponsored'}
+                  </span>
+                </div>
+              </div>
+
               <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-md border border-amber-200">
                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                 <div>
@@ -1350,7 +1593,11 @@ const ArticleEditor = ({
                 )}
                 <div
                   className="prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: editor?.getHTML() || "" }}
+                  dangerouslySetInnerHTML={{
+                    __html: articleFormat === "blocks" && parsedBlocks.length > 0
+                      ? blocksToHtml(parsedBlocks, buildAssetUrlMapFromBlocks(parsedBlocks))
+                      : editor?.getHTML() || ""
+                  }}
                 />
               </div>
             ) : (
@@ -1700,17 +1947,113 @@ const ArticleEditor = ({
         onClose={() => setShowAssetModal(false)}
         onSelect={(asset, field) => {
           // Set the thumbnail image URL and store the asset ID
-          setMetadata((prev) => ({ 
-            ...prev, 
+          setMetadata((prev) => ({
+            ...prev,
             image: asset.url,
-            thumbnail_id: asset.id 
+            thumbnail_id: asset.id
           }));
           setShowAssetModal(false);
         }}
         user={authUser || undefined}
       />
+
+      <AssetSelectionModal
+        isOpen={showInlineAssetModal}
+        onClose={() => setShowInlineAssetModal(false)}
+        onSelect={(asset) => handleExistingAssetSelect(asset.id, asset.url)}
+        user={authUser || undefined}
+        filterType={inlineAssetType}
+      />
+
+      {/* Asset Edit Modal for editing alt text/caption or removing/swapping */}
+      {showAssetEditModal && editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowAssetEditModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">
+                {editingAsset.type === "image" ? "Edit Image" : "Edit Video"}
+              </h3>
+              <button
+                onClick={() => setShowAssetEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {editingAsset.type === "image" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Alt Text
+                  </label>
+                  <input
+                    type="text"
+                    value={assetAltText}
+                    onChange={(e) => setAssetAltText(e.target.value)}
+                    placeholder="Describe the image..."
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Caption (optional)
+                </label>
+                <input
+                  type="text"
+                  value={assetCaption}
+                  onChange={(e) => setAssetCaption(e.target.value)}
+                  placeholder="Add a caption..."
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border-t bg-gray-50">
+              <button
+                onClick={handleRemoveAsset}
+                className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              >
+                Remove from Article
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAssetEditModal(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSwapAsset}
+                  className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
+                  style={{ backgroundColor: PRIMARY_COLOR }}
+                >
+                  Swap Asset
+                </button>
+                {editingAsset.type === "image" && (
+                  <button
+                    onClick={updateAssetAltText}
+                    className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
+                    style={{ backgroundColor: PRIMARY_COLOR }}
+                  >
+                    Update Alt Text
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ArticleEditor;
+

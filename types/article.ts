@@ -4,7 +4,7 @@ import { Asset } from "./asset";
 
 export type ArticleStatus = "draft" | "published" | "cancelled";
 
-export type BlockType = "paragraph" | "heading" | "image" | "quote" | "code" | "list";
+export type BlockType = "paragraph" | "heading" | "image" | "quote" | "code" | "list" | "link" | "video";
 
 export type Block = {
   id: string;
@@ -14,6 +14,7 @@ export type Block = {
   assetId?: string | null;
   language?: string;
   url?: string;
+  href?: string;
 };
 
 export type TOCEntry = {
@@ -49,6 +50,7 @@ export type Article = {
   published_at: string | null;
   published_by: string | null;
   thumbnail_id: string | null;
+  sponsored: boolean | null;
 };
 
 export interface JoinedArticle extends Omit<
@@ -81,6 +83,7 @@ export interface ArticleFormData {
   published_at?: string | null;
   published_by?: string | null;
   thumbnail_id?: string | null;
+  sponsored?: boolean;
 }
 
 export interface ArticleFeedback {

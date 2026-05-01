@@ -17,7 +17,7 @@ import {
   getAssetsByType,
   searchAssets,
   createAsset,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { upload } from "@imagekit/next";
 import { useToast } from "@/components/Toast";
 
@@ -27,6 +27,7 @@ interface AssetSelectionModalProps {
   onSelect: (asset: Asset, field?: "thumbnail" | "content") => void;
   currentAssetId?: string | null;
   user?: { id?: string; isAdmin?: boolean };
+  filterType?: AssetType;
 }
 
 export default function AssetSelectionModal({
@@ -35,12 +36,13 @@ export default function AssetSelectionModal({
   onSelect,
   currentAssetId,
   user,
+  filterType,
 }: AssetSelectionModalProps) {
   const { showToast } = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<AssetType | "">("");
+  const [typeFilter, setTypeFilter] = useState<AssetType | "">(filterType || "");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 

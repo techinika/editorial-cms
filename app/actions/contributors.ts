@@ -1,6 +1,6 @@
 "use server";
 
-import { getArticleContributors, addContributor, removeContributor, updateArticleOwner, getAllAuthors, getArticleById, getUnresolvedFeedbackCount, getArticleFeedback } from "@/supabase/CRUD/querries";
+import { getArticleContributors, addContributor, removeContributor, updateArticleOwner, getAllAuthors, getArticleById, getUnresolvedFeedbackCount, getArticleFeedback } from "@/supabase/CRUD/queries";
 import { revalidatePath } from "next/cache";
 
 export async function fetchContributors(articleId: string) {

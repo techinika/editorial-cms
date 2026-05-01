@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { JoinedArticle } from "@/types/article";
 import { AuthResult } from "@/lib/auth";
-import { getArticlesWithPendingFeedbackUser } from "@/supabase/CRUD/querries";
+import { getArticlesWithPendingFeedbackUser } from "@/supabase/CRUD/queries";
 import UserNav from "@/components/UserNav";
 
 interface PendingReviewPageProps {

@@ -1,6 +1,6 @@
 import ArticleEditor from "@/components/pages/CreateArticle";
 import { checkAuthStatusServer, requireAuthor } from "@/lib/auth-server";
-import { getAllAuthors } from "@/supabase/CRUD/querries";
+import { getAllAuthors } from "@/supabase/CRUD/queries";
 
 export default async function CreatePage() {
   const authResult = await checkAuthStatusServer();

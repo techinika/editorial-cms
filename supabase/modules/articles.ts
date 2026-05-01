@@ -1,5 +1,64 @@
 import { JoinedArticle, ArticleFormData, Article, Block, TOCEntry } from "@/types/article";
 import { supabaseAdminClient } from "../supabase";
+import { Asset } from "@/types/asset";
+
+// Helper to extract unique asset IDs from blocks
+const extractAssetIdsFromBlocks = (blocks: Block[]): string[] => {
+  const assetIds = new Set<string>();
+  blocks.forEach(block => {
+    if (block.assetId) {
+      assetIds.add(block.assetId);
+    }
+  });
+  return Array.from(assetIds);
+};
+
+// Helper to build asset URL map from asset IDs
+const buildAssetUrlMap = async (assetIds: string[]): Promise<Record<string, string>> => {
+  if (!assetIds.length) return {};
+
+  const { data, error } = await supabaseAdminClient
+    .from("assets")
+    .select("id, url")
+    .in("id", assetIds);
+
+  if (error || !data) {
+    console.error("Error fetching assets for blocks:", error);
+    return {};
+  }
+
+  const map: Record<string, string> = {};
+  data.forEach((asset: { id: string; url: string }) => {
+    map[asset.id] = asset.url;
+  });
+  return map;
+};
+
+// Enrich articles with asset URLs for blocks
+const enrichArticlesWithAssetUrls = async (articles: JoinedArticle[]): Promise<JoinedArticle[]> => {
+  // Collect all asset IDs from all articles' blocks
+  const allAssetIds = new Set<string>();
+  articles.forEach(article => {
+    if (article.blocks && Array.isArray(article.blocks)) {
+      extractAssetIdsFromBlocks(article.blocks as Block[]).forEach(id => allAssetIds.add(id));
+    }
+  });
+
+  if (allAssetIds.size === 0) return articles;
+
+  const assetUrlMap = await buildAssetUrlMap(Array.from(allAssetIds));
+
+  // Attach assetUrlMap to each article for rendering
+  return articles.map(article => {
+    if (article.blocks && Array.isArray(article.blocks)) {
+      return {
+        ...article,
+        assetUrlMap
+      } as JoinedArticle & { assetUrlMap: Record<string, string> };
+    }
+    return article;
+  });
+};
 
 const generateSlug = (title: string): string => {
   return title
@@ -97,6 +156,7 @@ export const createArticle = async (
   data: ArticleFormData,
 ): Promise<Article | null> => {
   try {
+    // Only generate slug if not provided (for new articles only)
     const slug = data.slug || generateSlug(data.title);
     
     let blocks = data.blocks || [];
@@ -123,6 +183,7 @@ export const createArticle = async (
         author_id: data.author_id || null,
         author_name: data.author_name || null,
         drafted_at: data.status === "draft" ? new Date().toISOString() : null,
+        sponsored: data.sponsored || false,
       };
 
     // Only include blocks/table_of_contents if we have them
@@ -157,37 +218,54 @@ export const updateArticle = async (
   try {
     const updateData: Record<string, unknown> = { ...data };
 
-    if (data.title && !data.slug) {
-      updateData.slug = generateSlug(data.title);
-    }
+    // Don't update slug on existing articles - slug should only be set on creation
+    delete updateData.slug;
 
+    // Always update the updated_at timestamp on every update
+    updateData.updated_at = new Date().toISOString();
+
+    // Only set drafted_at if status is draft and it's not already set
     if (data.status === "draft" && !data.drafted_at) {
       updateData.drafted_at = new Date().toISOString();
     }
 
+    // Only set published_at when publishing for the first time
+    // This ensures published_at is only set once when article is first published
     if (data.status === "published" && !data.published_at) {
       updateData.published_at = new Date().toISOString();
       if (publishedByUserId) {
         updateData.published_by = publishedByUserId;
       }
     }
-    
-    if (data.content && data.blocks) {
+
+    // Handle blocks - if explicitly provided (including null), use that value
+    // Only auto-parse from content if blocks is not provided at all
+    if (data.blocks !== undefined) {
+      // blocks is explicitly provided (could be null or an array)
       updateData.blocks = data.blocks;
-      updateData.table_of_contents = extractTOC(data.blocks);
-    } else if (data.content && !data.blocks) {
+      if (data.blocks && data.blocks.length > 0) {
+        updateData.table_of_contents = extractTOC(data.blocks);
+      } else {
+        updateData.table_of_contents = null;
+      }
+    } else if (data.content) {
+      // blocks not provided, auto-parse from content
       const blocks = parseHtmlToBlocks(data.content);
       updateData.blocks = blocks;
       updateData.table_of_contents = extractTOC(blocks);
     }
 
-    // Remove blocks/table_of_contents from update if not provided to avoid errors
-    if (updateData.blocks === undefined) {
-      delete updateData.blocks;
+    // Handle sponsored field
+    if (data.sponsored !== undefined) {
+      updateData.sponsored = data.sponsored;
     }
-    if (updateData.table_of_contents === undefined) {
-      delete updateData.table_of_contents;
-    }
+
+    // Clean up undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
 
     const { data: article, error } = await supabaseAdminClient
       .from("articles")
@@ -210,7 +288,7 @@ export const updateArticle = async (
 
 export const getArticleById = async (
   id: string,
-): Promise<JoinedArticle | null> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> }) | null> => {
   try {
     const { data, error } = await supabaseAdminClient
       .from("articles")
@@ -223,7 +301,18 @@ export const getArticleById = async (
       return null;
     }
 
-    return data as unknown as JoinedArticle;
+    const article = data as unknown as JoinedArticle;
+
+    // Build asset URL map if article has blocks with asset references
+    if (article.blocks && Array.isArray(article.blocks) && article.blocks.length > 0) {
+      const assetIds = extractAssetIdsFromBlocks(article.blocks as Block[]);
+      if (assetIds.length > 0) {
+        const assetUrlMap = await buildAssetUrlMap(assetIds);
+        return { ...article, assetUrlMap };
+      }
+    }
+
+    return article;
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return null;
@@ -233,7 +322,7 @@ export const getArticleById = async (
 export const getArticles = async (
   page = 0,
   limit = 12,
-): Promise<JoinedArticle[]> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   const from = page * limit;
   const to = from + limit - 1;
 
@@ -249,7 +338,8 @@ export const getArticles = async (
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
@@ -260,7 +350,7 @@ export const getArticlesByStatus = async (
   status: "draft" | "published",
   page = 0,
   limit = 15,
-): Promise<JoinedArticle[]> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   const from = page * limit;
   const to = from + limit - 1;
 
@@ -277,7 +367,8 @@ export const getArticlesByStatus = async (
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
@@ -286,7 +377,7 @@ export const getArticlesByStatus = async (
 
 export const searchArticles = async (
   query: string,
-): Promise<JoinedArticle[]> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   if (!query.trim()) {
     return getArticles(0, 12);
   }
@@ -305,7 +396,8 @@ export const searchArticles = async (
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
@@ -334,7 +426,7 @@ export const deleteArticle = async (id: string): Promise<boolean> => {
 export const getUserOwnArticles = async (
   userId: string,
   limit = 10,
-): Promise<JoinedArticle[]> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   try {
     const { data, error } = await supabaseAdminClient
       .from("articles")
@@ -348,7 +440,8 @@ export const getUserOwnArticles = async (
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
@@ -356,7 +449,7 @@ export const getUserOwnArticles = async (
 };
 
 export const getArticlesWithPendingFeedback = async (): Promise<
-  JoinedArticle[]
+  (JoinedArticle & { assetUrlMap?: Record<string, string> })[]
 > => {
   try {
     const { data: articlesWithFeedback, error: feedbackError } = await supabaseAdminClient
@@ -388,7 +481,8 @@ export const getArticlesWithPendingFeedback = async (): Promise<
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
@@ -398,7 +492,7 @@ export const getArticlesWithPendingFeedback = async (): Promise<
 export const getArticlesWithPendingFeedbackUser = async (
   userId: string,
   isAdmin: boolean,
-): Promise<JoinedArticle[]> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   try {
     let articleIdsQuery;
 
@@ -450,7 +544,8 @@ export const getArticlesWithPendingFeedbackUser = async (
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];
@@ -467,7 +562,7 @@ export const getFilteredArticles = async (
   filter: ArticleFilter,
   page = 0,
   limit = 12,
-): Promise<JoinedArticle[]> => {
+): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   const from = page * limit;
   const to = from + limit - 1;
 
@@ -497,7 +592,8 @@ export const getFilteredArticles = async (
       return [];
     }
 
-    return data as unknown as JoinedArticle[];
+    const articles = data as unknown as JoinedArticle[];
+    return await enrichArticlesWithAssetUrls(articles);
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return [];

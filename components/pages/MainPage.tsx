@@ -34,7 +34,7 @@ import {
   deleteArticle,
   updateArticle,
   getAllPendingActivity,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { useRouter } from "next/navigation";
 import { AuthResult } from "@/lib/auth";
 import { Category } from "@/types/category";
@@ -519,14 +519,14 @@ export default function MainPage({
               <span className="text-sm font-medium">Create New Article</span>
             </button>
 
-            <a href="/categories" className="group text-left">
+            <Link href="/categories" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Tag className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Categories</span>
-            </a>
+            </Link>
 
-            <a href="/stats" className="group text-left">
+            <Link href="/stats" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <BarChart3
                   className="w-12 h-12 text-[#3182ce]"
@@ -534,9 +534,9 @@ export default function MainPage({
                 />
               </div>
               <span className="text-sm font-medium">My Stats</span>
-            </a>
+            </Link>
 
-            <a href="/comments" className="group text-left">
+            <Link href="/comments" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <MessageCircle
                   className="w-12 h-12 text-[#3182ce]"
@@ -544,24 +544,24 @@ export default function MainPage({
                 />
               </div>
               <span className="text-sm font-medium">Comments</span>
-            </a>
+            </Link>
 
-            <a href="/pending" className="group text-left">
+            <Link href="/pending" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Clock className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Pending Review</span>
-            </a>
+            </Link>
 
-            <a href="/assets" className="group text-left">
+            <Link href="/assets" className="group text-left">
               <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Assets</span>
-            </a>
+            </Link>
 
             {user?.isAdmin && (
-              <a href="/ads" className="group text-left">
+              <Link href="/ads" className="group text-left">
                 <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                   <Image
                     className="w-12 h-12 text-[#3182ce]"
@@ -569,11 +569,11 @@ export default function MainPage({
                   />
                 </div>
                 <span className="text-sm font-medium">Ads</span>
-              </a>
+              </Link>
             )}
 
             {user?.isAdmin && (
-              <a href="/subscribers" className="group text-left">
+              <Link href="/subscribers" className="group text-left">
                 <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                   <FileText
                     className="w-12 h-12 text-[#3182ce]"
@@ -581,11 +581,11 @@ export default function MainPage({
                   />
                 </div>
                 <span className="text-sm font-medium">Subscribers</span>
-              </a>
+              </Link>
             )}
 
             {user?.isAdmin && (
-              <a href="/campaigns" className="group text-left">
+              <Link href="/campaigns" className="group text-left">
                 <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                   <FileText
                     className="w-12 h-12 text-[#3182ce]"
@@ -593,11 +593,11 @@ export default function MainPage({
                   />
                 </div>
                 <span className="text-sm font-medium">Campaigns</span>
-              </a>
+              </Link>
             )}
 
             {user?.isAdmin && (
-              <a href="/authors" className="group text-left">
+              <Link href="/authors" className="group text-left">
                 <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                   <User
                     className="w-12 h-12 text-[#3182ce]"
@@ -605,8 +605,24 @@ export default function MainPage({
                   />
                 </div>
                 <span className="text-sm font-medium">Authors</span>
-              </a>
+              </Link>
             )}
+
+            {user?.isAdmin && (
+              <Link href="/queries" className="group text-left">
+                <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                  <MessageCircle className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+                </div>
+                <span className="text-sm font-medium">Queries</span>
+             </Link>
+            )}
+
+            <Link href="/bytes" className="group text-left">
+              <div className="w-40 h-52 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
+                <FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-medium">Quick Bytes</span>
+            </Link>
           </div>
         </section>
 

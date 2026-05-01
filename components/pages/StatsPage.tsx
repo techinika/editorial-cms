@@ -22,7 +22,7 @@ import {
   getAuthorInfo,
   ContributorArticle,
   getAllStats,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import { JoinedArticle } from "@/types/article";
 

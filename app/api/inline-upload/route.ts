@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAsset } from "@/supabase/CRUD/querries";
-import { addArticleAsset } from "@/supabase/CRUD/querries";
+import { createAsset } from "@/supabase/CRUD/queries";
+import { addArticleAsset } from "@/supabase/CRUD/queries";
 
 export async function POST(request: NextRequest) {
   try {

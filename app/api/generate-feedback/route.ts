@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import puter from "@heyputer/puter.js";
-import { createFeedback, getArticleById } from "@/supabase/CRUD/querries";
+import { createFeedback, getArticleById } from "@/supabase/CRUD/queries";
+import { blocksToHtml } from "@/lib/content-parser";
+import { Block } from "@/types/article";
 
 const EDITORIAL_GUIDELINES = `
 Techinika Editorial Guidelines v1.0
@@ -45,46 +47,55 @@ export async function POST(request: Request) {
     if (!puterAuthToken) {
       return NextResponse.json({ error: "Puter AI not configured. Set PUTER_AUTH_TOKEN env variable." }, { status: 500 });
     }
-
+    
     puter.setAuthToken(puterAuthToken);
-
+    
     const { articleId, authorId } = await request.json();
-
+    
     if (!articleId || !authorId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-
+    
     const article = await getArticleById(articleId);
     
     if (!article) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
     }
-
+    
+    // Use blocks with asset URLs if available, otherwise fall back to content
+    let articleContent = '';
+    if (article.blocks && Array.isArray(article.blocks) && article.blocks.length > 0) {
+      const assetUrlMap = (article as any).assetUrlMap || {};
+      articleContent = blocksToHtml(article.blocks as Block[], assetUrlMap);
+    } else {
+      articleContent = article.content || 'No content';
+    }
+    
     const prompt = `You are an expert article reviewer for Techinika, a technology media platform. 
 Analyze the following article and provide exactly 5 constructive feedback points using the Techinika Editorial Guidelines.
 
 ${EDITORIAL_GUIDELINES}
 
 Article Title: ${article.title}
-Article Content: ${article.content ? article.content.substring(0, 8000) : 'No content'}
+Article Content: ${articleContent.substring(0, 8000)}
 
 Provide exactly 5 feedback points as a numbered list (1. to 5.). 
 Each feedback should be 1-2 sentences, specific, actionable, and reference the guidelines above.
 Focus on: content quality, structure, accuracy, headers, sources, dates, readability, technology relevance.`;
-
+    
     console.log("Calling Puter AI with prompt...");
-
+    
     const response = await puter.ai.chat(prompt, {
       model: "gpt-4.1-nano"
     });
-
+    
     console.log("AI raw response:", response);
-
+    
     if (isPuterError(response)) {
       console.error("Puter API error:", response.message);
       return NextResponse.json({ error: `Puter AI error: ${response.message}` }, { status: 500 });
     }
-
+    
     const feedbackText = String(response || "");
     console.log("Feedback text:", feedbackText);
     
@@ -101,9 +112,9 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
         return trimmed.match(/^\d+[.)]/) || trimmed.startsWith("-") || trimmed.length > 30;
       })
       .slice(0, 5);
-
+    
     console.log("Parsed feedback points:", feedbackPoints);
-
+    
     const results = [];
     for (const feedback of feedbackPoints) {
       let content = feedback.replace(/^[-.\d.]+\s*/, "").trim();
@@ -116,7 +127,7 @@ Focus on: content quality, structure, accuracy, headers, sources, dates, readabi
         }
       }
     }
-
+    
     console.log("Created feedback count:", results.length);
     return NextResponse.json(results);
   } catch (error) {

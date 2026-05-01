@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { getActiveSubscribers } from "@/supabase/CRUD/querries";
-import { createCampaign, updateCampaignStats } from "@/supabase/CRUD/querries";
+import { getActiveSubscribers } from "@/supabase/CRUD/queries";
+import { createCampaign, updateCampaignStats } from "@/supabase/CRUD/queries";
 
 // Create reusable transporter using SMTP
 const transporter = nodemailer.createTransport({

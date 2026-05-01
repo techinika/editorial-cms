@@ -1,6 +1,6 @@
 "use server";
 
-import { createFeedback, resolveFeedback, getArticleFeedback, getUnresolvedFeedbackCount } from "@/supabase/CRUD/querries";
+import { createFeedback, resolveFeedback, getArticleFeedback, getUnresolvedFeedbackCount } from "@/supabase/CRUD/queries";
 import { revalidatePath } from "next/cache";
 
 export async function addFeedback(articleId: string, authorId: string, content: string, aiGenerated: boolean = false) {

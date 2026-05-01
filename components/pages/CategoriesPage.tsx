@@ -19,7 +19,7 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-} from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 

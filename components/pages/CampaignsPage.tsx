@@ -33,12 +33,12 @@ import {
   deleteCampaign,
   updateCampaignStats,
   getCampaignsCount,
-} from "@/supabase/CRUD/querries";
-import { getActiveSubscribers } from "@/supabase/CRUD/querries";
+} from "@/supabase/CRUD/queries";
+import { getActiveSubscribers } from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
-import { getSubscribersCount } from "@/supabase/CRUD/querries";
+import { getSubscribersCount } from "@/supabase/CRUD/queries";
 import { DEFAULT_TEMPLATES, EmailTemplate } from "@/types/email-template";
 
 interface CampaignsPageProps {
