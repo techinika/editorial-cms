@@ -4,19 +4,30 @@ export interface TopBanner {
   id: string;
   title: string;
   content: string;
-  link_url?: string | null;
-  link_text?: string | null;
-  background_color?: string | null;
-  text_color?: string | null;
+  link_url?: string;
+  link_text?: string;
+  background_color?: string;
+  text_color?: string;
   start_date: string;
   end_date: string;
-  is_active?: boolean | null;
-  display_order?: number | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
-export type TopBannerFormData = Omit<TopBanner, "id" | "created_at" | "updated_at">;
+export type TopBannerFormData = {
+  title: string;
+  content: string;
+  link_url?: string;
+  link_text?: string;
+  background_color?: string;
+  text_color?: string;
+  start_date: string;
+  end_date: string;
+  is_active?: boolean;
+  display_order?: number;
+};
 
 export const getTopBanners = async (): Promise<TopBanner[]> => {
   const { data, error } = await supabaseAdminClient

@@ -79,8 +79,6 @@ export default function AdsPage({ user }: AdsPageProps) {
   // Top Banners state
   const [topBanners, setTopBanners] = useState<TopBanner[]>([]);
   const [topBannersLoading, setTopBannersLoading] = useState(true);
-  const [topBannersPage, setTopBannersPage] = useState(1);
-  const [topBannersHasMore, setTopBannersHasMore] = useState(true);
   const [topBannersSearchQuery, setTopBannersSearchQuery] = useState("");
 
   // Modal states
@@ -182,19 +180,8 @@ export default function AdsPage({ user }: AdsPageProps) {
 
   const loadTopBanners = async () => {
     setTopBannersLoading(true);
-    const data = await getTopBanners(0, 20);
+    const data = await getTopBanners();
     setTopBanners(data);
-    setTopBannersHasMore(data.length === 20);
-    setTopBannersLoading(false);
-  };
-
-  const loadMoreTopBanners = async () => {
-    if (topBannersLoading || !topBannersHasMore) return;
-    setTopBannersLoading(true);
-    const newBanners = await getTopBanners(topBannersPage, 20);
-    setTopBanners((prev) => [...prev, ...newBanners]);
-    setTopBannersPage((prev) => prev + 1);
-    setTopBannersHasMore(newBanners.length === 20);
     setTopBannersLoading(false);
   };
 
@@ -903,18 +890,6 @@ export default function AdsPage({ user }: AdsPageProps) {
                       </div>
                     ))}
                   </div>
-
-                  {topBannersHasMore && !topBannersSearchQuery && (
-                    <div className="mt-8 flex justify-center">
-                      <button
-                        onClick={loadMoreTopBanners}
-                        disabled={topBannersLoading}
-                        className="px-6 py-2 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
-                      >
-                        {topBannersLoading ? "Loading..." : "Load More"}
-                      </button>
-                    </div>
-                  )}
                 </>
               )}
             </section>
