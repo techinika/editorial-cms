@@ -89,6 +89,9 @@ export const createSubscriber = async (
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        return null;
+      }
       console.error("Error creating subscriber:", error);
       return null;
     }
@@ -98,6 +101,44 @@ export const createSubscriber = async (
     console.error("An unexpected error occurred:", err);
     return null;
   }
+};
+
+export const createSubscribers = async (
+  emails: { email: string; subscribed?: boolean }[],
+): Promise<{ added: number; duplicates: number }> => {
+  let added = 0;
+  let duplicates = 0;
+
+  const rows = emails.map((e) => ({
+    email: e.email.toLowerCase().trim(),
+    subscribed: e.subscribed ?? true,
+  }));
+
+  const batchSize = 100;
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
+    const { error } = await getSupabase()
+      .from("subscribers")
+      .upsert(batch, { onConflict: "email" });
+
+    if (error) {
+      console.error("Error bulk upserting subscribers:", error);
+      for (const row of batch) {
+        const { error: singleError } = await getSupabase()
+          .from("subscribers")
+          .upsert(row, { onConflict: "email" });
+        if (singleError) {
+          console.error("Error upserting subscriber:", singleError);
+        } else {
+          added++;
+        }
+      }
+    } else {
+      added += batch.length;
+    }
+  }
+
+  return { added, duplicates };
 };
 
 export const updateSubscriber = async (
