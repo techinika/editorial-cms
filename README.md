@@ -85,7 +85,7 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - View all subscribers in table format
 - Add/edit/delete subscribers
 - Bulk email to all active subscribers
-- Import/export subscribers (CSV)
+- Download subscribers as CSV (email, status, subscribed date)
 
 ### Categories Management (/categories)
 - View all categories in table format
@@ -115,8 +115,10 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 
 ### Stats Dashboard (/stats)
 - Lifetime KPIs: total published, total views, average views per article
-- Period-filterable stats (day, week, month)
-- Bar chart visualization
+- Calendar date picker to select a specific date
+- Period-filterable stats (day, week, month, year)
+- Per-article bar chart and table for selected period
+- Summary cards: article count, total views, average views
 - Status breakdown (draft, published, cancelled)
 - Articles listing with tab navigation
 
@@ -349,7 +351,9 @@ npm run lint
 | MainPage | `components/MainPage/` | Dashboard with article cards, filters, quick actions |
 | CreateArticle | `components/CreateArticle/` | Article editor with toolbar, metadata, feedback, team panels |
 | AdsPage | `components/AdsPage/` | Banner ads and top banner management |
-| StatsPage | `components/pages/StatsPage.tsx` | KPI cards, period stats, charts |
+| StatsPage | `components/pages/StatsPage.tsx` | KPI cards, articles breakdown |
+| CalendarPicker | `components/Stats/CalendarPicker.tsx` | Month-view calendar date picker |
+| PeriodStatsSection | `components/Stats/PeriodStatsSection.tsx` | Period stats with calendar and article filtering |
 
 ## API Routes
 

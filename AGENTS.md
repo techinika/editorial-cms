@@ -35,6 +35,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `components/[Feature]/SubComponent.tsx` — extracted sub-components
 - `components/[Feature]/useHook.ts` — custom hooks for logic
 - `components/pages/[Name]Page.tsx` — page-level components (some are now re-exports)
+- `components/Stats/` — stats sub-components (CalendarPicker, PeriodStatsSection)
 
 ### Modals
 - All modals use `components/Modal.tsx` — provides focus trap, Escape key, ARIA roles, portal rendering.
@@ -59,10 +60,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | File | Purpose |
 |------|---------|
 | `supabase/supabase.ts` | Supabase client setup (anon + admin) |
+| `supabase/modules/stats.ts` | Stats queries (getAllStats, getUserStats, getArticleCountByPeriod, getArticlesByDateRange) |
+| `supabase/modules/subscribers.ts` | Subscriber queries (getAllSubscribers for CSV export) |
 | `lib/auth-server.ts` | Server-side auth helper |
 | `lib/content-parser.ts` | HTML<->blocks conversion, sanitization |
 | `components/Modal.tsx` | Accessible modal component |
 | `components/ErrorBoundary.tsx` | Error boundary wrapper |
+| `components/Stats/CalendarPicker.tsx` | Month-view calendar date picker |
+| `components/Stats/PeriodStatsSection.tsx` | Period stats with calendar integration |
 | `proxy.ts` | Next.js 16 proxy (replaces middleware) |
 | `next.config.ts` | Security headers, config |
 

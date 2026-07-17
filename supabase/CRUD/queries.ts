@@ -29,6 +29,7 @@ export {
 
 export type { ArticleFilter } from "../modules/articles";
 export type { UserStats, PeriodStat } from "../modules/stats";
+export { getArticlesByDateRange } from "../modules/stats";
 export type { ContributorArticle } from "../modules/contributors";
 export type { Asset, AssetFormData, AssetType } from "@/types/asset";
 export type { UserCompany, FeaturedStartup } from "@/types/user-company";
