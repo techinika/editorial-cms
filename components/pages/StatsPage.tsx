@@ -9,7 +9,6 @@ import {
   Calendar,
   Plus,
   TrendingUp,
-  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -20,17 +19,14 @@ import {
   getAuthorInfo,
   ContributorArticle,
   getAllStats,
-  PeriodStat,
-  getArticleCountByPeriod,
 } from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import { JoinedArticle } from "@/types/article";
+import PeriodStatsSection from "@/components/Stats/PeriodStatsSection";
 
 interface StatsPageProps {
   user?: AuthResult;
 }
-
-type Period = "day" | "week" | "month";
 
 export default function StatsPage({ user }: StatsPageProps) {
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -39,20 +35,12 @@ export default function StatsPage({ user }: StatsPageProps) {
   const [contributedArticles, setContributedArticles] = useState<ContributorArticle[]>([]);
   const [activeTab, setActiveTab] = useState<"own" | "contributed">("own");
   const [memberSince, setMemberSince] = useState<string | null>(null);
-  const [periodStats, setPeriodStats] = useState<PeriodStat[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>("week");
 
   useEffect(() => {
     if (user?.user?.id) {
       loadStats(user.user.id);
     }
   }, [user]);
-
-  useEffect(() => {
-    if (user?.user?.id) {
-      loadPeriodStats(user.user.id, selectedPeriod);
-    }
-  }, [selectedPeriod, user]);
 
   const loadStats = async (userId: string) => {
     setLoading(true);
@@ -78,12 +66,6 @@ export default function StatsPage({ user }: StatsPageProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadPeriodStats = async (userId: string, period: Period) => {
-    const isAdmin = user?.isAdmin;
-    const data = await getArticleCountByPeriod(isAdmin ? null : userId, period);
-    setPeriodStats(data);
   };
 
   if (!user?.user) {
@@ -173,82 +155,8 @@ export default function StatsPage({ user }: StatsPageProps) {
               </div>
             </section>
 
-            {/* Period Stats */}
-            <section className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Performance by Period</h2>
-                <div className="flex items-center gap-2">
-                  {(["day", "week", "month"] as Period[]).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setSelectedPeriod(p)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        selectedPeriod === p
-                          ? "bg-[#3182ce] text-white"
-                          : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      {p.charAt(0).toUpperCase() + p.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-md border border-gray-200 p-5">
-                {periodStats.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <BarChart3 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p>No data for this period</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Simple bar visualization */}
-                    <div className="flex items-end gap-2 h-48 mb-4">
-                      {periodStats.map((ps) => {
-                        const maxViews = Math.max(...periodStats.map((p) => p.totalViews), 1);
-                        const height = (ps.totalViews / maxViews) * 100;
-                        return (
-                          <div key={ps.period} className="flex-1 flex flex-col items-center gap-1">
-                            <span className="text-xs text-gray-500">{ps.totalViews.toLocaleString()}</span>
-                            <div
-                              className="w-full bg-[#3182ce] rounded-t-md min-h-[2px] transition-all"
-                              style={{ height: `${Math.max(height, 2)}%` }}
-                              title={`${ps.period}: ${ps.articleCount} articles, ${ps.totalViews} views`}
-                            />
-                            <span className="text-xs text-gray-400 text-center truncate w-full" title={ps.period}>
-                              {ps.period.length > 7 ? ps.period.slice(-5) : ps.period}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Period data table */}
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100">
-                          <th className="text-left py-2 text-xs font-semibold text-gray-500 uppercase">Period</th>
-                          <th className="text-right py-2 text-xs font-semibold text-gray-500 uppercase">Articles</th>
-                          <th className="text-right py-2 text-xs font-semibold text-gray-500 uppercase">Views</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {periodStats.map((ps) => (
-                          <tr key={ps.period} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="py-2 text-gray-700">{ps.period}</td>
-                            <td className="py-2 text-right text-gray-700">{ps.articleCount}</td>
-                            <td className="py-2 text-right text-gray-700 flex items-center justify-end gap-1">
-                              <ArrowUpRight className="w-3 h-3 text-green-500" />
-                              {ps.totalViews.toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </>
-                )}
-              </div>
-            </section>
+            {/* Period Stats with Calendar */}
+            <PeriodStatsSection user={user} />
 
             {/* Articles Breakdown Bar */}
             <section className="mb-8">

@@ -180,3 +180,22 @@ export const getSubscribersCount = async (): Promise<number> => {
     return 0;
   }
 };
+
+export const getAllSubscribers = async (): Promise<Subscriber[]> => {
+  try {
+    const { data, error } = await getSupabase()
+      .from("subscribers")
+      .select(subscriberSelect)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all subscribers:", error);
+      return [];
+    }
+
+    return data as unknown as Subscriber[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};

@@ -27,6 +27,7 @@ import {
   deleteSubscriber,
   getActiveSubscribers,
   getSubscribersCount,
+  getAllSubscribers,
 } from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
@@ -178,6 +179,37 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
     }
   };
 
+  const handleDownloadCSV = async () => {
+    try {
+      const allSubscribers = await getAllSubscribers();
+      if (allSubscribers.length === 0) {
+        showToast("error", "No subscribers to export");
+        return;
+      }
+
+      const header = "Email,Status,Subscribed Date";
+      const rows = allSubscribers.map((s) => {
+        const status = s.subscribed ? "Active" : "Inactive";
+        const date = new Date(s.created_at).toISOString().split("T")[0];
+        return `"${s.email}","${status}","${date}"`;
+      });
+
+      const csv = [header, ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `subscribers-${new Date().toISOString().split("T")[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      showToast("success", `Exported ${allSubscribers.length} subscribers`);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      showToast("error", "Failed to export subscribers");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
@@ -312,6 +344,14 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
               className="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-12 pr-4 focus:bg-white focus:ring-2 focus:ring-[#3182ce]/20 transition-all outline-none"
             />
           </div>
+
+          <button
+            onClick={handleDownloadCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            Download CSV
+          </button>
 
           <button
             onClick={() => {

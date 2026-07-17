@@ -1,4 +1,5 @@
 import { getSupabase } from "../supabase";
+import { JoinedArticle } from "@/types/article";
 
 export interface UserStats {
   totalArticles: number;
@@ -76,7 +77,7 @@ export const getUserStats = async (authorId: string): Promise<UserStats> => {
 
 export const getArticleCountByPeriod = async (
   authorId: string | null,
-  period: "day" | "week" | "month",
+  period: "day" | "week" | "month" | "year",
 ): Promise<PeriodStat[]> => {
   try {
     let query = getSupabase()
@@ -99,6 +100,8 @@ export const getArticleCountByPeriod = async (
         const startOfWeek = new Date(d);
         startOfWeek.setDate(d.getDate() - d.getDay());
         return startOfWeek.toISOString().split("T")[0];
+      } else if (period === "year") {
+        return `${d.getFullYear()}`;
       } else {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       }
@@ -117,6 +120,39 @@ export const getArticleCountByPeriod = async (
       .sort((a, b) => a.period.localeCompare(b.period));
   } catch (err) {
     console.error("Error fetching period stats:", err);
+    return [];
+  }
+};
+
+export const getArticlesByDateRange = async (
+  startDate: string,
+  endDate: string,
+  authorId: string | null,
+): Promise<JoinedArticle[]> => {
+  try {
+    let query = getSupabase()
+      .from("articles")
+      .select(`
+        *,
+        author:authors!author_id (id, name, image_url, created_at, lang, bio, external_link, username),
+        category:categories (id, name),
+        thumbnailAsset:assets!thumbnail_id (id, created_at, updated_at, name, url, type, views, author_id)
+      `)
+      .gte("created_at", startDate)
+      .lte("created_at", endDate)
+      .order("created_at", { ascending: false });
+
+    if (authorId) {
+      query = query.eq("author_id", authorId);
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data) return [];
+
+    return data as unknown as JoinedArticle[];
+  } catch (err) {
+    console.error("Error fetching articles by date range:", err);
     return [];
   }
 };
