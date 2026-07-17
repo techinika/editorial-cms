@@ -28,6 +28,7 @@ import {
 import { Comment } from "@/types/article";
 import { useToast } from "@/components/Toast";
 import UserNav from "@/components/UserNav";
+import Modal from "@/components/Modal";
 
 interface CommentsPageProps {
   user?: AuthResult;
@@ -281,13 +282,7 @@ export default function CommentsPage({ user }: CommentsPageProps) {
       </main>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowDeleteModal(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Comment" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-full">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -320,9 +315,7 @@ export default function CommentsPage({ user }: CommentsPageProps) {
                 Delete
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

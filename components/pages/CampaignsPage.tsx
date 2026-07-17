@@ -40,6 +40,7 @@ import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import { getSubscribersCount } from "@/supabase/CRUD/queries";
 import { DEFAULT_TEMPLATES, EmailTemplate } from "@/types/email-template";
+import Modal from "@/components/Modal";
 
 interface CampaignsPageProps {
   user?: AuthResult;
@@ -506,13 +507,7 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
         </section>
 
         {/* Create Campaign Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="absolute inset-0 bg-black/50"
-              onClick={() => setShowCreateModal(false)}
-            />
-            <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+        <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create New Campaign" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Create New Campaign
@@ -664,9 +659,7 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
                   Save as Draft
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+        </Modal>
       </main>
     </div>
   );

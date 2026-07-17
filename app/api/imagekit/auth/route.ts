@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { checkAuthStatusServer } from "@/lib/auth-server";
 
 export async function GET(request: NextRequest) {
+  const auth = await checkAuthStatusServer();
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const privateKey = process.env.IMAGEKIT_PRIVATE_KEY!;
   const token = crypto.randomBytes(32).toString("hex");
   const expire = Math.floor(Date.now() / 1000) + 2400; // 40 minutes

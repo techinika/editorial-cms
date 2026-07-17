@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Search, Check, Loader2, FileText, Image } from "lucide-react";
+import Modal from "@/components/Modal";
 import { Asset, AssetType } from "@/types/asset";
 import { getAllArticles, getAllAuthors, updateArticleThumbnail, updateAuthorImageRef } from "@/supabase/CRUD/queries";
 import { useToast } from "@/components/Toast";
@@ -86,18 +87,16 @@ export default function AssetAssignModal({ isOpen, onClose, asset, user }: Asset
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {getAssetIcon(asset.type)}
-            <h3 className="text-lg font-semibold text-gray-900">Assign: {asset.name}</h3>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
-            <X className="w-5 h-5" />
-          </button>
+    <Modal open={isOpen} onClose={onClose} title={`Assign: ${asset.name}`} className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {getAssetIcon(asset.type)}
+          <h3 className="text-lg font-semibold text-gray-900">Assign: {asset.name}</h3>
         </div>
+        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
         <div className="flex gap-2 mb-4">
           <button
@@ -159,7 +158,6 @@ export default function AssetAssignModal({ isOpen, onClose, asset, user }: Asset
             ))
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

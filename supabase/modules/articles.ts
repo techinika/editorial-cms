@@ -1,6 +1,7 @@
 import { JoinedArticle, ArticleFormData, Article, Block, TOCEntry } from "@/types/article";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabaseAdminClient } from "../supabase";
 import { Asset } from "@/types/asset";
+import { generateSlug, generateBlockId, extractTOC, parseHtmlToBlocks } from "@/lib/content-parser";
 
 // Helper to extract unique asset IDs from blocks
 const extractAssetIdsFromBlocks = (blocks: Block[]): string[] => {
@@ -17,13 +18,12 @@ const extractAssetIdsFromBlocks = (blocks: Block[]): string[] => {
 const buildAssetUrlMap = async (assetIds: string[]): Promise<Record<string, string>> => {
   if (!assetIds.length) return {};
 
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await getSupabaseAdminClient()
     .from("assets")
     .select("id, url")
     .in("id", assetIds);
 
   if (error || !data) {
-    console.error("Error fetching assets for blocks:", error);
     return {};
   }
 
@@ -58,91 +58,6 @@ const enrichArticlesWithAssetUrls = async (articles: JoinedArticle[]): Promise<J
     }
     return article;
   });
-};
-
-const generateSlug = (title: string): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-};
-
-const generateBlockId = (): string => {
-  return `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
-const generateHeadingSlug = (text: string): string => {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-};
-
-const parseHtmlToBlocks = (html: string): Block[] => {
-  if (!html || !html.trim()) return [];
-  
-  const blocks: Block[] = [];
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  const root = doc.body;
-  
-  const processElement = (el: Element): Block | null => {
-    const tagName = el.tagName.toLowerCase();
-    const text = el.textContent?.trim() || "";
-    
-    if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
-      const level = parseInt(tagName.replace("h", ""));
-      return { id: generateBlockId(), type: "heading" as const, content: text, level };
-    }
-    if (tagName === "img") {
-      const src = el.getAttribute("src") || "";
-      return { id: generateBlockId(), type: "image" as const, content: el.getAttribute("alt") || "", url: src };
-    }
-    if (tagName === "pre") {
-      const codeEl = el.querySelector("code");
-      return { 
-        id: generateBlockId(), 
-        type: "code" as const, 
-        content: codeEl?.textContent || text,
-        language: codeEl?.getAttribute("class")?.replace("language-", "") || ""
-      };
-    }
-    if (tagName === "blockquote") {
-      return { id: generateBlockId(), type: "quote" as const, content: text };
-    }
-    if (tagName === "ul" || tagName === "ol") {
-      const items = Array.from(el.querySelectorAll("li")).map(li => li.textContent?.trim() || "");
-      return { id: generateBlockId(), type: "list" as const, content: JSON.stringify({ ordered: tagName === "ol", items }) };
-    }
-    if (tagName === "p" || text) {
-      if (!text) return null;
-      return { id: generateBlockId(), type: "paragraph" as const, content: text };
-    }
-    return null;
-  };
-  
-  const traverse = (parent: Element) => {
-    for (const child of Array.from(parent.children)) {
-      const block = processElement(child);
-      if (block) blocks.push(block);
-      else if (["div", "section", "article"].includes(child.tagName.toLowerCase())) {
-        traverse(child);
-      }
-    }
-  };
-  
-  traverse(root);
-  return blocks;
-};
-
-const extractTOC = (blocks: Block[]): TOCEntry[] => {
-  return blocks
-    .filter(b => b.type === "heading")
-    .map(b => ({
-      slug: generateHeadingSlug(b.content),
-      level: b.level || 2,
-      title: b.content
-    }));
 };
 
 const articleSelect = `
@@ -192,7 +107,7 @@ export const createArticle = async (
       insertData.table_of_contents = table_of_contents;
     }
 
-    const { data: article, error } = await supabaseAdminClient
+    const { data: article, error } = await getSupabaseAdminClient()
       .from("articles")
       .insert(insertData)
       .select()
@@ -267,7 +182,7 @@ export const updateArticle = async (
       }
     });
 
-    const { data: article, error } = await supabaseAdminClient
+    const { data: article, error } = await getSupabaseAdminClient()
       .from("articles")
       .update(updateData)
       .eq("id", id)
@@ -290,7 +205,7 @@ export const getArticleById = async (
   id: string,
 ): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> }) | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .eq("id", id)
@@ -327,7 +242,7 @@ export const getArticles = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .order("created_at", { ascending: false })
@@ -355,7 +270,7 @@ export const getArticlesByStatus = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .eq("status", status)
@@ -383,7 +298,7 @@ export const searchArticles = async (
   }
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .or(
@@ -406,7 +321,7 @@ export const searchArticles = async (
 
 export const deleteArticle = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabaseAdminClient()
       .from("articles")
       .delete()
       .eq("id", id);
@@ -428,7 +343,7 @@ export const getUserOwnArticles = async (
   limit = 10,
 ): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .eq("author_id", userId)
@@ -452,7 +367,7 @@ export const getArticlesWithPendingFeedback = async (): Promise<
   (JoinedArticle & { assetUrlMap?: Record<string, string> })[]
 > => {
   try {
-    const { data: articlesWithFeedback, error: feedbackError } = await supabaseAdminClient
+    const { data: articlesWithFeedback, error: feedbackError } = await getSupabaseAdminClient()
       .from("article_feedback")
       .select("article_id")
       .eq("resolved", false);
@@ -470,7 +385,7 @@ export const getArticlesWithPendingFeedback = async (): Promise<
       new Set(articlesWithFeedback.map((f) => f.article_id)),
     );
 
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .in("id", articleIds)
@@ -497,7 +412,7 @@ export const getArticlesWithPendingFeedbackUser = async (
     let articleIdsQuery;
 
     if (isAdmin) {
-      const { data: allFeedback } = await supabaseAdminClient
+      const { data: allFeedback } = await getSupabaseAdminClient()
         .from("article_feedback")
         .select("article_id")
         .eq("resolved", false);
@@ -507,7 +422,7 @@ export const getArticlesWithPendingFeedbackUser = async (
         new Set(allFeedback.map((f) => f.article_id)),
       );
     } else {
-      const { data: userFeedback } = await supabaseAdminClient
+      const { data: userFeedback } = await getSupabaseAdminClient()
         .from("article_feedback")
         .select("article_id")
         .eq("resolved", false);
@@ -519,7 +434,7 @@ export const getArticlesWithPendingFeedbackUser = async (
 
       if (articleIds.length === 0) return [];
 
-      const { data: userArticles } = await supabaseAdminClient
+      const { data: userArticles } = await getSupabaseAdminClient()
         .from("articles")
         .select("id")
         .eq("author_id", userId);
@@ -533,7 +448,7 @@ export const getArticlesWithPendingFeedbackUser = async (
 
     if (!articleIdsQuery || articleIdsQuery.length === 0) return [];
 
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .in("id", articleIdsQuery)
@@ -567,7 +482,7 @@ export const getFilteredArticles = async (
   const to = from + limit - 1;
 
   try {
-    let query = supabaseAdminClient
+    let query = getSupabaseAdminClient()
       .from("articles")
       .select(articleSelect)
       .order("created_at", { ascending: false })

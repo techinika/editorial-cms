@@ -44,8 +44,6 @@ export const checkAuthStatusServer = async (): Promise<AuthResult> => {
     // Get cookies from the current request
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
-    
-    console.log("[checkAuthStatusServer] Cookie header (first 100 chars):", cookieHeader.substring(0, 100));
 
     // Call the auth app directly with cookies
     const response = await fetch(`${authUrl}/api/auth/status`, {
@@ -60,17 +58,10 @@ export const checkAuthStatusServer = async (): Promise<AuthResult> => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[checkAuthStatusServer] Auth API returned ${response.status}: ${errorText}`);
       throw new Error(`Auth check failed: ${response.statusText}`);
     }
 
     const data = await response.json();
-    
-    console.log("[checkAuthStatusServer] Auth result:", {
-      authenticated: data.authenticated,
-      role: data.role,
-      hasUser: !!data.user
-    });
     
     return {
       authenticated: data.authenticated || false,
@@ -80,7 +71,6 @@ export const checkAuthStatusServer = async (): Promise<AuthResult> => {
       isAdmin: data.isAdmin || false,
     };
   } catch (error) {
-    console.error("[checkAuthStatusServer] Error checking auth status:", error);
     return {
       authenticated: false,
       user: null,

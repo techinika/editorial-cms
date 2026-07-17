@@ -1,4 +1,4 @@
-import CMSDashboard from "@/components/pages/MainPage";
+import CMSDashboard from "@/components/MainPage";
 import { getArticlesByStatus } from "@/supabase/CRUD/queries";
 import { checkAuthStatusServer, requireAuthor } from "@/lib/auth-server";
 import { ReactNode } from "react";
