@@ -1,11 +1,11 @@
 import { ArticleFeedback } from "@/types/article";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 export const getArticleFeedback = async (
   articleId: string,
 ): Promise<ArticleFeedback[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_feedback")
       .select(
         `
@@ -35,7 +35,7 @@ export const createFeedback = async (
   aiGenerated: boolean = false,
 ): Promise<ArticleFeedback | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_feedback")
       .insert({
         article_id: articleId,
@@ -66,7 +66,7 @@ export const createFeedback = async (
 
 export const resolveFeedback = async (feedbackId: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("article_feedback")
       .update({
         resolved: true,
@@ -90,7 +90,7 @@ export const getUnresolvedFeedbackCount = async (
   articleId: string,
 ): Promise<number> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_feedback")
       .select("id", { count: "exact" })
       .eq("article_id", articleId)
@@ -112,7 +112,7 @@ export const getUnresolvedFeedbackCountByArticle = async (
   articleId: string,
 ): Promise<number> => {
   try {
-    const { count, error } = await supabaseAdminClient
+    const { count, error } = await getSupabase()
       .from("article_feedback")
       .select("*", { count: "exact", head: true })
       .eq("article_id", articleId)
@@ -132,7 +132,7 @@ export const getUnresolvedFeedbackCountByArticle = async (
 
 export const getPendingFeedbackArticles = async (): Promise<string[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_feedback")
       .select("article_id")
       .eq("resolved", false);

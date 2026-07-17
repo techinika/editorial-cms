@@ -1,4 +1,4 @@
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 export interface ArticleAsset {
   id: string;
@@ -16,7 +16,7 @@ export const addArticleAsset = async (
   position?: number,
 ): Promise<ArticleAsset | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_assets")
       .insert({
         article_id: articleId,
@@ -43,7 +43,7 @@ export const getArticleAssets = async (
   articleId: string,
 ): Promise<ArticleAsset[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_assets")
       .select(`
         *,
@@ -69,7 +69,7 @@ export const removeArticleAsset = async (
   assetId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("article_assets")
       .delete()
       .eq("article_id", articleId)
@@ -92,7 +92,7 @@ export const updateArticleAssetCaption = async (
   caption: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("article_assets")
       .update({ caption })
       .eq("id", id);

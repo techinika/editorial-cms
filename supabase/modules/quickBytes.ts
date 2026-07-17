@@ -1,4 +1,4 @@
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 import { QuickByte, QuickByteFormData } from "@/types/quickByte";
 
 export const getQuickBytes = async (
@@ -9,7 +9,7 @@ export const getQuickBytes = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("quick_bytes")
       .select("*")
       .order("created_at", { ascending: false })
@@ -29,7 +29,7 @@ export const getQuickBytes = async (
 
 export const getQuickByteBySlug = async (slug: string): Promise<QuickByte | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("quick_bytes")
       .select("*")
       .eq("slug", slug)
@@ -49,7 +49,7 @@ export const getQuickByteBySlug = async (slug: string): Promise<QuickByte | null
 
 export const createQuickByte = async (data: QuickByteFormData): Promise<QuickByte | null> => {
   try {
-    const { data: quickByte, error } = await supabaseAdminClient
+    const { data: quickByte, error } = await getSupabase()
       .from("quick_bytes")
       .insert({
         title: data.title,
@@ -80,7 +80,7 @@ export const updateQuickByte = async (
   data: Partial<QuickByteFormData>,
 ): Promise<QuickByte | null> => {
   try {
-    const { data: quickByte, error } = await supabaseAdminClient
+    const { data: quickByte, error } = await getSupabase()
       .from("quick_bytes")
       .update({
         ...data,
@@ -108,7 +108,7 @@ export const updateQuickByteWithUser = async (
   userId: string,
 ): Promise<QuickByte | null> => {
   try {
-    const { data: quickByte, error } = await supabaseAdminClient
+    const { data: quickByte, error } = await getSupabase()
       .from("quick_bytes")
       .update({
         ...data,
@@ -133,7 +133,7 @@ export const updateQuickByteWithUser = async (
 
 export const deleteQuickByte = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("quick_bytes")
       .delete()
       .eq("id", id);

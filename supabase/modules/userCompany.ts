@@ -1,5 +1,5 @@
 import { UserCompany, FeaturedStartup } from "@/types/user-company";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 const userCompanySelect = `
   *,
@@ -11,7 +11,7 @@ export const getUserCompaniesByUser = async (
   userId: string,
 ): Promise<UserCompany[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("user_company")
       .select(userCompanySelect)
       .eq("user_id", userId);
@@ -30,7 +30,7 @@ export const getUserCompaniesByUser = async (
 
 export const getCompanyRequests = async (): Promise<UserCompany[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("user_company")
       .select(userCompanySelect)
       .in("status", ["confirmation_pending", "pending"])
@@ -50,7 +50,7 @@ export const getCompanyRequests = async (): Promise<UserCompany[]> => {
 
 export const getVerifiedUserCompanies = async (): Promise<UserCompany[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("user_company")
       .select(userCompanySelect)
       .eq("status", "accepted")
@@ -73,7 +73,7 @@ export const approveUserCompany = async (
   userCompanyId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("user_company")
       .update({
         status: "accepted",
@@ -97,7 +97,7 @@ export const rejectUserCompany = async (
   userCompanyId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("user_company")
       .update({
         status: "rejected",
@@ -123,7 +123,7 @@ export const addUserCompany = async (
   addedBy: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient.from("user_company").insert({
+    const { error } = await getSupabase().from("user_company").insert({
       user_id: userId,
       company_id: companyId,
       role,
@@ -152,7 +152,7 @@ export const getFeaturedStartups = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("featured_startups")
       .select("*")
       .order("name", { ascending: true })
@@ -178,7 +178,7 @@ export const searchFeaturedStartups = async (
   }
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("featured_startups")
       .select("*")
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`)

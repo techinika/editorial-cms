@@ -1,4 +1,4 @@
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 import { Query, QueryFilter } from "@/types/query";
 
 export const createQuery = async (data: {
@@ -8,7 +8,7 @@ export const createQuery = async (data: {
   name?: string;
 }): Promise<Query | null> => {
   try {
-    const { data: query, error } = await supabaseAdminClient
+    const { data: query, error } = await getSupabase()
       .from("queries")
       .insert({
         email: data.email,
@@ -40,7 +40,7 @@ export const getQueries = async (
   const to = from + limit - 1;
 
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("querries")
       .select("*")
       .order("created_at", { ascending: false })
@@ -69,7 +69,7 @@ export const updateQueryFeedback = async (
   feedback: string,
 ): Promise<Query | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("querries")
       .update({ feedback })
       .eq("id", id)
@@ -90,7 +90,7 @@ export const updateQueryFeedback = async (
 
 export const deleteQuery = async (id: number): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("querries")
       .delete()
       .eq("id", id);

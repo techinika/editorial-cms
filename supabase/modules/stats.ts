@@ -1,4 +1,4 @@
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 export interface UserStats {
   totalArticles: number;
@@ -27,10 +27,10 @@ const getEmptyStats = (): UserStats => ({
 export const getAllStats = async (): Promise<UserStats> => {
   try {
     const [articlesResult, commentsResult] = await Promise.all([
-      supabaseAdminClient
+      getSupabase()
         .from("articles")
         .select("status, views", { count: "exact" }),
-      supabaseAdminClient
+      getSupabase()
         .from("comments")
         .select("id", { count: "exact", head: true }),
     ]);
@@ -54,7 +54,7 @@ export const getAllStats = async (): Promise<UserStats> => {
 
 export const getUserStats = async (authorId: string): Promise<UserStats> => {
   try {
-    const { data: articles, error } = await supabaseAdminClient
+    const { data: articles, error } = await getSupabase()
       .from("articles")
       .select("status, views")
       .eq("author_id", authorId);
@@ -79,7 +79,7 @@ export const getArticleCountByPeriod = async (
   period: "day" | "week" | "month",
 ): Promise<PeriodStat[]> => {
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("articles")
       .select("created_at, views")
       .eq("status", "published");
