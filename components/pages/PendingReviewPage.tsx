@@ -13,7 +13,7 @@ import {
 import { JoinedArticle } from "@/types/article";
 import { AuthResult } from "@/lib/auth";
 import { getArticlesWithPendingFeedbackUser } from "@/supabase/CRUD/queries";
-import UserNav from "@/components/UserNav";
+import TopNavbar from "@/components/TopNavbar";
 
 interface PendingReviewPageProps {
   user: AuthResult;
@@ -55,19 +55,12 @@ export default function PendingReviewPage({ user }: PendingReviewPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 shadow-sm">
-         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-           <div>
-             <h1 className="text-2xl font-bold text-gray-900">Pending Review</h1>
-               <p className="text-sm text-gray-500">
-                 Articles with feedback on your articles
-               </p>
-           </div>
-           <div className="flex items-center">
-             <UserNav user={user} />
-           </div>
-         </div>
-       </header>
+       <TopNavbar
+         title="Pending Review"
+         icon={<Clock className="text-white w-6 h-6" />}
+         backHref="/"
+         user={user}
+       />
        <main className="max-w-7xl mx-auto px-6 py-8">
          <section className="mb-6">
            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">

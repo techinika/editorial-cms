@@ -23,6 +23,9 @@ import {
 import { AuthResult } from "@/lib/auth";
 import { JoinedArticle } from "@/types/article";
 import PeriodStatsSection from "@/components/Stats/PeriodStatsSection";
+import TrendChart from "@/components/Stats/TrendChart";
+import { KPICard, EmptyState, StatusBadge } from "@/components/Stats/StatsSubComponents";
+import TopNavbar from "@/components/TopNavbar";
 
 interface StatsPageProps {
   user?: AuthResult;
@@ -82,37 +85,13 @@ export default function StatsPage({ user }: StatsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <div className="bg-[#3182ce] p-2 rounded-lg">
-            <BarChart3 className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-medium">My Statistics</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-            {user.profilePicture ? (
-              <img src={user.profilePicture} alt="" className="w-6 h-6 rounded-full object-cover" />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
-                {(user.user.user_metadata.full_name || user.user.email || "U").charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="text-sm text-gray-700 font-medium">
-              {user.user.user_metadata.full_name || user.user.email}
-            </span>
-            {user.isAdmin && (
-              <span className="text-xs text-[#3182ce] bg-[#3182ce]/10 px-1.5 py-0.5 rounded">Admin</span>
-            )}
-          </div>
-          <a href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`} className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors" title="Account Settings">
-            <Calendar className="w-5 h-5" />
-          </a>
-        </div>
-      </header>
+      <TopNavbar
+        title="My Statistics"
+        icon={<BarChart3 className="text-white w-6 h-6" />}
+        user={user}
+      />
 
       <main className="max-w-7xl mx-auto p-8">
-        {/* Quick Actions */}
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Quick Actions</h2>
           <div className="flex flex-wrap gap-6">
@@ -144,7 +123,6 @@ export default function StatsPage({ user }: StatsPageProps) {
               </div>
             )}
 
-            {/* KPI Cards */}
             <section className="mb-8">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Lifetime Overview</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -155,10 +133,9 @@ export default function StatsPage({ user }: StatsPageProps) {
               </div>
             </section>
 
-            {/* Period Stats with Calendar */}
+            <TrendChart user={user} />
             <PeriodStatsSection user={user} />
 
-            {/* Articles Breakdown Bar */}
             <section className="mb-8">
               <div className="bg-white rounded-md border border-gray-200 p-5">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
@@ -182,7 +159,6 @@ export default function StatsPage({ user }: StatsPageProps) {
               </div>
             </section>
 
-            {/* Articles Tabs */}
             <section>
               <div className="flex items-center gap-4 mb-4">
                 <button onClick={() => setActiveTab("own")} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "own" ? "bg-[#3182ce] text-white" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"}`}>
@@ -198,7 +174,7 @@ export default function StatsPage({ user }: StatsPageProps) {
                   ownArticles.length === 0 ? (
                     <EmptyState icon={<FileText className="w-12 h-12 text-gray-300" />} message="No articles yet" />
                   ) : (
-                    <ArticleTable articles={ownArticles} showAuthor={false} />
+                    <ArticleTable articles={ownArticles} />
                   )
                 ) : contributedArticles.length === 0 ? (
                   <EmptyState icon={<Users className="w-12 h-12 text-gray-300" />} message="No contributed articles" />
@@ -214,30 +190,7 @@ export default function StatsPage({ user }: StatsPageProps) {
   );
 }
 
-function KPICard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string; label: string; value: string | number }) {
-  return (
-    <div className="bg-white rounded-md border border-gray-200 p-5">
-      <div className="flex items-center gap-3">
-        <div className={`p-2 ${bg} rounded-md`}>{icon}</div>
-        <div>
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-xl font-bold text-gray-900">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
-  return (
-    <div className="text-center py-12 text-gray-500">
-      {icon}
-      <p className="mt-4">{message}</p>
-    </div>
-  );
-}
-
-function ArticleTable({ articles, showAuthor }: { articles: JoinedArticle[]; showAuthor: boolean }) {
+function ArticleTable({ articles }: { articles: JoinedArticle[] }) {
   return (
     <table className="w-full">
       <thead className="bg-gray-50 border-b border-gray-200">
@@ -253,9 +206,7 @@ function ArticleTable({ articles, showAuthor }: { articles: JoinedArticle[]; sho
           <tr key={article.id} className="hover:bg-gray-50">
             <td className="px-5 py-3"><span className="font-medium text-gray-900">{article.title}</span></td>
             <td className="px-5 py-3"><span className="text-sm text-gray-600">{article.category?.name || "-"}</span></td>
-            <td className="px-5 py-3">
-              <StatusBadge status={article.status} />
-            </td>
+            <td className="px-5 py-3"><StatusBadge status={article.status} /></td>
             <td className="px-5 py-3"><span className="text-sm text-gray-600">{article.views?.toLocaleString() || 0}</span></td>
           </tr>
         ))}
@@ -280,26 +231,11 @@ function ContributedArticleTable({ articles }: { articles: ContributorArticle[] 
           <tr key={article.id} className="hover:bg-gray-50">
             <td className="px-5 py-3"><span className="font-medium text-gray-900">{article.title}</span></td>
             <td className="px-5 py-3"><span className="text-sm text-gray-600">{article.author?.name || "-"}</span></td>
-            <td className="px-5 py-3">
-              <StatusBadge status={article.status} />
-            </td>
+            <td className="px-5 py-3"><StatusBadge status={article.status} /></td>
             <td className="px-5 py-3"><span className="text-sm text-gray-600">{article.views?.toLocaleString() || 0}</span></td>
           </tr>
         ))}
       </tbody>
     </table>
-  );
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  return (
-    <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-      status === "published" ? "bg-green-100 text-green-700"
-      : status === "draft" ? "bg-yellow-100 text-yellow-700"
-      : status === "cancelled" ? "bg-red-100 text-red-700"
-      : "bg-gray-100 text-gray-700"
-    }`}>
-      {status}
-    </span>
   );
 }

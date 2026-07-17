@@ -31,7 +31,7 @@ import {
 } from "@/supabase/CRUD/queries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
-import UserNav from "@/components/UserNav";
+import TopNavbar from "@/components/TopNavbar";
 
 interface AuthorsPageProps {
   user?: AuthResult;
@@ -149,15 +149,11 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-          <div className="flex items-center gap-4">
-            <div className="bg-[#3182ce] p-2 rounded-lg">
-              <FileText className="text-white w-6 h-6" />
-            </div>
-            <h1 className="text-xl font-medium">Blog CMS</h1>
-          </div>
-          <UserNav user={user} />
-        </header>
+        <TopNavbar
+          title="Blog CMS"
+          icon={<FileText className="text-white w-6 h-6" />}
+          user={user}
+        />
         <div className="p-8 text-center">
           <Shield className="w-16 h-16 mx-auto text-gray-300 mb-4" />
           <h1 className="text-xl font-semibold text-gray-900">Access Denied</h1>
@@ -171,15 +167,12 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <div className="bg-[#3182ce] p-2 rounded-lg">
-            <FileText className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-medium">Blog CMS</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAdmin && (
+      <TopNavbar
+        title="Blog CMS"
+        icon={<FileText className="text-white w-6 h-6" />}
+        user={user}
+        actions={
+          isAdmin ? (
             <button
               onClick={() => setShowCompanies(!showCompanies)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
@@ -191,10 +184,9 @@ export default function AuthorsPage({ user }: AuthorsPageProps) {
               <Building className="w-4 h-4" />
               Companies
             </button>
-          )}
-          <UserNav user={user} />
-        </div>
-      </header>
+          ) : undefined
+        }
+      />
 
       <main className="max-w-6xl mx-auto p-6">
         <section className="mb-6">

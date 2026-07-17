@@ -134,13 +134,14 @@ export const updateCampaignStats = async (
   recipients: number,
 ): Promise<boolean> => {
   try {
+    const status = recipients > 0 && failed === recipients ? "failed" : "sent";
     const { error } = await getSupabase()
       .from("campaigns")
       .update({
         total_sent: sent,
         total_failed: failed,
         total_recipients: recipients,
-        status: 'sent',
+        status,
         sent_at: new Date().toISOString(),
       })
       .eq("id", id);

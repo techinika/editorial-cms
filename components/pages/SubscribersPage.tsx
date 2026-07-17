@@ -9,13 +9,13 @@ import {
   Trash2,
   Edit2,
   Mail,
-  MailOpen,
   Loader2,
   Download,
   Upload,
   AlertTriangle,
   CheckCircle,
   XCircle,
+  Users,
 } from "lucide-react";
 import Modal from "@/components/Modal";
 import { Subscriber, SubscriberFormData } from "@/types/subscriber";
@@ -28,10 +28,12 @@ import {
   getActiveSubscribers,
   getSubscribersCount,
   getAllSubscribers,
+  getExistingEmails,
 } from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
+import TopNavbar from "@/components/TopNavbar";
 
 interface SubscribersPageProps {
   user?: AuthResult;
@@ -59,6 +61,11 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+
+  // CSV import modal
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ added: number; duplicates: number } | null>(null);
 
   useEffect(() => {
     loadSubscribers();
@@ -113,6 +120,14 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
         showToast("success", "Subscriber updated successfully!");
       }
     } else {
+      const existing = await searchSubscribers(formData.email);
+      const duplicate = existing.find(
+        (s) => s.email.toLowerCase() === formData.email.toLowerCase(),
+      );
+      if (duplicate) {
+        showToast("error", "A subscriber with this email already exists");
+        return;
+      }
       const created = await createSubscriber(formData);
       if (created) {
         setSubscribers((prev) => [created, ...prev]);
@@ -210,70 +225,64 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
     }
   };
 
+  const handleImportCSV = async (file: File) => {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      const emails: { email: string }[] = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (i === 0 && line.toLowerCase().includes("email")) continue;
+
+        const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+        const email = parts.find((p) => p.includes("@"));
+        if (email) {
+          emails.push({ email: email.toLowerCase() });
+        }
+      }
+
+      if (emails.length === 0) {
+        showToast("error", "No valid emails found in CSV");
+        setImporting(false);
+        return;
+      }
+
+      const existingEmails = await getExistingEmails(emails.map((e) => e.email));
+      const newEmails = emails.filter((e) => !existingEmails.has(e.email));
+
+      if (newEmails.length === 0) {
+        setImportResult({ added: 0, duplicates: emails.length });
+        showToast("info", `All ${emails.length} emails already exist`);
+        setImporting(false);
+        return;
+      }
+
+      const { createSubscribers } = await import("@/supabase/CRUD/queries");
+      const result = await createSubscribers(newEmails);
+      const totalDuplicates = emails.length - result.added;
+      setImportResult({ added: result.added, duplicates: totalDuplicates });
+      showToast("success", `Imported ${result.added} subscribers (${totalDuplicates} duplicates skipped)`);
+      loadCount();
+      loadSubscribers();
+    } catch (error) {
+      console.error("Error importing CSV:", error);
+      showToast("error", "Failed to import subscribers");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="bg-[#3182ce] p-2 rounded-lg hover:bg-[#2c5282] transition-colors"
-          >
-            <FileText className="text-white w-6 h-6" />
-          </Link>
-          <h1 className="text-xl font-medium">Subscribers</h1>
-          <span className="px-3 py-1 bg-[#3182ce]/10 text-[#3182ce] text-sm font-medium rounded-full">
-            {totalCount} total
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {user?.authenticated && user.user ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-                {user.profilePicture ? (
-                  <img
-                    src={user.profilePicture}
-                    alt={user.user.user_metadata.full_name || "User"}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
-                    {(
-                      user.user.user_metadata.full_name ||
-                      user.user.email ||
-                      "U"
-                    )
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-                )}
-                <span className="text-sm text-gray-700 font-medium">
-                  {user.user.user_metadata.full_name || user.user.email}
-                </span>
-                {user.isAdmin && (
-                  <span className="text-xs text-[#3182ce] bg-[#3182ce]/10 px-1.5 py-0.5 rounded">
-                    Admin
-                  </span>
-                )}
-              </div>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
-                className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors"
-                title="Account Settings"
-              >
-                <X className="w-5 h-5" />
-              </Link>
-            </div>
-          ) : (
-            <Link
-              href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
-              className="px-4 py-2 text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors text-sm font-medium"
-            >
-              Log In
-            </Link>
-          )}
-        </div>
-      </header>
+      <TopNavbar
+        title="Subscribers"
+        icon={<Users className="text-white w-6 h-6" />}
+        badge={{ text: `${totalCount} total` }}
+        user={user}
+      />
 
       <main className="max-w-7xl mx-auto p-8">
         <section className="mb-8">
@@ -355,6 +364,17 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
 
           <button
             onClick={() => {
+              setImportResult(null);
+              setShowImportModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
+
+          <button
+            onClick={() => {
               setEditingSubscriber(null);
               setShowEditModal(true);
             }}
@@ -395,6 +415,67 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
             setBody={setEmailBody}
           />
         )}
+
+        {/* CSV Import Modal */}
+        <Modal
+          open={showImportModal}
+          onClose={() => {
+            setShowImportModal(false);
+            setImportResult(null);
+          }}
+          title="Import Subscribers from CSV"
+          className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Upload a CSV file with an <strong>email</strong> column. The first row can be a header.
+            </p>
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#3182ce] transition-colors">
+              <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm text-gray-500 mb-3">Drag and drop or click to select</p>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImportCSV(file);
+                }}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#3182ce] file:text-white hover:file:bg-[#2c5282] file:cursor-pointer"
+              />
+            </div>
+
+            {importing && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Importing...
+              </div>
+            )}
+
+            {importResult && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  <strong>{importResult.added}</strong> subscribers added
+                  {importResult.duplicates > 0 && (
+                    <>, <strong>{importResult.duplicates}</strong> duplicates skipped</>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => {
+                setShowImportModal(false);
+                setImportResult(null);
+              }}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
 
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">

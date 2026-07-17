@@ -16,6 +16,12 @@ export interface PeriodStat {
   totalViews: number;
 }
 
+export interface DailyViews {
+  date: string;
+  views: number;
+  articles: number;
+}
+
 const getEmptyStats = (): UserStats => ({
   totalArticles: 0,
   totalComments: 0,
@@ -153,6 +159,52 @@ export const getArticlesByDateRange = async (
     return data as unknown as JoinedArticle[];
   } catch (err) {
     console.error("Error fetching articles by date range:", err);
+    return [];
+  }
+};
+
+export const getViewsByDay = async (
+  days: number,
+  authorId: string | null,
+): Promise<DailyViews[]> => {
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    const startStr = startDate.toISOString().split("T")[0] + "T00:00:00.000Z";
+
+    let query = getSupabase()
+      .from("articles")
+      .select("created_at, views")
+      .eq("status", "published")
+      .gte("created_at", startStr);
+
+    if (authorId) {
+      query = query.eq("author_id", authorId);
+    }
+
+    const { data: articles, error } = await query;
+    if (error || !articles) return [];
+
+    const grouped: Record<string, { views: number; articles: number }> = {};
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      grouped[d.toISOString().split("T")[0]] = { views: 0, articles: 0 };
+    }
+
+    for (const article of articles) {
+      const dateKey = new Date(article.created_at).toISOString().split("T")[0];
+      if (!grouped[dateKey]) grouped[dateKey] = { views: 0, articles: 0 };
+      grouped[dateKey].views += article.views || 0;
+      grouped[dateKey].articles += 1;
+    }
+
+    return Object.entries(grouped)
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  } catch (err) {
+    console.error("Error fetching views by day:", err);
     return [];
   }
 };

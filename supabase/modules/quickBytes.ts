@@ -1,6 +1,13 @@
 import { getSupabase } from "../supabase";
 import { QuickByte, QuickByteFormData } from "@/types/quickByte";
 
+const generateSlug = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+};
+
 export const getQuickBytes = async (
   page = 0,
   limit = 20,
@@ -49,10 +56,12 @@ export const getQuickByteBySlug = async (slug: string): Promise<QuickByte | null
 
 export const createQuickByte = async (data: QuickByteFormData): Promise<QuickByte | null> => {
   try {
+    const slug = data.title ? generateSlug(data.title) : "";
     const { data: quickByte, error } = await getSupabase()
       .from("quick_bytes")
       .insert({
         title: data.title,
+        slug,
         content: data.content,
         link: data.link || null,
         summary: data.summary || null,
@@ -147,5 +156,71 @@ export const deleteQuickByte = async (id: string): Promise<boolean> => {
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return false;
+  }
+};
+
+export const searchQuickBytes = async (query: string): Promise<QuickByte[]> => {
+  try {
+    const { data, error } = await getSupabase()
+      .from("quick_bytes")
+      .select("*")
+      .or(`title.ilike.%${query}%,content.ilike.%${query}%,summary.ilike.%${query}%`)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error searching quick bytes:", error);
+      return [];
+    }
+
+    return (data || []) as QuickByte[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const getQuickBytesCount = async (): Promise<number> => {
+  try {
+    const { count, error } = await getSupabase()
+      .from("quick_bytes")
+      .select("id", { count: "exact", head: true });
+
+    if (error) {
+      console.error("Error counting quick bytes:", error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return 0;
+  }
+};
+
+export const getQuickBytesByStatus = async (
+  status: "draft" | "published",
+  page = 0,
+  limit = 20,
+): Promise<QuickByte[]> => {
+  const from = page * limit;
+  const to = from + limit - 1;
+
+  try {
+    const { data, error } = await getSupabase()
+      .from("quick_bytes")
+      .select("*")
+      .eq("status", status)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Error fetching quick bytes by status:", error);
+      return [];
+    }
+
+    return (data || []) as QuickByte[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
   }
 };
