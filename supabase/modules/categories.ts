@@ -1,9 +1,9 @@
 import { Category } from "@/types/category";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 export const getCategories = async (): Promise<Category[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("categories")
       .select("*")
       .order("name", { ascending: true });
@@ -26,7 +26,7 @@ export const createCategory = async (
   lang = "english",
 ): Promise<Category | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("categories")
       .insert({
         name,
@@ -53,7 +53,7 @@ export const updateCategory = async (
   data: { name?: string; description?: string },
 ): Promise<Category | null> => {
   try {
-    const { data: category, error } = await supabaseAdminClient
+    const { data: category, error } = await getSupabase()
       .from("categories")
       .update(data)
       .eq("id", id)
@@ -74,7 +74,7 @@ export const updateCategory = async (
 
 export const deleteCategory = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("categories")
       .delete()
       .eq("id", id);

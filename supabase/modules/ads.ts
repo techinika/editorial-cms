@@ -1,5 +1,5 @@
 import { BannerAd, BannerAdFormData } from "@/types/banner-ad";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 const bannerAdSelect = `
   *,
@@ -19,7 +19,7 @@ export const getBannerAds = async (
   const to = from + limit - 1;
 
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("banner_ads")
       .select(bannerAdSelect)
       .order("created_at", { ascending: false });
@@ -49,7 +49,7 @@ export const getBannerAdById = async (
   id: string,
 ): Promise<BannerAd | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("banner_ads")
       .select(bannerAdSelect)
       .eq("id", id)
@@ -74,7 +74,7 @@ export const createBannerAd = async (
     const imageRef = data.image_ref && data.image_ref !== "" ? data.image_ref : null;
     const relatedCompany = data.related_company && data.related_company !== "" ? data.related_company : null;
 
-    const { data: bannerAd, error } = await supabaseAdminClient
+    const { data: bannerAd, error } = await getSupabase()
       .from("banner_ads")
       .insert({
         title: data.title,
@@ -128,7 +128,7 @@ export const updateBannerAd = async (
     // Handle timestamps if needed
     // if (data.is_active === false) { ... }
 
-    const { data: bannerAd, error } = await supabaseAdminClient
+    const { data: bannerAd, error } = await getSupabase()
       .from("banner_ads")
       .update(updateData)
       .eq("id", id)
@@ -149,7 +149,7 @@ export const updateBannerAd = async (
 
 export const deleteBannerAd = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("banner_ads")
       .delete()
       .eq("id", id);

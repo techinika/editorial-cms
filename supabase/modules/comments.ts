@@ -1,12 +1,12 @@
 import { Comment, ArticlePendingActivity } from "@/types/article";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 import { getUnresolvedFeedbackCountByArticle } from "./feedback";
 
 export const getArticleComments = async (
   articleId: string,
 ): Promise<Comment[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("comments")
       .select(
         `
@@ -31,7 +31,7 @@ export const getArticleComments = async (
 
 export const getAllComments = async (): Promise<Comment[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("comments")
       .select(
         `
@@ -56,7 +56,7 @@ export const getAllComments = async (): Promise<Comment[]> => {
 
 export const getUserComments = async (userId: string): Promise<Comment[]> => {
   try {
-    const { data: userArticles } = await supabaseAdminClient
+    const { data: userArticles } = await getSupabase()
       .from("articles")
       .select("id")
       .eq("author_id", userId);
@@ -67,7 +67,7 @@ export const getUserComments = async (userId: string): Promise<Comment[]> => {
 
     const articleIds = userArticles.map((a) => a.id);
 
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("comments")
       .select(
         `
@@ -97,7 +97,7 @@ export const createComment = async (
   message: string,
 ): Promise<Comment | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("comments")
       .insert({
         article_id: articleId,
@@ -131,7 +131,7 @@ export const markCommentAsRead = async (
   commentId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("comments")
       .update({ read: true })
       .eq("id", commentId);
@@ -152,7 +152,7 @@ export const markAllCommentsAsReadByArticle = async (
   articleId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("comments")
       .update({ read: true })
       .eq("article_id", articleId)
@@ -172,7 +172,7 @@ export const markAllCommentsAsReadByArticle = async (
 
 export const deleteComment = async (commentId: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("comments")
       .delete()
       .eq("id", commentId);
@@ -193,7 +193,7 @@ export const getUnreadCommentsCountByArticle = async (
   articleId: string,
 ): Promise<number> => {
   try {
-    const { count, error } = await supabaseAdminClient
+    const { count, error } = await getSupabase()
       .from("comments")
       .select("*", { count: "exact", head: true })
       .eq("article_id", articleId)
@@ -235,7 +235,7 @@ export const getAllPendingActivity = async (): Promise<
   ArticlePendingActivity[]
 > => {
   try {
-    const { data: feedbackData, error: feedbackError } = await supabaseAdminClient
+    const { data: feedbackData, error: feedbackError } = await getSupabase()
       .from("article_feedback")
       .select("article_id")
       .eq("resolved", false);
@@ -244,7 +244,7 @@ export const getAllPendingActivity = async (): Promise<
       console.error("Error fetching feedback:", feedbackError);
     }
 
-    const { data: commentsData, error: commentsError } = await supabaseAdminClient
+    const { data: commentsData, error: commentsError } = await getSupabase()
       .from("comments")
       .select("article_id")
       .eq("read", false);

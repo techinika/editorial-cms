@@ -1,5 +1,5 @@
 import { Asset, AssetFormData } from "@/types/asset";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 const assetSelect = `
   *,
@@ -13,7 +13,7 @@ export const createAsset = async (
     let name = data.name;
     
     // Check if name exists, append unique suffix
-    const { data: existing } = await supabaseAdminClient
+    const { data: existing } = await getSupabase()
       .from("assets")
       .select("id")
       .eq("name", name)
@@ -25,7 +25,7 @@ export const createAsset = async (
       name = `${base}_${Date.now()}${ext}`;
     }
 
-    const { data: asset, error } = await supabaseAdminClient
+    const { data: asset, error } = await getSupabase()
       .from("assets")
       .insert({
         name,
@@ -53,7 +53,7 @@ export const updateAsset = async (
   data: Partial<AssetFormData>,
 ): Promise<Asset | null> => {
   try {
-    const { data: asset, error } = await supabaseAdminClient
+    const { data: asset, error } = await getSupabase()
       .from("assets")
       .update(data)
       .eq("id", id)
@@ -76,7 +76,7 @@ export const getAssetById = async (
   id: string,
 ): Promise<Asset | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("assets")
       .select(assetSelect)
       .eq("id", id)
@@ -105,7 +105,7 @@ export const getAssets = async (
   const to = from + limit - 1;
 
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("assets")
       .select(assetSelect)
       .order("created_at", { ascending: false })
@@ -145,7 +145,7 @@ export const getAssetsByType = async (
   const to = from + limit - 1;
 
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("assets")
       .select(assetSelect)
       .eq("type", type)
@@ -184,7 +184,7 @@ export const searchAssets = async (
   }
 
   try {
-    let supabaseQuery = supabaseAdminClient
+    let supabaseQuery = getSupabase()
       .from("assets")
       .select(assetSelect)
       .or(`name.ilike.%${query}%,url.ilike.%${query}%,type.ilike.%${query}%`)
@@ -210,7 +210,7 @@ export const searchAssets = async (
 
 export const deleteAsset = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("assets")
       .delete()
       .eq("id", id);
@@ -231,7 +231,7 @@ export const getAssetUsage = async (
   assetId: string,
 ): Promise<{ articles: Array<{ id: string; title: string; slug: string; field: string }> }> => {
   try {
-    const { data: asset, error: assetError } = await supabaseAdminClient
+    const { data: asset, error: assetError } = await getSupabase()
       .from("assets")
       .select("url")
       .eq("id", assetId)
@@ -244,7 +244,7 @@ export const getAssetUsage = async (
 
     const articles: Array<{ id: string; title: string; slug: string; field: string }> = [];
 
-    const { data: thumbnailArticles, error: thumbError } = await supabaseAdminClient
+    const { data: thumbnailArticles, error: thumbError } = await getSupabase()
       .from("articles")
       .select("id, title, slug")
       .eq("thumbnail_id", assetId);
@@ -255,7 +255,7 @@ export const getAssetUsage = async (
       });
     }
 
-    const { data: imageArticles, error: imgError } = await supabaseAdminClient
+    const { data: imageArticles, error: imgError } = await getSupabase()
       .from("articles")
       .select("id, title, slug")
       .like("image", `%${asset.url}%`);
@@ -268,7 +268,7 @@ export const getAssetUsage = async (
       });
     }
 
-    const { data: featuredArticles, error: featError } = await supabaseAdminClient
+    const { data: featuredArticles, error: featError } = await getSupabase()
       .from("articles")
       .select("id, title, slug")
       .like("featured_images", `%${asset.url}%`);
@@ -281,7 +281,7 @@ export const getAssetUsage = async (
       });
     }
 
-    const { data: contentArticles, error: contentError } = await supabaseAdminClient
+    const { data: contentArticles, error: contentError } = await getSupabase()
       .from("articles")
       .select("id, title, slug")
       .like("content", `%${asset.url}%`);

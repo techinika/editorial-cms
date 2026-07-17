@@ -1,5 +1,5 @@
 import { Campaign, CampaignFormData } from "@/types/campaign";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 const campaignSelect = `
   *
@@ -13,7 +13,7 @@ export const getCampaigns = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("campaigns")
       .select(campaignSelect)
       .order("created_at", { ascending: false })
@@ -35,7 +35,7 @@ export const getCampaignById = async (
   id: string,
 ): Promise<Campaign | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("campaigns")
       .select(campaignSelect)
       .eq("id", id)
@@ -57,7 +57,7 @@ export const createCampaign = async (
   data: CampaignFormData,
 ): Promise<Campaign | null> => {
   try {
-    const { data: campaign, error } = await supabaseAdminClient
+    const { data: campaign, error } = await getSupabase()
       .from("campaigns")
       .insert({
         subject: data.subject,
@@ -89,7 +89,7 @@ export const updateCampaign = async (
   try {
     const updateData: Record<string, unknown> = { ...data };
 
-    const { data: campaign, error } = await supabaseAdminClient
+    const { data: campaign, error } = await getSupabase()
       .from("campaigns")
       .update(updateData)
       .eq("id", id)
@@ -110,7 +110,7 @@ export const updateCampaign = async (
 
 export const deleteCampaign = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("campaigns")
       .delete()
       .eq("id", id);
@@ -134,7 +134,7 @@ export const updateCampaignStats = async (
   recipients: number,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("campaigns")
       .update({
         total_sent: sent,
@@ -159,7 +159,7 @@ export const updateCampaignStats = async (
 
 export const getCampaignsCount = async (): Promise<number> => {
   try {
-    const { count, error } = await supabaseAdminClient
+    const { count, error } = await getSupabase()
       .from("campaigns")
       .select("*", { count: "exact", head: true });
 

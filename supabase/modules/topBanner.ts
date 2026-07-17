@@ -1,4 +1,4 @@
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 export interface TopBanner {
   id: string;
@@ -30,7 +30,7 @@ export type TopBannerFormData = {
 };
 
 export const getTopBanners = async (): Promise<TopBanner[]> => {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await getSupabase()
     .from("top_banner")
     .select("*")
     .order("display_order", { ascending: true })
@@ -46,7 +46,7 @@ export const getTopBanners = async (): Promise<TopBanner[]> => {
 
 export const getActiveTopBanners = async (): Promise<TopBanner[]> => {
   const now = new Date().toISOString();
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await getSupabase()
     .from("top_banner")
     .select("*")
     .eq("is_active", true)
@@ -63,7 +63,7 @@ export const getActiveTopBanners = async (): Promise<TopBanner[]> => {
 };
 
 export const createTopBanner = async (banner: TopBannerFormData): Promise<TopBanner | null> => {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await getSupabase()
     .from("top_banner")
     .insert([banner])
     .select()
@@ -78,7 +78,7 @@ export const createTopBanner = async (banner: TopBannerFormData): Promise<TopBan
 };
 
 export const updateTopBanner = async (id: string, updates: Partial<TopBannerFormData>): Promise<TopBanner | null> => {
-  const { data, error } = await supabaseAdminClient
+  const { data, error } = await getSupabase()
     .from("top_banner")
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id)
@@ -94,7 +94,7 @@ export const updateTopBanner = async (id: string, updates: Partial<TopBannerForm
 };
 
 export const deleteTopBanner = async (id: string): Promise<boolean> => {
-  const { error } = await supabaseAdminClient
+  const { error } = await getSupabase()
     .from("top_banner")
     .delete()
     .eq("id", id);
