@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import ArticleEditor from "@/components/pages/CreateArticle";
+import ArticleEditor from "@/components/CreateArticle";
 import { checkAuthStatusServer, requireAuthor } from "@/lib/auth-server";
 import {
   getArticleById,

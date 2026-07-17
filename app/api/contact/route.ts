@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
 import { createQuery } from "@/supabase/CRUD/queries";
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 60 * 1000;
+
 export async function POST(request: Request) {
   try {
+    const forwarded = request.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0] || "unknown";
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip);
+
+    if (entry && now < entry.resetAt) {
+      if (entry.count >= RATE_LIMIT) {
+        return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+      }
+      entry.count++;
+    } else {
+      rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    }
+
     const body = await request.json();
     const { email, message, subject, name } = body;
 

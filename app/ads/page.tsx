@@ -1,4 +1,4 @@
-import AdsPage from "@/components/pages/AdsPage";
+import AdsPage from "@/components/AdsPage";
 import { checkAuthStatusServer, requireAuthor } from "@/lib/auth-server";
 
 export default async function Ads() {

@@ -1,16 +1,33 @@
 import type { Block, TOCEntry } from "@/types/article";
+import DOMPurify from "dompurify";
 
 export type { Block, TOCEntry };
 
-const generateSlug = (text: string): string => {
+export const generateSlug = (text: string): string => {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 };
 
-const generateBlockId = (): string => {
-  return `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+export const generateBlockId = (): string => {
+  return `block_${crypto.randomUUID()}`;
+};
+
+export const sanitizeHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p", "br", "strong", "em", "u", "s", "a", "img", "video",
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "blockquote", "pre", "code", "span",
+      "div", "figure", "figcaption",
+    ],
+    ALLOWED_ATTR: [
+      "href", "src", "alt", "class", "data-asset-id",
+      "target", "rel", "controls", "width", "height",
+    ],
+    ALLOW_DATA_ATTR: true,
+  });
 };
 
 export const parseHtmlToBlocks = (html: string): Block[] => {
@@ -166,16 +183,16 @@ export const generateHeadingSlug = (text: string): string => {
 };
 
 export const blocksToHtml = (blocks: Block[], assetUrlMap?: Record<string, string>): string => {
-  return blocks
+  const raw = blocks
     .map((block) => {
       switch (block.type) {
         case "heading":
           return `<h${block.level}>${block.content}</h${block.level}>`;
-        case "image":
-          // Use block's URL if available, otherwise try asset map
+        case "image": {
           const imageUrl = block.url || (block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "");
           const imgAttrs = block.assetId ? ` data-asset-id="${block.assetId}"` : "";
           return `<img src="${imageUrl}" alt="${block.content}"${imgAttrs} />`;
+        }
         case "code":
           return `<pre><code class="language-${block.language}">${block.content}</code></pre>`;
         case "quote":
@@ -192,16 +209,17 @@ export const blocksToHtml = (blocks: Block[], assetUrlMap?: Record<string, strin
         }
         case "link":
           return `<a href="${block.href}" class="text-[#3182ce] underline hover:text-[#2c5282]">${block.content}</a>`;
-        case "video":
-          // Use block's URL if available, otherwise try asset map
+        case "video": {
           const videoUrl = block.url || (block.assetId && assetUrlMap ? assetUrlMap[block.assetId] : "");
           return `<video controls class="rounded-md max-w-full h-auto" src="${videoUrl}" ${block.assetId ? `data-asset-id="${block.assetId}"` : ""}></video>`;
+        }
         case "paragraph":
         default:
           return `<p>${block.content}</p>`;
       }
     })
     .join("\n");
+  return sanitizeHtml(raw);
 };
 
 export const htmlToBlocks = (html: string): { blocks: Block[]; toc: TOCEntry[] } => {
@@ -215,5 +233,5 @@ export const isLegacyContent = (content: string): boolean => {
 };
 
 export const convertLegacyContent = (content: string): { blocks: Block[]; toc: TOCEntry[] } => {
-  return htmlToBlocks(content);
+  return htmlToBlocks(sanitizeHtml(content));
 };

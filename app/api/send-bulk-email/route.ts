@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { getActiveSubscribers } from "@/supabase/CRUD/queries";
 import { createCampaign, updateCampaignStats } from "@/supabase/CRUD/queries";
+import { checkAuthStatusServer } from "@/lib/auth-server";
 
-// Create reusable transporter using SMTP
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: parseInt(process.env.SMTP_PORT || "587"),
@@ -16,6 +16,11 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await checkAuthStatusServer();
+    if (!authResult.authenticated || !authResult.isAdmin) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
+
     const { subject, body } = await request.json();
 
     if (!subject || !body) {

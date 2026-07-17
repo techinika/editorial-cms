@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAsset } from "@/supabase/CRUD/queries";
 import { addArticleAsset } from "@/supabase/CRUD/queries";
+import { checkAuthStatusServer } from "@/lib/auth-server";
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await checkAuthStatusServer();
+    if (!authResult.authenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { 
       file, 

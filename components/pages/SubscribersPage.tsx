@@ -17,6 +17,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import Modal from "@/components/Modal";
 import { Subscriber, SubscriberFormData } from "@/types/subscriber";
 import {
   getSubscribers,
@@ -470,48 +471,40 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
       </main>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowDeleteModal(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Delete Subscriber
-              </h3>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete "{deletingSubscriber?.email}"? This
-              action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleteLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
-              >
-                {deleteLoading ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-                Delete
-              </button>
-            </div>
+      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Subscriber" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-red-100 rounded-full">
+            <AlertTriangle className="w-6 h-6 text-red-600" />
           </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Delete Subscriber
+          </h3>
         </div>
-      )}
+        <p className="text-gray-600 mb-6">
+          Are you sure you want to delete &quot;{deletingSubscriber?.email}&quot;? This
+          action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setShowDeleteModal(false)}
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmDelete}
+            disabled={deleteLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+          >
+            {deleteLoading ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            Delete
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -537,63 +530,60 @@ function SubscriberEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {subscriber ? "Edit Subscriber" : "Add Subscriber"}
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
-            <X className="w-5 h-5" />
-          </button>
+    <Modal open={isOpen} onClose={onClose} title={subscriber ? "Edit Subscriber" : "Add Subscriber"} className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">
+          {subscriber ? "Edit Subscriber" : "Add Subscriber"}
+        </h3>
+        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email *
+          </label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+            placeholder="subscriber@example.com"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
+        <div>
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-              placeholder="subscriber@example.com"
+              type="checkbox"
+              checked={subscribed}
+              onChange={(e) => setSubscribed(e.target.checked)}
+              className="w-4 h-4 text-[#3182ce] border-gray-300 rounded focus:ring-[#3182ce]"
             />
-          </div>
+            <span className="text-sm text-gray-700">Active Subscriber</span>
+          </label>
+        </div>
 
-          <div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={subscribed}
-                onChange={(e) => setSubscribed(e.target.checked)}
-                className="w-4 h-4 text-[#3182ce] border-gray-300 rounded focus:ring-[#3182ce]"
-              />
-              <span className="text-sm text-gray-700">Active Subscriber</span>
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium"
-            >
-              {subscriber ? "Update" : "Add"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium"
+          >
+            {subscriber ? "Update" : "Add"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -618,82 +608,79 @@ function BulkEmailModal({
   setBody: (value: string) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Send Bulk Email to All Subscribers
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
-            <X className="w-5 h-5" />
-          </button>
+    <Modal open={isOpen} onClose={onClose} title="Send Bulk Email to All Subscribers" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Send Bulk Email to All Subscribers
+        </h3>
+        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Subject *
+          </label>
+          <input
+            type="text"
+            required
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+            placeholder="Email subject..."
+          />
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Subject *
-            </label>
-            <input
-              type="text"
-              required
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-              placeholder="Email subject..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Body *
-            </label>
-            <textarea
-              required
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={10}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 resize-none"
-              placeholder="Email body (HTML supported)..."
-            />
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-700">
-              <strong>Note:</strong> This will send the email to all active subscribers.
-              Make sure to review your email before sending.
-            </p>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Body *
+          </label>
+          <textarea
+            required
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={10}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 resize-none"
+            placeholder="Email body (HTML supported)..."
+          />
         </div>
 
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onSend}
-            disabled={sending || !subject.trim() || !body.trim()}
-            className="flex items-center gap-2 px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium disabled:opacity-50"
-          >
-            {sending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4" />
-                Send Email
-              </>
-            )}
-          </button>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-700">
+            <strong>Note:</strong> This will send the email to all active subscribers.
+            Make sure to review your email before sending.
+          </p>
         </div>
       </div>
-    </div>
+
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSend}
+          disabled={sending || !subject.trim() || !body.trim()}
+          className="flex items-center gap-2 px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium disabled:opacity-50"
+        >
+          {sending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Mail className="w-4 h-4" />
+              Send Email
+            </>
+          )}
+        </button>
+      </div>
+    </Modal>
   );
 }

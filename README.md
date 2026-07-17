@@ -6,7 +6,8 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 
 ### Authentication
 - External auth integration via `NEXT_PUBLIC_AUTH_URL`
-- Role-based access (only "author" role allowed)
+- Role-based access (author and admin roles)
+- Server-side auth checks on protected API routes
 - User info displayed in header with profile picture
 - Admin users have additional privileges (change article ownership, manage contributors)
 
@@ -15,6 +16,7 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Search articles by title, summary, or tags
 - Pagination for article listings
 - Filter by status (Draft, Published, Cancelled) and category
+- Real-time updates via Supabase subscriptions
 
 ### Article Actions (on card hover)
 - **Share** - Copy article URL to clipboard
@@ -23,22 +25,23 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - **Delete** - Delete article with confirmation modal
 
 ### Rich Text Editor (Create/Edit Article)
-- **Modern Tiptap Editor** with full formatting support:
+- **Tiptap Editor** with full formatting support:
   - Bold, Italic, Underline, Strikethrough
   - Headings (H1, H2, H3)
   - Bullet and numbered lists
   - Blockquotes and code blocks
   - Links with custom URL input
-  - **Image upload** to Cloudinary (`article-images` folder)
-  - **Video upload** to Cloudinary (`article-videos` folder)
+  - **Image upload** to ImageKit
+  - **Video upload** to ImageKit
 - **Real-time word count** and auto-calculated read time
 - **Live preview mode** to see article before publishing
 - **Save draft** to Supabase (creates or updates article)
 - **Publish** with validation (requires title and content)
 - **Category selection** from Supabase database
-- **Featured image upload** to Cloudinary (`thumbnails` folder)
+- **Featured image upload** to ImageKit
 - **SEO description** field with character count hint
 - **Tags input** for article categorization
+- **Inline asset editing** (alt text, caption, swap, remove)
 
 ### Feedback System (/edit/[articleId])
 - Users can add feedback comments on articles
@@ -55,12 +58,67 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - **Authors** can view team but cannot modify ownership
 - Contributors table stores article-author relationships
 
+### Assets Management (/assets)
+- Upload images, videos, and documents to ImageKit
+- Search and filter assets by type
+- Assign assets as article thumbnails or author profile images
+- View which articles use a given asset
+- Edit asset metadata (name, type, URL)
+
+### Ads Management (/ads)
+- **Banner Ads**: Create, edit, delete banner ads with targeting
+  - Location (sidebar, article inline)
+  - Banner type (square, vertical, horizontal)
+  - Target pages and categories
+  - Date range scheduling
+  - Max views limit
+  - Active/inactive toggle
+- **Top Banners**: Create, edit, delete sticky top banners
+  - Custom background and text colors
+  - Date range scheduling
+  - Live preview
+  - Active/inactive toggle
+- Company association for ads
+- Real-time updates
+
+### Subscribers (/subscribers)
+- View all subscribers in table format
+- Add/edit/delete subscribers
+- Bulk email to all active subscribers
+- Import/export subscribers (CSV)
+
 ### Categories Management (/categories)
 - View all categories in table format
 - Add new category with name and description
 - Edit existing category
 - Delete category with confirmation modal
 - Search categories by name or description
+
+### Quick Bytes (/bytes)
+- Short-form content with rich text editor
+- Language support (en, es, fr, de, hi)
+- Draft/published status
+- External link support
+- Summary field
+
+### Comments Management (/comments)
+- View all comments across articles
+- Approve/delete comments
+- Filter by status (pending, approved)
+- Search comments
+
+### Campaigns (/campaigns)
+- Create email campaigns with WYSIWYG editor
+- Save as draft or send immediately
+- Email templates with variable support
+- Campaign analytics
+
+### Stats Dashboard (/stats)
+- Lifetime KPIs: total published, total views, average views per article
+- Period-filterable stats (day, week, month)
+- Bar chart visualization
+- Status breakdown (draft, published, cancelled)
+- Articles listing with tab navigation
 
 ### UI/UX
 - Primary color: #3182ce (blue-500)
@@ -70,15 +128,19 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Backdrop blur effects
 - Responsive sidebar layout
 - Custom form inputs with focus states
+- Accessible modals with focus trap and ARIA roles
+- Toast notifications for user feedback
+- Error boundary for graceful error handling
 
 ## Tech Stack
 
 - **Frontend**: Next.js 16, React 19, Tailwind CSS 4
 - **Editor**: Tiptap v3 with extensions (Link, Image, Underline, Strike, Placeholder)
-- **Storage**: Supabase (PostgreSQL) + Cloudinary (images/videos)
+- **Storage**: Supabase (PostgreSQL) + ImageKit (images/videos/documents)
 - **Authentication**: External auth app via REST API
 - **Icons**: Lucide React
 - **Language**: TypeScript
+- **Sanitization**: DOMPurify for HTML content
 
 ## Environment Variables
 
@@ -88,11 +150,6 @@ Create a `.env` file with:
 # Supabase
 NEXT_PUBLIC_PROJECT_URL=your_supabase_project_url
 NEXT_PUBLIC_API_KEY=your_supabase_anon_key
-NEXT_PUBLIC_SERVICE_KEY=your_supabase_service_key
-
-# Cloudinary (for image/video uploads)
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
 
 # External Auth
 NEXT_PUBLIC_AUTH_URL=http://localhost:3000
@@ -101,6 +158,8 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3001
 # Main App (for sharing articles)
 NEXT_PUBLIC_BASE_MAIN_APP=http://localhost:3000
 ```
+
+> **Note**: The service role key is used server-side only and is never exposed to client bundles. It is read from `SUPABASE_SERVICE_KEY` env var at runtime.
 
 ## Database Schema
 
@@ -164,9 +223,6 @@ create table public.article_feedback (
   constraint article_feedback_article_id_fkey foreign key (article_id) references articles (id) on delete CASCADE,
   constraint article_feedback_author_id_fkey foreign key (author_id) references authors (id) on delete CASCADE
 );
-
-create index if not exists idx_article_feedback_article_id on public.article_feedback using btree (article_id);
-create index if not exists idx_article_feedback_author_id on public.article_feedback using btree (author_id);
 ```
 
 ### Article Contributors Table
@@ -200,6 +256,26 @@ create table public.authors (
 );
 ```
 
+### Top Banner Table
+```sql
+create table public.top_banner (
+  id uuid not null default gen_random_uuid (),
+  title text not null,
+  content text not null,
+  link_url text null,
+  link_text text null,
+  background_color text null default '#38b6ff'::text,
+  text_color text null default '#FFFFFF'::text,
+  start_date timestamp with time zone not null,
+  end_date timestamp with time zone not null,
+  is_active boolean null default true,
+  display_order integer null default 0,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint top_banner_pkey primary key (id)
+);
+```
+
 ## Getting Started
 
 1. Install dependencies:
@@ -230,39 +306,60 @@ npm run lint
 
 ## Routes
 
-| Route | Description |
-|-------|-------------|
-| `/` | Main dashboard with articles |
-| `/create` | Create new article |
-| `/edit/[id]` | Edit existing article with feedback & team management |
-| `/categories` | Manage categories |
+| Route | Description | Auth |
+|-------|-------------|------|
+| `/` | Main dashboard with articles | Required |
+| `/create` | Create new article | Required |
+| `/edit/[id]` | Edit article with feedback & team management | Required |
+| `/categories` | Manage categories | Required |
+| `/ads` | Manage banner ads and top banners | Required |
+| `/assets` | Manage uploaded assets | Required |
+| `/subscribers` | Manage email subscribers | Required |
+| `/bytes` | Quick bytes management | Required |
+| `/comments` | Comment moderation | Required |
+| `/campaigns` | Email campaign management | Required |
+| `/stats` | Analytics dashboard | Required |
 
 ## User Roles & Permissions
 
 | Feature | Author | Admin |
 |---------|--------|-------|
-| Create articles | ✓ | ✓ |
-| Edit own articles | ✓ | ✓ |
-| Edit any article | ✗ | ✓ |
-| Delete articles | ✓ (own) | ✓ |
-| Add feedback | ✓ | ✓ |
-| Resolve feedback | ✓ (own articles) | ✓ |
-| Change article owner | ✗ | ✓ |
-| Add/remove contributors | ✗ | ✓ |
-| Manage categories | ✗ | ✓ |
+| Create articles | Yes | Yes |
+| Edit own articles | Yes | Yes |
+| Edit any article | No | Yes |
+| Delete articles | Own only | All |
+| Add feedback | Yes | Yes |
+| Resolve feedback | Own articles | All |
+| Change article owner | No | Yes |
+| Add/remove contributors | No | Yes |
+| Manage categories | No | Yes |
+| Manage ads | No | Yes |
+| Manage assets | Own only | All |
+| Send bulk email | No | Yes |
+| Manage subscribers | Yes | Yes |
+| Manage campaigns | Yes | Yes |
 
 ## Key Components
 
 | Component | Location | Description |
 |-----------|----------|-------------|
-| ArticleEditor | `components/pages/CreateArticle.tsx` | Main editor with toolbar, metadata sidebar, feedback panel |
-| Dashboard | `components/pages/Home.tsx` | Main article listing with filters |
-| CategoryManager | `components/pages/Categories.tsx` | Category CRUD operations |
-| Stats | `components/pages/Stats.tsx` | Analytics dashboard |
+| Modal | `components/Modal.tsx` | Accessible modal with focus trap, Escape, ARIA |
+| ErrorBoundary | `components/ErrorBoundary.tsx` | Error boundary wrapper |
+| Toast | `components/Toast.tsx` | Toast notification provider |
+| MainPage | `components/MainPage/` | Dashboard with article cards, filters, quick actions |
+| CreateArticle | `components/CreateArticle/` | Article editor with toolbar, metadata, feedback, team panels |
+| AdsPage | `components/AdsPage/` | Banner ads and top banner management |
+| StatsPage | `components/pages/StatsPage.tsx` | KPI cards, period stats, charts |
 
-## Server Actions
+## API Routes
 
-| Action | Location | Description |
-|--------|----------|-------------|
-| Feedback | `app/actions/feedback.ts` | Add/resolve feedback comments |
-| Contributors | `app/actions/contributors.ts` | Manage article contributors, change owner |
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/auth/status` | GET | None | Check auth status |
+| `/api/upload-auth` | GET | Required | ImageKit upload authentication |
+| `/api/inline-upload` | POST | Required | Upload images to ImageKit |
+| `/api/inline-video-upload` | POST | Required | Upload videos to ImageKit |
+| `/api/imagekit/auth` | GET | Required | ImageKit auth for deletions |
+| `/api/generate-feedback` | POST | Required | AI-generated article feedback |
+| `/api/send-bulk-email` | POST | Admin | Send bulk email to subscribers |
+| `/api/contact` | POST | Public | Contact form (rate-limited) |

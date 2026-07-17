@@ -29,6 +29,7 @@ import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import AssetAssignModal from "@/components/AssetAssignModal";
 import AssetEditModal from "@/components/AssetEditModal";
+import Modal from "@/components/Modal";
 
 interface AssetsPageProps {
   user?: AuthResult;
@@ -476,13 +477,7 @@ export default function AssetsPage({ user }: AssetsPageProps) {
         </section>
       </main>
 
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowDeleteModal(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Asset" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-full">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -515,91 +510,85 @@ export default function AssetsPage({ user }: AssetsPageProps) {
                 Delete
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
-      {showUsageModal && viewingAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowUsageModal(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                {getAssetIcon(viewingAsset.type)}
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Asset Usage: {viewingAsset.name}
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowUsageModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-md"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {usageLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-4 border-[#3182ce] border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : assetUsage.articles.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p>This asset is not used in any articles.</p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Found in {assetUsage.articles.length} article(s):
-                </p>
-                <div className="bg-gray-50 rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">
-                          Article
-                        </th>
-                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">
-                          Used As
-                        </th>
-                        <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {assetUsage.articles.map((article) => (
-                        <tr key={article.id} className="hover:bg-white">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
-                              {article.title}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs px-2 py-1 bg-gray-200 rounded">
-                              {article.field}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <Link
-                              href={`/edit/${article.id}`}
-                              className="text-sm text-[#3182ce] hover:underline"
-                            >
-                              View Article
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+      <Modal open={showUsageModal && !!viewingAsset} onClose={() => setShowUsageModal(false)} title={`Asset Usage: ${viewingAsset?.name || ""}`} className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+        {viewingAsset && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  {getAssetIcon(viewingAsset.type)}
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Asset Usage: {viewingAsset.name}
+                  </h3>
                 </div>
+                <button
+                  onClick={() => setShowUsageModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-md"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+
+              {usageLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-[#3182ce] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : assetUsage.articles.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p>This asset is not used in any articles.</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Found in {assetUsage.articles.length} article(s):
+                  </p>
+                  <div className="bg-gray-50 rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">
+                            Article
+                          </th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">
+                            Used As
+                          </th>
+                          <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {assetUsage.articles.map((article) => (
+                          <tr key={article.id} className="hover:bg-white">
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-medium text-gray-900">
+                                {article.title}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-1 bg-gray-200 rounded">
+                                {article.field}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <Link
+                                href={`/edit/${article.id}`}
+                                className="text-sm text-[#3182ce] hover:underline"
+                              >
+                                View Article
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+        )}
+      </Modal>
 
       {showAssignModal && assigningAsset && (
         <AssetAssignModal

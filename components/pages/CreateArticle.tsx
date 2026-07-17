@@ -54,11 +54,6 @@ import {
   updateArticle,
   getCategories,
 } from "@/supabase/CRUD/queries";
-import {
-  uploadThumbnailToCloudinary,
-  uploadArticleImageToCloudinary,
-  uploadArticleVideoToCloudinary,
-} from "@/lib/cloudinary";
 import { checkAuthStatus, AuthResult } from "@/lib/auth";
 import { Category } from "@/types/category";
 import { JoinedArticle } from "@/types/article";
@@ -725,11 +720,13 @@ const ArticleEditor = ({
     try {
       const authorId =
         isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id;
+      const blocksToSave = articleFormat === "blocks" ? parsedBlocks : null;
       const result = await updateArticle(
         articleId!,
         {
           title: metadata.title,
           content: htmlContent,
+          blocks: blocksToSave,
           image: metadata.image,
           category_id: metadata.category_id || null,
           tags: metadata.tags,
@@ -738,6 +735,7 @@ const ArticleEditor = ({
           status: isPublished ? "published" : "draft",
           author_id: authorId,
           author_name: authUser.user.user_metadata.full_name || null,
+          thumbnail_id: metadata.thumbnail_id || null,
         },
         authUser.user.id,
       );
