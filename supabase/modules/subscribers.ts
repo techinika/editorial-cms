@@ -240,3 +240,27 @@ export const getAllSubscribers = async (): Promise<Subscriber[]> => {
     return [];
   }
 };
+
+export const getExistingEmails = async (
+  emails: string[],
+): Promise<Set<string>> => {
+  if (emails.length === 0) return new Set();
+
+  try {
+    const normalized = emails.map((e) => e.toLowerCase().trim());
+    const { data, error } = await getSupabase()
+      .from("subscribers")
+      .select("email")
+      .in("email", normalized);
+
+    if (error) {
+      console.error("Error checking existing emails:", error);
+      return new Set();
+    }
+
+    return new Set((data as { email: string }[]).map((d) => d.email.toLowerCase()));
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return new Set();
+  }
+};

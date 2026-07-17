@@ -27,8 +27,8 @@ import {
 } from "@/supabase/CRUD/queries";
 import { Comment } from "@/types/article";
 import { useToast } from "@/components/Toast";
-import UserNav from "@/components/UserNav";
 import Modal from "@/components/Modal";
+import TopNavbar from "@/components/TopNavbar";
 
 interface CommentsPageProps {
   user?: AuthResult;
@@ -132,26 +132,13 @@ export default function CommentsPage({ user }: CommentsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="p-2 hover:bg-gray-100 rounded-md">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </Link>
-          <div className="bg-[#3182ce] p-2 rounded-lg">
-            <MessageCircle className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-medium">Comments</h1>
-          {unreadCount > 0 && (
-            <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
-              {unreadCount} unread
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <UserNav user={user} />
-        </div>
-      </header>
+      <TopNavbar
+        title="Comments"
+        icon={<MessageCircle className="text-white w-6 h-6" />}
+        backHref="/"
+        badge={unreadCount > 0 ? { text: `${unreadCount} unread`, color: "amber" } : undefined}
+        user={user}
+      />
 
        <main className="max-w-5xl mx-auto p-8">
          {/* Quick Actions */}
