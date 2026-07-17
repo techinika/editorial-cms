@@ -11,7 +11,7 @@ let _supabaseAdmin: SupabaseClient | null = null;
 export const getSupabase = (): SupabaseClient => {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("Supabase environment variables not set - using mock client");
-    return createClient("https://placeholder.supabase.co", "placeholder");
+    return createClient("https://api.techinika.com", "placeholder");
   }
   if (!_supabase) {
     _supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -23,7 +23,7 @@ export const getSupabase = (): SupabaseClient => {
 export const getSupabaseAdmin = (): SupabaseClient => {
   if (!supabaseUrl || !serviceKey) {
     console.warn("Supabase service key not set - using mock client");
-    return createClient("https://placeholder.supabase.co", "placeholder");
+    return createClient("https://api.techinika.com", "placeholder");
   }
   if (!_supabaseAdmin) {
     _supabaseAdmin = createClient(supabaseUrl, serviceKey);
