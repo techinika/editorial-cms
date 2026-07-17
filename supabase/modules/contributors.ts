@@ -1,11 +1,11 @@
 import { ArticleContributor } from "@/types/article";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 export const getArticleContributors = async (
   articleId: string,
 ): Promise<ArticleContributor[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_contributors")
       .select(
         `
@@ -32,7 +32,7 @@ export const addContributor = async (
   authorId: string,
 ): Promise<ArticleContributor | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_contributors")
       .insert({
         article_id: articleId,
@@ -62,7 +62,7 @@ export const removeContributor = async (
   contributorId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("article_contributors")
       .delete()
       .eq("id", contributorId);
@@ -84,7 +84,7 @@ export const updateArticleOwner = async (
   newAuthorId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("articles")
       .update({ author_id: newAuthorId })
       .eq("id", articleId);
@@ -105,7 +105,7 @@ export const getAllAuthors = async (): Promise<
   { id: string; name: string; image_url: string | null }[]
 > => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("authors")
       .select("id, name, image_url")
       .order("name", { ascending: true });
@@ -126,7 +126,7 @@ export const getAuthorInfo = async (
   authorId: string,
 ): Promise<{ created_at: string; name: string } | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("authors")
       .select("created_at, name")
       .eq("id", authorId)
@@ -160,7 +160,7 @@ export const getUserContributedArticles = async (
   userId: string,
 ): Promise<ContributorArticle[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("article_contributors")
       .select("article_id")
       .eq("author_id", userId);
@@ -176,7 +176,7 @@ export const getUserContributedArticles = async (
 
     const articleIds = data.map((d) => d.article_id);
 
-    const { data: articles, error: articlesError } = await supabaseAdminClient
+    const { data: articles, error: articlesError } = await getSupabase()
       .from("articles")
       .select(
         `

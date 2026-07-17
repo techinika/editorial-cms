@@ -1,4 +1,4 @@
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 import { Author } from "@/types/author";
 
 export const updateArticleThumbnail = async (
@@ -6,7 +6,7 @@ export const updateArticleThumbnail = async (
   assetId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("articles")
       .update({
         thumbnail_id: assetId,
@@ -31,7 +31,7 @@ export const updateAuthorImageRef = async (
   assetId: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("authors")
       .update({ image_ref: assetId })
       .eq("id", authorId);
@@ -53,7 +53,7 @@ export const getAllArticles = async (
   limit = 20,
 ): Promise<Array<{ id: string; title: string; slug: string }>> => {
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("articles")
       .select("id, title, slug")
       .order("created_at", { ascending: false })
@@ -81,7 +81,7 @@ export const getAllAuthorsWithRoles = async (
   search?: string,
 ): Promise<Author[]> => {
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("authors")
       .select(`
         *,
@@ -112,7 +112,7 @@ export const getAllAuthors = async (
   limit = 20,
 ): Promise<Array<{ id: string; name: string; image_url: string | null }>> => {
   try {
-    let query = supabaseAdminClient
+    let query = getSupabase()
       .from("authors")
       .select("id, name, image_url")
       .eq("role", "author")
@@ -142,7 +142,7 @@ export const updateAuthorRole = async (
   role: string,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("authors")
       .update({ role })
       .eq("id", authorId);
@@ -164,7 +164,7 @@ export const toggleAuthorAdmin = async (
   isAdmin: boolean,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("authors")
       .update({ is_admin: isAdmin })
       .eq("id", authorId);
@@ -186,7 +186,7 @@ export const toggleAuthorActive = async (
   active: boolean,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("authors")
       .update({ active })
       .eq("id", authorId);
@@ -210,7 +210,7 @@ export const createAuthor = async (
   lang: string = "en",
 ): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient.from("authors").insert({
+    const { error } = await getSupabase().from("authors").insert({
       id: userId,
       name,
       role,
@@ -231,7 +231,7 @@ export const createAuthor = async (
 
 export const deleteAuthor = async (authorId: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("authors")
       .delete()
       .eq("id", authorId);

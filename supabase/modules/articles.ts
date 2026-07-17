@@ -1,5 +1,5 @@
 import { JoinedArticle, ArticleFormData, Article, Block, TOCEntry } from "@/types/article";
-import { getSupabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 import { Asset } from "@/types/asset";
 import { generateSlug, generateBlockId, extractTOC, parseHtmlToBlocks } from "@/lib/content-parser";
 
@@ -18,7 +18,7 @@ const extractAssetIdsFromBlocks = (blocks: Block[]): string[] => {
 const buildAssetUrlMap = async (assetIds: string[]): Promise<Record<string, string>> => {
   if (!assetIds.length) return {};
 
-  const { data, error } = await getSupabaseAdminClient()
+  const { data, error } = await getSupabase()
     .from("assets")
     .select("id, url")
     .in("id", assetIds);
@@ -107,7 +107,7 @@ export const createArticle = async (
       insertData.table_of_contents = table_of_contents;
     }
 
-    const { data: article, error } = await getSupabaseAdminClient()
+    const { data: article, error } = await getSupabase()
       .from("articles")
       .insert(insertData)
       .select()
@@ -182,7 +182,7 @@ export const updateArticle = async (
       }
     });
 
-    const { data: article, error } = await getSupabaseAdminClient()
+    const { data: article, error } = await getSupabase()
       .from("articles")
       .update(updateData)
       .eq("id", id)
@@ -205,7 +205,7 @@ export const getArticleById = async (
   id: string,
 ): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> }) | null> => {
   try {
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .eq("id", id)
@@ -242,7 +242,7 @@ export const getArticles = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .order("created_at", { ascending: false })
@@ -270,7 +270,7 @@ export const getArticlesByStatus = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .eq("status", status)
@@ -298,7 +298,7 @@ export const searchArticles = async (
   }
 
   try {
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .or(
@@ -321,7 +321,7 @@ export const searchArticles = async (
 
 export const deleteArticle = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await getSupabaseAdminClient()
+    const { error } = await getSupabase()
       .from("articles")
       .delete()
       .eq("id", id);
@@ -343,7 +343,7 @@ export const getUserOwnArticles = async (
   limit = 10,
 ): Promise<(JoinedArticle & { assetUrlMap?: Record<string, string> })[]> => {
   try {
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .eq("author_id", userId)
@@ -367,7 +367,7 @@ export const getArticlesWithPendingFeedback = async (): Promise<
   (JoinedArticle & { assetUrlMap?: Record<string, string> })[]
 > => {
   try {
-    const { data: articlesWithFeedback, error: feedbackError } = await getSupabaseAdminClient()
+    const { data: articlesWithFeedback, error: feedbackError } = await getSupabase()
       .from("article_feedback")
       .select("article_id")
       .eq("resolved", false);
@@ -385,7 +385,7 @@ export const getArticlesWithPendingFeedback = async (): Promise<
       new Set(articlesWithFeedback.map((f) => f.article_id)),
     );
 
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .in("id", articleIds)
@@ -412,7 +412,7 @@ export const getArticlesWithPendingFeedbackUser = async (
     let articleIdsQuery;
 
     if (isAdmin) {
-      const { data: allFeedback } = await getSupabaseAdminClient()
+      const { data: allFeedback } = await getSupabase()
         .from("article_feedback")
         .select("article_id")
         .eq("resolved", false);
@@ -422,7 +422,7 @@ export const getArticlesWithPendingFeedbackUser = async (
         new Set(allFeedback.map((f) => f.article_id)),
       );
     } else {
-      const { data: userFeedback } = await getSupabaseAdminClient()
+      const { data: userFeedback } = await getSupabase()
         .from("article_feedback")
         .select("article_id")
         .eq("resolved", false);
@@ -434,7 +434,7 @@ export const getArticlesWithPendingFeedbackUser = async (
 
       if (articleIds.length === 0) return [];
 
-      const { data: userArticles } = await getSupabaseAdminClient()
+      const { data: userArticles } = await getSupabase()
         .from("articles")
         .select("id")
         .eq("author_id", userId);
@@ -448,7 +448,7 @@ export const getArticlesWithPendingFeedbackUser = async (
 
     if (!articleIdsQuery || articleIdsQuery.length === 0) return [];
 
-    const { data, error } = await getSupabaseAdminClient()
+    const { data, error } = await getSupabase()
       .from("articles")
       .select(articleSelect)
       .in("id", articleIdsQuery)
@@ -482,7 +482,7 @@ export const getFilteredArticles = async (
   const to = from + limit - 1;
 
   try {
-    let query = getSupabaseAdminClient()
+    let query = getSupabase()
       .from("articles")
       .select(articleSelect)
       .order("created_at", { ascending: false })

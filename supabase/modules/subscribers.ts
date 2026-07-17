@@ -1,5 +1,5 @@
 import { Subscriber, SubscriberFormData } from "@/types/subscriber";
-import { supabaseAdminClient } from "../supabase";
+import { getSupabase } from "../supabase";
 
 const subscriberSelect = `
   *
@@ -13,7 +13,7 @@ export const getSubscribers = async (
   const to = from + limit - 1;
 
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("subscribers")
       .select(subscriberSelect)
       .order("created_at", { ascending: false })
@@ -35,7 +35,7 @@ export const getSubscriberById = async (
   id: string,
 ): Promise<Subscriber | null> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("subscribers")
       .select(subscriberSelect)
       .eq("id", id)
@@ -57,7 +57,7 @@ export const searchSubscribers = async (
   query: string,
 ): Promise<Subscriber[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("subscribers")
       .select(subscriberSelect)
       .ilike("email", `%${query}%`)
@@ -79,7 +79,7 @@ export const createSubscriber = async (
   data: SubscriberFormData,
 ): Promise<Subscriber | null> => {
   try {
-    const { data: subscriber, error } = await supabaseAdminClient
+    const { data: subscriber, error } = await getSupabase()
       .from("subscribers")
       .insert({
         email: data.email,
@@ -105,7 +105,7 @@ export const updateSubscriber = async (
   data: Partial<SubscriberFormData>,
 ): Promise<Subscriber | null> => {
   try {
-    const { data: subscriber, error } = await supabaseAdminClient
+    const { data: subscriber, error } = await getSupabase()
       .from("subscribers")
       .update(data)
       .eq("id", id)
@@ -126,7 +126,7 @@ export const updateSubscriber = async (
 
 export const deleteSubscriber = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabaseAdminClient
+    const { error } = await getSupabase()
       .from("subscribers")
       .delete()
       .eq("id", id);
@@ -145,7 +145,7 @@ export const deleteSubscriber = async (id: string): Promise<boolean> => {
 
 export const getActiveSubscribers = async (): Promise<Subscriber[]> => {
   try {
-    const { data, error } = await supabaseAdminClient
+    const { data, error } = await getSupabase()
       .from("subscribers")
       .select(subscriberSelect)
       .eq("subscribed", true)
@@ -165,7 +165,7 @@ export const getActiveSubscribers = async (): Promise<Subscriber[]> => {
 
 export const getSubscribersCount = async (): Promise<number> => {
   try {
-    const { count, error } = await supabaseAdminClient
+    const { count, error } = await getSupabase()
       .from("subscribers")
       .select("*", { count: "exact", head: true });
 
