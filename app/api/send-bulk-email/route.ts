@@ -4,6 +4,10 @@ import { createCampaign } from "@/supabase/CRUD/queries";
 import { createRecipients } from "@/supabase/CRUD/queries";
 import { checkAuthStatusServer } from "@/lib/auth-server";
 
+const COMMS_WORKER_URL = (
+  process.env.NEXT_PUBLIC_COMMS_WORKER_URL || "http://localhost:8789"
+).replace(/\/+$/, "");
+
 export async function POST(request: NextRequest) {
   try {
     const authResult = await checkAuthStatusServer();
@@ -11,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const { subject, body } = await request.json();
+    const { subject, body, campaignId } = await request.json();
 
     if (!subject || !body) {
       return NextResponse.json(
@@ -45,11 +49,35 @@ export async function POST(request: NextRequest) {
     const emails = subscribers.map((s) => s.email);
     const recipientCount = await createRecipients(campaign.id, emails);
 
+    const queueRes = await fetch(`${COMMS_WORKER_URL}/api/send-batch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": process.env.WORKER_API_KEY || "",
+      },
+      body: JSON.stringify({
+        subject,
+        html: body,
+        project: "cms",
+        campaignId: campaign.id,
+      }),
+    });
+
+    if (!queueRes.ok) {
+      console.error("Failed to enqueue campaign:", await queueRes.text());
+      return NextResponse.json(
+        { success: false, error: "Failed to enqueue campaign emails" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       campaignId: campaign.id,
       totalRecipients: recipientCount,
-      message: `Campaign queued. ${recipientCount} recipients added. Use /api/process-email-batch to process.`,
+      count: recipientCount,
+      failed: 0,
+      message: `Campaign queued. ${recipientCount} recipients will be sent by the email queue.`,
     });
   } catch (error) {
     console.error("Error creating campaign:", error);

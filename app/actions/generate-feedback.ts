@@ -1,22 +1,17 @@
 "use server";
 
-import puter from "@heyputer/puter.js";
 import { createFeedback, getArticleById } from "@/supabase/CRUD/queries";
 import { revalidatePath } from "next/cache";
 import { blocksToHtml } from "@/lib/content-parser";
 import { Block } from "@/types/article";
 
+const AI_WORKER_URL = (
+  process.env.NEXT_PUBLIC_AI_WORKER_URL || "http://localhost:8788"
+).replace(/\/+$/, "");
+
 export async function generateAIFeedback(articleId: string, authorId: string) {
-  const puterAuthToken = process.env.PUTER_AUTH_TOKEN;
-  
-  if (!puterAuthToken) {
-    throw new Error("Puter AI not configured");
-  }
-
-  puter.setAuthToken(puterAuthToken);
-
   const article = await getArticleById(articleId);
-  
+
   if (!article) {
     throw new Error("Article not found");
   }
@@ -30,34 +25,29 @@ export async function generateAIFeedback(articleId: string, authorId: string) {
     articleContent = article.content || '';
   }
 
-  const prompt = `You are an expert article reviewer. Analyze the following article and provide 5 constructive feedback points that would help improve it. Each feedback should be specific, actionable, and helpful.
-
-Article Title: ${article.title}
-Article Content: ${articleContent.substring(0, 5000)}
-
-Provide 5 feedback points, one per line, each starting with a bullet point (-). Each feedback should be 1-2 sentences maximum and focused on:
-- Content quality and clarity
-- Structure and organization  
-- Grammar and readability
-- Missing information or gaps
-- Overall improvement suggestions`;
-
   try {
-    const response = await puter.ai.chat(prompt, {
-      model: "gpt-4.1-nano"
+    const res = await fetch(`${AI_WORKER_URL}/api/ai/feedback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": process.env.WORKER_API_KEY || "",
+      },
+      body: JSON.stringify({
+        title: article.title,
+        content: articleContent.substring(0, 5000),
+      }),
     });
 
-    if (!response || typeof response !== 'string') {
-      throw new Error("Invalid response from AI");
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !Array.isArray(data.feedback)) {
+      throw new Error(data.error || "Invalid response from AI");
     }
 
-    const feedbackPoints = response
-      .split("\n")
-      .filter((line: string) => line.trim().startsWith("-"))
-      .slice(0, 5);
+    const feedbackPoints = data.feedback.slice(0, 5);
 
     const results = [];
-    for (const feedback of feedbackPoints) {
+    for (const feedback of feedbackPoints as string[]) {
       const content = feedback.replace(/^-\s*/, "").trim();
       if (content.length > 10) {
         const result = await createFeedback(articleId, authorId, content, true);
