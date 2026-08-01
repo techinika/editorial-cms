@@ -47,16 +47,26 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ file, fileName, folder }),
     });
 
-    const uploadData = await uploadRes.json().catch(() => ({}));
+    const rawText = await uploadRes.text();
+    let uploadJson: Record<string, unknown> = {};
+    try {
+      uploadJson = JSON.parse(rawText);
+    } catch {
+      uploadJson = {};
+    }
 
-    if (!uploadRes.ok || !uploadData.url) {
+    if (!uploadRes.ok || !uploadJson.url) {
       return NextResponse.json(
-        { error: uploadData.error || "Failed to upload file" },
+        {
+          error: uploadJson.error || "Failed to upload file",
+          status: uploadRes.status,
+          bodyPreview: rawText.slice(0, 300),
+        },
         { status: uploadRes.ok ? 500 : uploadRes.status }
       );
     }
 
-    const fileUrl = uploadData.url;
+    const fileUrl = uploadJson.url as string;
 
     const asset = await createAsset({
       name: fileName,
