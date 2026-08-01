@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 import { getActiveSubscribers } from "@/supabase/CRUD/queries";
-import { createCampaign, updateCampaignStats } from "@/supabase/CRUD/queries";
+import { createCampaign } from "@/supabase/CRUD/queries";
+import { createRecipients } from "@/supabase/CRUD/queries";
 import { checkAuthStatusServer } from "@/lib/auth-server";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const COMMS_WORKER_URL = (
+  process.env.NEXT_PUBLIC_COMMS_WORKER_URL || "http://localhost:8789"
+).replace(/\/+$/, "");
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const { subject, body } = await request.json();
+    const { subject, body, campaignId } = await request.json();
 
     if (!subject || !body) {
       return NextResponse.json(
@@ -30,11 +24,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create campaign record
     const campaign = await createCampaign({
       subject,
       body,
-      status: 'sending',
+      status: "sending",
     });
 
     if (!campaign) {
@@ -44,66 +37,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all active subscribers
     const subscribers = await getActiveSubscribers();
 
     if (subscribers.length === 0) {
-      // Update campaign as failed
-      await updateCampaignStats(campaign.id, 0, 0, 0);
       return NextResponse.json(
         { success: false, error: "No active subscribers found" },
         { status: 400 }
       );
     }
 
-    // Send emails in batches to avoid rate limits
-    const batchSize = 50;
-    let sentCount = 0;
-    let failedCount = 0;
+    const emails = subscribers.map((s) => s.email);
+    const recipientCount = await createRecipients(campaign.id, emails);
 
-    for (let i = 0; i < subscribers.length; i += batchSize) {
-      const batch = subscribers.slice(i, i + batchSize);
+    const queueRes = await fetch(`${COMMS_WORKER_URL}/api/send-batch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": process.env.WORKER_API_KEY || "",
+      },
+      body: JSON.stringify({
+        subject,
+        html: body,
+        project: "cms",
+        campaignId: campaign.id,
+      }),
+    });
 
-      const sendPromises = batch.map(async (subscriber) => {
-        try {
-          await transporter.sendMail({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
-            to: subscriber.email,
-            subject: subject,
-            html: body,
-          });
-          return { success: true, email: subscriber.email };
-        } catch (error) {
-          console.error(`Failed to send to ${subscriber.email}:`, error);
-          return { success: false, email: subscriber.email };
-        }
-      });
-
-      const results = await Promise.all(sendPromises);
-      sentCount += results.filter(r => r.success).length;
-      failedCount += results.filter(r => !r.success).length;
+    if (!queueRes.ok) {
+      console.error("Failed to enqueue campaign:", await queueRes.text());
+      return NextResponse.json(
+        { success: false, error: "Failed to enqueue campaign emails" },
+        { status: 500 }
+      );
     }
-
-    // Update campaign with stats
-    await updateCampaignStats(
-      campaign.id,
-      sentCount,
-      failedCount,
-      subscribers.length
-    );
 
     return NextResponse.json({
       success: true,
-      count: sentCount,
-      failed: failedCount,
-      total: subscribers.length,
       campaignId: campaign.id,
-      message: `Email sent to ${sentCount} subscribers (${failedCount} failed)`,
+      totalRecipients: recipientCount,
+      count: recipientCount,
+      failed: 0,
+      message: `Campaign queued. ${recipientCount} recipients will be sent by the email queue.`,
     });
   } catch (error) {
-    console.error("Error sending bulk email:", error);
+    console.error("Error creating campaign:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to send emails" },
+      { success: false, error: "Failed to create campaign" },
       { status: 500 }
     );
   }

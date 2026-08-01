@@ -30,6 +30,7 @@ import { useToast } from "@/components/Toast";
 import AssetAssignModal from "@/components/AssetAssignModal";
 import AssetEditModal from "@/components/AssetEditModal";
 import Modal from "@/components/Modal";
+import TopNavbar from "@/components/TopNavbar";
 
 interface AssetsPageProps {
   user?: AuthResult;
@@ -193,65 +194,11 @@ export default function AssetsPage({ user }: AssetsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="flex items-center justify-between px-6 py-3 bg-white shadow-lg sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="bg-[#3182ce] p-2 rounded-lg hover:bg-[#2c5282] transition-colors"
-          >
-            <FileText className="text-white w-6 h-6" />
-          </Link>
-          <h1 className="text-xl font-medium">Assets</h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {user?.authenticated && user.user ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-                {user.profilePicture ? (
-                  <img
-                    src={user.profilePicture}
-                    alt={user.user.user_metadata.full_name || "User"}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-[#3182ce] flex items-center justify-center text-white text-xs">
-                    {(
-                      user.user.user_metadata.full_name ||
-                      user.user.email ||
-                      "U"
-                    )
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-                )}
-                <span className="text-sm text-gray-700 font-medium">
-                  {user.user.user_metadata.full_name || user.user.email}
-                </span>
-                {user.isAdmin && (
-                  <span className="text-xs text-[#3182ce] bg-[#3182ce]/10 px-1.5 py-0.5 rounded">
-                    Admin
-                  </span>
-                )}
-              </div>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status`}
-                className="p-2 text-gray-500 hover:text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors"
-                title="Account Settings"
-              >
-                <X className="w-5 h-5" />
-              </Link>
-            </div>
-          ) : (
-            <Link
-              href={`${process.env.NEXT_PUBLIC_AUTH_URL}/status?redirect=${typeof window !== "undefined" ? window.location.href : ""}`}
-              className="px-4 py-2 text-[#3182ce] hover:bg-[#3182ce]/10 rounded-md transition-colors text-sm font-medium"
-            >
-              Log In
-            </Link>
-          )}
-        </div>
-      </header>
+      <TopNavbar
+        title="Assets"
+        icon={<Image className="text-white w-6 h-6" />}
+        user={user}
+      />
 
       <main className="max-w-7xl mx-auto p-8">
         <section className="mb-8">

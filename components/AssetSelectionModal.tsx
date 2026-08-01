@@ -17,9 +17,7 @@ import {
   getAssets,
   getAssetsByType,
   searchAssets,
-  createAsset,
 } from "@/supabase/CRUD/queries";
-import { upload } from "@imagekit/next";
 import { useToast } from "@/components/Toast";
 
 interface AssetSelectionModalProps {
@@ -127,53 +125,40 @@ export default function AssetSelectionModal({
     if (!selectedFile || !uploadName.trim()) return;
 
     setUploading(true);
-    try {
-      const authResponse = await fetch("/api/upload-auth");
-      const authData = await authResponse.json();
-
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onloadend = async () => {
-        try {
-          const result = await upload({
-            file: reader.result as string,
+    const reader = new FileReader();
+    reader.readAsDataURL(selectedFile);
+    reader.onloadend = async () => {
+      try {
+        const response = await fetch("/api/inline-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            file: reader.result,
             fileName: selectedFile.name,
+            userId: user?.id,
+            fileType: uploadType,
             folder: "/assets",
-            publicKey: authData.publicKey,
-            token: authData.token,
-            signature: authData.signature,
-            expire: authData.expire,
-          });
+          }),
+        });
+        const data = await response.json();
 
-          if ((result as any)?.url) {
-            const newAsset = await createAsset({
-              name: uploadName,
-              url: (result as any).url,
-              type: uploadType,
-              author_id: user?.id,
-            });
-
-            if (newAsset) {
-              setAssets((prev) => [newAsset, ...prev]);
-              setShowUploadForm(false);
-              setSelectedFile(null);
-              setUploadPreview(null);
-              setUploadName("");
-              showToast("success", "Asset uploaded successfully!");
-            }
-          }
-        } catch (error) {
-          console.error("Upload error:", error);
-          showToast("error", "Failed to upload file");
-        } finally {
-          setUploading(false);
+        if (data.asset) {
+          setAssets((prev) => [data.asset, ...prev]);
+          setShowUploadForm(false);
+          setSelectedFile(null);
+          setUploadPreview(null);
+          setUploadName("");
+          showToast("success", "Asset uploaded successfully!");
+        } else {
+          showToast("error", data.error || "Failed to upload file");
         }
-      };
-    } catch (error) {
-      console.error("Auth error:", error);
-      showToast("error", "Failed to authenticate upload");
-      setUploading(false);
-    }
+      } catch (error) {
+        console.error("Upload error:", error);
+        showToast("error", "Failed to upload file");
+      } finally {
+        setUploading(false);
+      }
+    };
   };
 
   const getAssetIcon = (type: AssetType) => {

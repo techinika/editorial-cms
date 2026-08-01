@@ -27,7 +27,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `checkAuthStatusServer()` from `lib/auth-server.ts` for server-side auth checks in API routes.
 - `checkAuthStatus()` from `lib/auth.ts` for client-side auth.
 - API routes requiring auth: `upload-auth`, `inline-upload`, `inline-video-upload`, `imagekit/auth`, `generate-feedback`.
-- API routes requiring admin: `send-bulk-email`.
+- API routes requiring admin: `send-bulk-email`, `process-email-batch`.
 - Public routes (rate-limited): `contact`.
 
 ### Component Structure
@@ -35,6 +35,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `components/[Feature]/SubComponent.tsx` — extracted sub-components
 - `components/[Feature]/useHook.ts` — custom hooks for logic
 - `components/pages/[Name]Page.tsx` — page-level components (some are now re-exports)
+- `components/Stats/` — stats sub-components (CalendarPicker, PeriodStatsSection, TrendChart, StatsSubComponents)
 
 ### Modals
 - All modals use `components/Modal.tsx` — provides focus trap, Escape key, ARIA roles, portal rendering.
@@ -51,6 +52,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Security headers in `next.config.ts`: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection, Permissions-Policy.
 - `poweredByHeader: false`.
 
+### Email
+- All transactional email (campaigns, bulk sends) goes through the comms worker and is sent
+  from `no-reply@techinika.com`. Never send transactional email from a user-facing address.
+- `support@techinika.com` / `editorial@techinika.com` are contact addresses only.
+
 ### Proxy
 - `proxy.ts` exports a function named `proxy` (not `middleware`) for Next.js 16 Turbopack.
 
@@ -59,10 +65,18 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | File | Purpose |
 |------|---------|
 | `supabase/supabase.ts` | Supabase client setup (anon + admin) |
+| `supabase/modules/stats.ts` | Stats queries (getAllStats, getUserStats, getArticleCountByPeriod, getArticlesByDateRange, getViewsByDay) |
+| `supabase/modules/subscribers.ts` | Subscriber queries (getAllSubscribers for CSV export, createSubscribers for bulk import) |
+| `supabase/modules/campaignRecipients.ts` | Campaign recipient tracking for async email queue |
+| `supabase/modules/quickBytes.ts` | Quick byte queries (search, count, auto-slug) |
 | `lib/auth-server.ts` | Server-side auth helper |
 | `lib/content-parser.ts` | HTML<->blocks conversion, sanitization |
 | `components/Modal.tsx` | Accessible modal component |
 | `components/ErrorBoundary.tsx` | Error boundary wrapper |
+| `components/Stats/CalendarPicker.tsx` | Month-view calendar date picker |
+| `components/Stats/PeriodStatsSection.tsx` | Period stats with calendar integration |
+| `components/Stats/TrendChart.tsx` | Views trend chart (7/14/30/90 day) |
+| `components/Stats/StatsSubComponents.tsx` | Shared stat components (KPICard, EmptyState, StatusBadge) |
 | `proxy.ts` | Next.js 16 proxy (replaces middleware) |
 | `next.config.ts` | Security headers, config |
 

@@ -89,6 +89,9 @@ export const createSubscriber = async (
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        return null;
+      }
       console.error("Error creating subscriber:", error);
       return null;
     }
@@ -98,6 +101,44 @@ export const createSubscriber = async (
     console.error("An unexpected error occurred:", err);
     return null;
   }
+};
+
+export const createSubscribers = async (
+  emails: { email: string; subscribed?: boolean }[],
+): Promise<{ added: number; duplicates: number }> => {
+  let added = 0;
+  let duplicates = 0;
+
+  const rows = emails.map((e) => ({
+    email: e.email.toLowerCase().trim(),
+    subscribed: e.subscribed ?? true,
+  }));
+
+  const batchSize = 100;
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
+    const { error } = await getSupabase()
+      .from("subscribers")
+      .upsert(batch, { onConflict: "email" });
+
+    if (error) {
+      console.error("Error bulk upserting subscribers:", error);
+      for (const row of batch) {
+        const { error: singleError } = await getSupabase()
+          .from("subscribers")
+          .upsert(row, { onConflict: "email" });
+        if (singleError) {
+          console.error("Error upserting subscriber:", singleError);
+        } else {
+          added++;
+        }
+      }
+    } else {
+      added += batch.length;
+    }
+  }
+
+  return { added, duplicates };
 };
 
 export const updateSubscriber = async (
@@ -178,5 +219,48 @@ export const getSubscribersCount = async (): Promise<number> => {
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return 0;
+  }
+};
+
+export const getAllSubscribers = async (): Promise<Subscriber[]> => {
+  try {
+    const { data, error } = await getSupabase()
+      .from("subscribers")
+      .select(subscriberSelect)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all subscribers:", error);
+      return [];
+    }
+
+    return data as unknown as Subscriber[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const getExistingEmails = async (
+  emails: string[],
+): Promise<Set<string>> => {
+  if (emails.length === 0) return new Set();
+
+  try {
+    const normalized = emails.map((e) => e.toLowerCase().trim());
+    const { data, error } = await getSupabase()
+      .from("subscribers")
+      .select("email")
+      .in("email", normalized);
+
+    if (error) {
+      console.error("Error checking existing emails:", error);
+      return new Set();
+    }
+
+    return new Set((data as { email: string }[]).map((d) => d.email.toLowerCase()));
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return new Set();
   }
 };

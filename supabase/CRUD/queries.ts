@@ -29,6 +29,7 @@ export {
 
 export type { ArticleFilter } from "../modules/articles";
 export type { UserStats, PeriodStat } from "../modules/stats";
+export { getArticlesByDateRange } from "../modules/stats";
 export type { ContributorArticle } from "../modules/contributors";
 export type { Asset, AssetFormData, AssetType } from "@/types/asset";
 export type { UserCompany, FeaturedStartup } from "@/types/user-company";
@@ -38,5 +39,13 @@ export * from "../modules/ads";
 export * from "../modules/topBanner";
 export * from "../modules/subscribers";
 export * from "../modules/campaign";
+export {
+  createRecipients,
+  getPendingRecipients,
+  markRecipientSent,
+  markRecipientFailed,
+  getRecipientCounts,
+} from "../modules/campaignRecipients";
+export type { CampaignRecipient } from "../modules/campaignRecipients";
 export * from "../modules/queries";
 export * from "../modules/quickBytes";

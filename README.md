@@ -85,7 +85,8 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - View all subscribers in table format
 - Add/edit/delete subscribers
 - Bulk email to all active subscribers
-- Import/export subscribers (CSV)
+- Download subscribers as CSV (email, status, subscribed date)
+- Import subscribers from CSV file with duplicate detection
 
 ### Categories Management (/categories)
 - View all categories in table format
@@ -97,9 +98,11 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 ### Quick Bytes (/bytes)
 - Short-form content with rich text editor
 - Language support (en, es, fr, de, hi)
-- Draft/published status
+- Draft/published status filtering
 - External link support
 - Summary field
+- Auto-generated slug from title
+- Search across title, content, and summary
 
 ### Comments Management (/comments)
 - View all comments across articles
@@ -110,13 +113,19 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 ### Campaigns (/campaigns)
 - Create email campaigns with WYSIWYG editor
 - Save as draft or send immediately
+- Async email queue for 10k+ subscribers (prevents timeouts)
+- Batch processing with progress tracking
+- Campaign stats: sent, failed, total recipients
 - Email templates with variable support
 - Campaign analytics
 
 ### Stats Dashboard (/stats)
 - Lifetime KPIs: total published, total views, average views per article
-- Period-filterable stats (day, week, month)
-- Bar chart visualization
+- Views trend chart with 7/14/30/90 day selectable ranges
+- Calendar date picker to select a specific date
+- Period-filterable stats (day, week, month, year)
+- Per-article bar chart and table for selected period
+- Summary cards: article count, total views, average views
 - Status breakdown (draft, published, cancelled)
 - Articles listing with tab navigation
 
@@ -157,6 +166,17 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3001
 
 # Main App (for sharing articles)
 NEXT_PUBLIC_BASE_MAIN_APP=http://localhost:3000
+
+# Workers
+NEXT_PUBLIC_AI_WORKER_URL=http://localhost:8788
+NEXT_PUBLIC_COMMS_WORKER_URL=http://localhost:8789
+NEXT_PUBLIC_UPLOADS_WORKER_URL=http://localhost:8790
+WORKER_API_KEY=
+
+# Email
+# All transactional email (campaigns, bulk sends) is sent from no-reply@techinika.com
+# via the comms worker. `support@`/`editorial@` are user-facing contact addresses only.
+RESEND_FROM="Techinika <no-reply@techinika.com>"
 ```
 
 > **Note**: The service role key is used server-side only and is never exposed to client bundles. It is read from `SUPABASE_SERVICE_KEY` env var at runtime.
@@ -349,7 +369,11 @@ npm run lint
 | MainPage | `components/MainPage/` | Dashboard with article cards, filters, quick actions |
 | CreateArticle | `components/CreateArticle/` | Article editor with toolbar, metadata, feedback, team panels |
 | AdsPage | `components/AdsPage/` | Banner ads and top banner management |
-| StatsPage | `components/pages/StatsPage.tsx` | KPI cards, period stats, charts |
+| StatsPage | `components/pages/StatsPage.tsx` | KPI cards, articles breakdown |
+| CalendarPicker | `components/Stats/CalendarPicker.tsx` | Month-view calendar date picker |
+| PeriodStatsSection | `components/Stats/PeriodStatsSection.tsx` | Period stats with calendar and article filtering |
+| TrendChart | `components/Stats/TrendChart.tsx` | Views trend chart (7/14/30/90 day) |
+| StatsSubComponents | `components/Stats/StatsSubComponents.tsx` | Shared stat components (KPICard, EmptyState, StatusBadge) |
 
 ## API Routes
 
@@ -361,5 +385,7 @@ npm run lint
 | `/api/inline-video-upload` | POST | Required | Upload videos to ImageKit |
 | `/api/imagekit/auth` | GET | Required | ImageKit auth for deletions |
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
-| `/api/send-bulk-email` | POST | Admin | Send bulk email to subscribers |
+| `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async) |
+| `/api/process-email-batch` | POST | Admin | Process next batch of pending emails |
+| `/api/process-email-batch` | GET | Admin | Check campaign send progress |
 | `/api/contact` | POST | Public | Contact form (rate-limited) |
