@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ImageIcon, Loader2, X, AlertCircle } from "lucide-react";
 import { Category } from "@/types/category";
 import { Metadata } from "./useArticleEditor";
@@ -87,7 +87,7 @@ export default function MetadataSidebar({
       </div>
 
       {/* Read Time */}
-      <InputField label="Read Time" value={metadata.readTime} onChange={(v) => setMetadata((prev) => ({ ...prev, readTime: parseInt(v) || 5 }))} type="number" placeholder="Minutes" />
+      <ReadTimeField value={metadata.readTime} onChange={(v) => setMetadata((prev) => ({ ...prev, readTime: v }))} />
 
       {/* Tags */}
       <InputField label="Tags" value={metadata.tags} onChange={(v) => setMetadata((prev) => ({ ...prev, tags: v }))} placeholder="React, Next.js, TypeScript" />
@@ -115,6 +115,37 @@ export default function MetadataSidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+function ReadTimeField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(String(value));
+
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  const parsed = Number(text);
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Read Time</label>
+      <input
+        type="number"
+        value={text}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setText(raw);
+          if (raw !== "" && !Number.isNaN(Number(raw))) onChange(Number(raw));
+        }}
+        onBlur={() => {
+          if (text === "" || Number.isNaN(parsed)) setText(String(value));
+        }}
+        placeholder="Minutes"
+        min={0}
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] transition-all duration-200"
+      />
+    </div>
   );
 }
 
