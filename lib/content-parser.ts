@@ -1,5 +1,5 @@
 import type { Block, TOCEntry } from "@/types/article";
-import DOMPurify from "isomorphic-dompurify";
+import xss from "xss";
 
 export type { Block, TOCEntry };
 
@@ -14,20 +14,40 @@ export const generateBlockId = (): string => {
   return `block_${crypto.randomUUID()}`;
 };
 
+const XSS_OPTIONS = {
+  whiteList: {
+    p: [],
+    br: [],
+    strong: [],
+    em: [],
+    u: [],
+    s: [],
+    a: ["href", "target", "rel"],
+    img: ["src", "alt", "class", "data-asset-id", "width", "height"],
+    video: ["src", "class", "data-asset-id", "controls", "width", "height"],
+    h1: [],
+    h2: [],
+    h3: [],
+    h4: [],
+    h5: [],
+    h6: [],
+    ul: [],
+    ol: [],
+    li: [],
+    blockquote: [],
+    pre: [],
+    code: [],
+    span: ["class"],
+    div: ["class"],
+    figure: [],
+    figcaption: [],
+  },
+  stripIgnoreTag: true,
+  stripIgnoreTagBody: ["script", "style"],
+};
+
 export const sanitizeHtml = (html: string): string => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      "p", "br", "strong", "em", "u", "s", "a", "img", "video",
-      "h1", "h2", "h3", "h4", "h5", "h6",
-      "ul", "ol", "li", "blockquote", "pre", "code", "span",
-      "div", "figure", "figcaption",
-    ],
-    ALLOWED_ATTR: [
-      "href", "src", "alt", "class", "data-asset-id",
-      "target", "rel", "controls", "width", "height",
-    ],
-    ALLOW_DATA_ATTR: true,
-  });
+  return xss(html, XSS_OPTIONS);
 };
 
 export const parseHtmlToBlocks = (html: string): Block[] => {
