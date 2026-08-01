@@ -1,5 +1,5 @@
 import type { Block, TOCEntry } from "@/types/article";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 export type { Block, TOCEntry };
 
