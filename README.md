@@ -166,6 +166,17 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3001
 
 # Main App (for sharing articles)
 NEXT_PUBLIC_BASE_MAIN_APP=http://localhost:3000
+
+# Workers
+NEXT_PUBLIC_AI_WORKER_URL=http://localhost:8788
+NEXT_PUBLIC_COMMS_WORKER_URL=http://localhost:8789
+NEXT_PUBLIC_UPLOADS_WORKER_URL=http://localhost:8790
+WORKER_API_KEY=
+
+# Email
+# All transactional email (campaigns, bulk sends) is sent from no-reply@techinika.com
+# via the comms worker. `support@`/`editorial@` are user-facing contact addresses only.
+RESEND_FROM="Techinika <no-reply@techinika.com>"
 ```
 
 > **Note**: The service role key is used server-side only and is never exposed to client bundles. It is read from `SUPABASE_SERVICE_KEY` env var at runtime.

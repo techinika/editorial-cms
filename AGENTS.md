@@ -52,6 +52,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Security headers in `next.config.ts`: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection, Permissions-Policy.
 - `poweredByHeader: false`.
 
+### Email
+- All transactional email (campaigns, bulk sends) goes through the comms worker and is sent
+  from `no-reply@techinika.com`. Never send transactional email from a user-facing address.
+- `support@techinika.com` / `editorial@techinika.com` are contact addresses only.
+
 ### Proxy
 - `proxy.ts` exports a function named `proxy` (not `middleware`) for Next.js 16 Turbopack.
 

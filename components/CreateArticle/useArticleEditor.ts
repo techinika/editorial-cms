@@ -135,7 +135,7 @@ export function useArticleEditor({
     content: initialArticle?.content || "",
     immediatelyRender: false,
     editable: initialIsOwner,
-    editorProps: { attributes: { class: "prose prose-lg max-w-none focus:outline-none min-h-[500px] leading-relaxed text-gray-700" } },
+    editorProps: { attributes: { class: "prose prose-lg max-w-none focus:outline-none min-h-[500px] leading-relaxed text-gray-700 px-8 py-8" } },
     onUpdate: ({ editor }) => {
       if (editor) {
         const html = editor.getHTML();
@@ -340,6 +340,7 @@ export function useArticleEditor({
           image: metadata.image, category_id: metadata.category_id || null, tags: metadata.tags,
           summary: metadata.seoDescription, read_time: `${metadata.readTime} min`, status: "draft",
           author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
+          sponsored: metadata.sponsored,
         });
         if (result) setHasUnsavedChanges(false);
       } else {
@@ -348,6 +349,7 @@ export function useArticleEditor({
           image: metadata.image, category_id: metadata.category_id || null, tags: metadata.tags,
           summary: metadata.seoDescription, read_time: `${metadata.readTime}`, status: "draft",
           author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
+          sponsored: metadata.sponsored,
         });
         if (result) { setArticleId(result.id); setHasUnsavedChanges(false); }
       }
@@ -368,6 +370,7 @@ export function useArticleEditor({
           image: metadata.image, category_id: metadata.category_id || null, tags: metadata.tags,
           summary: metadata.seoDescription, read_time: `${metadata.readTime} min`, status: "published",
           author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
+          sponsored: metadata.sponsored,
         }, authUser.user.id);
       } else {
         result = await createArticle({
@@ -376,6 +379,7 @@ export function useArticleEditor({
           summary: metadata.seoDescription, read_time: `${metadata.readTime} min`, status: "published",
           author_id: isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id,
           author_name: authUser.user.user_metadata.full_name || null,
+          sponsored: metadata.sponsored,
         });
       }
       if (result) {
@@ -402,6 +406,7 @@ export function useArticleEditor({
         summary: metadata.seoDescription, read_time: `${metadata.readTime} min`,
         status: isPublished ? "published" : "draft",
         author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
+        sponsored: metadata.sponsored,
       }, authUser.user.id);
     } finally { setIsSaving(false); setShowUpdateModal(false); }
   };

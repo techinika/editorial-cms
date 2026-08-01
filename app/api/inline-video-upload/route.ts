@@ -3,6 +3,10 @@ import { createAsset } from "@/supabase/CRUD/queries";
 import { addArticleAsset } from "@/supabase/CRUD/queries";
 import { checkAuthStatusServer } from "@/lib/auth-server";
 
+const UPLOADS_WORKER_URL = (
+  process.env.NEXT_PUBLIC_UPLOADS_WORKER_URL || "http://localhost:8790"
+).replace(/\/+$/, "");
+
 export async function POST(request: NextRequest) {
   try {
     const authResult = await checkAuthStatusServer();
@@ -26,29 +30,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const authResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/upload-auth`
-    );
-    const authData = await authResponse.json();
-
-    const { upload } = await import("@imagekit/next");
-    const result = await upload({
-      file,
-      fileName,
-      folder,
-      publicKey: authData.publicKey,
-      token: authData.token,
-      signature: authData.signature,
-      expire: authData.expire,
+    const uploadRes = await fetch(`${UPLOADS_WORKER_URL}/api/upload`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": process.env.WORKER_API_KEY || "",
+      },
+      body: JSON.stringify({ file, fileName, folder }),
     });
 
-    const fileUrl = (result as any)?.url;
-    if (!fileUrl) {
+    const uploadData = await uploadRes.json().catch(() => ({}));
+
+    if (!uploadRes.ok || !uploadData.url) {
       return NextResponse.json(
-        { error: "Failed to upload video" },
-        { status: 500 }
+        { error: uploadData.error || "Failed to upload video" },
+        { status: uploadRes.ok ? 500 : uploadRes.status }
       );
     }
+
+    const fileUrl = uploadData.url;
 
     const asset = await createAsset({
       name: fileName,

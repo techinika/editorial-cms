@@ -4,10 +4,9 @@ import React, { useState, useEffect, useCallback, ChangeEvent } from "react";
 import { X, Loader2, Check, Upload, FileText, Image, Video, File, AlertTriangle } from "lucide-react";
 import Modal from "@/components/Modal";
 import { Asset, AssetType, AssetFormData } from "@/types/asset";
-import { createAsset, updateAsset } from "@/supabase/CRUD/queries";
+import { createAsset, updateAsset, deleteAsset } from "@/supabase/CRUD/queries";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
-import { upload } from "@imagekit/next";
 
 interface AssetEditModalProps {
   isOpen: boolean;
@@ -28,6 +27,7 @@ export default function AssetEditModal({ isOpen, onClose, asset, user, onSave }:
   const [formLoading, setFormLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadedAssetId, setUploadedAssetId] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewAsset, setPreviewAsset] = useState<{
     name: string;
@@ -41,6 +41,7 @@ export default function AssetEditModal({ isOpen, onClose, asset, user, onSave }:
       setFormUrl(asset?.url || "");
       setFormType(asset?.type || "image");
       setSelectedFile(null);
+      setUploadedAssetId(null);
       setPreviewAsset(null);
       setShowPreviewModal(false);
     }
@@ -51,6 +52,7 @@ export default function AssetEditModal({ isOpen, onClose, asset, user, onSave }:
     setFormUrl("");
     setFormType("image");
     setSelectedFile(null);
+    setUploadedAssetId(null);
     setPreviewAsset(null);
     setShowPreviewModal(false);
     setFormLoading(false);
@@ -83,27 +85,41 @@ export default function AssetEditModal({ isOpen, onClose, asset, user, onSave }:
 
     setUploading(true);
     try {
-      const authResponse = await fetch("/api/upload-auth");
-      const authData = await authResponse.json();
+      const fileType = selectedFile.type.startsWith("image/")
+        ? "image"
+        : selectedFile.type.startsWith("video/")
+          ? "video"
+          : "doc";
 
-      const result = await upload({
-        file: selectedFile,
-        fileName: selectedFile.name,
-        folder: "/cms-assets",
-        publicKey: authData.publicKey,
-        token: authData.token,
-        signature: authData.signature,
-        expire: authData.expire,
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(selectedFile);
       });
 
-      if (result.url) {
-        setFormUrl(result.url);
+      const response = await fetch("/api/inline-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file: dataUrl,
+          fileName: selectedFile.name,
+          userId: user?.user?.id,
+          fileType,
+          folder: "/cms-assets",
+        }),
+      });
+      const data = await response.json();
+
+      if (data.url) {
+        setUploadedAssetId(data.assetId || null);
+        setFormUrl(data.url);
         setFormName(selectedFile.name.split(".").slice(0, -1).join("."));
-        setFormType(selectedFile.type.startsWith("image/") ? "image" : selectedFile.type.startsWith("video/") ? "video" : "doc");
+        setFormType(fileType);
         showToast("success", "File uploaded successfully! Ready to save.");
         setShowPreviewModal(false);
       } else {
-        showToast("error", "Failed to upload file to ImageKit.");
+        showToast("error", data.error || "Failed to upload file.");
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -133,6 +149,11 @@ export default function AssetEditModal({ isOpen, onClose, asset, user, onSave }:
       resultAsset = await updateAsset(asset.id, assetData);
     } else {
       resultAsset = await createAsset(assetData);
+    }
+
+    if (uploadedAssetId) {
+      await deleteAsset(uploadedAssetId);
+      setUploadedAssetId(null);
     }
 
     if (resultAsset) {
