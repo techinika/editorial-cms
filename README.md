@@ -385,7 +385,5 @@ npm run lint
 | `/api/inline-video-upload` | POST | Required | Upload videos to ImageKit |
 | `/api/imagekit/auth` | GET | Required | ImageKit auth for deletions |
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
-| `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async) |
-| `/api/process-email-batch` | POST | Admin | Process next batch of pending emails |
-| `/api/process-email-batch` | GET | Admin | Check campaign send progress |
+| `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async via comms worker) |
 | `/api/contact` | POST | Public | Contact form (rate-limited) |
