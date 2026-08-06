@@ -26,8 +26,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ### Authentication
 - `checkAuthStatusServer()` from `lib/auth-server.ts` for server-side auth checks in API routes.
 - `checkAuthStatus()` from `lib/auth.ts` for client-side auth.
-- API routes requiring auth: `upload-auth`, `inline-upload`, `inline-video-upload`, `imagekit/auth`, `generate-feedback`.
-- API routes requiring admin: `send-bulk-email`, `process-email-batch`.
+- Every mutating server action in `app/actions/` calls `checkAuthStatusServer()` and `requireAuthor(auth)` — never trust the client-side user object.
+- API routes requiring auth: `inline-upload`, `inline-video-upload`, `generate-feedback`, `imagekit/auth` (legacy, unreferenced).
+- API routes requiring admin: `send-bulk-email`.
+- `upload-auth` is a retired 410 stub (ImageKit client uploads removed).
 - Public routes (rate-limited): `contact`.
 
 ### Component Structure
@@ -44,11 +46,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ### Content
 - HTML content stored in `content` field as blocks JSON.
 - `lib/content-parser.ts` contains `blocksToHtml()`, `parseHtmlToBlocks()`, `extractTOC()`, `sanitizeHtml()`.
-- All HTML output is sanitized via DOMPurify.
+- All HTML output is sanitized via `sanitizeHtml()` (xss-package whitelist), including Quick Bytes on create/update.
 - `generateBlockId()` uses `crypto.randomUUID()`.
 
 ### Security
-- DOMPurify sanitization on all rendered HTML content.
+- `sanitizeHtml()` (xss whitelist) on all rendered HTML content.
 - Security headers in `next.config.ts`: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection, Permissions-Policy.
 - `poweredByHeader: false`.
 

@@ -7,7 +7,7 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 ### Authentication
 - External auth integration via `NEXT_PUBLIC_AUTH_URL`
 - Role-based access (author and admin roles)
-- Server-side auth checks on protected API routes
+- Server-side auth checks on protected API routes and server actions (`checkAuthStatusServer()` + `requireAuthor()`)
 - User info displayed in header with profile picture
 - Admin users have additional privileges (change article ownership, manage contributors)
 
@@ -31,14 +31,14 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
   - Bullet and numbered lists
   - Blockquotes and code blocks
   - Links with custom URL input
-  - **Image upload** to ImageKit
-  - **Video upload** to ImageKit
+  - **Image upload** via the uploads worker (Cloudflare R2)
+  - **Video upload** via the uploads worker (Cloudflare R2)
 - **Real-time word count** and auto-calculated read time
 - **Live preview mode** to see article before publishing
 - **Save draft** to Supabase (creates or updates article)
 - **Publish** with validation (requires title and content)
 - **Category selection** from Supabase database
-- **Featured image upload** to ImageKit
+- **Featured image upload** via the uploads worker
 - **SEO description** field with character count hint
 - **Tags input** for article categorization
 - **Inline asset editing** (alt text, caption, swap, remove)
@@ -59,7 +59,7 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Contributors table stores article-author relationships
 
 ### Assets Management (/assets)
-- Upload images, videos, and documents to ImageKit
+- Upload images, videos, and documents via the uploads worker (Cloudflare R2)
 - Search and filter assets by type
 - Assign assets as article thumbnails or author profile images
 - View which articles use a given asset
@@ -145,11 +145,11 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 
 - **Frontend**: Next.js 16, React 19, Tailwind CSS 4
 - **Editor**: Tiptap v3 with extensions (Link, Image, Underline, Strike, Placeholder)
-- **Storage**: Supabase (PostgreSQL) + ImageKit (images/videos/documents)
+- **Storage**: Supabase (PostgreSQL) + uploads worker (Cloudflare R2)
 - **Authentication**: External auth app via REST API
 - **Icons**: Lucide React
 - **Language**: TypeScript
-- **Sanitization**: DOMPurify for HTML content
+- **Sanitization**: `sanitizeHtml()` (xss whitelist) in `lib/content-parser.ts`
 
 ## Environment Variables
 
@@ -380,10 +380,10 @@ npm run lint
 | Route | Method | Auth | Description |
 |-------|--------|------|-------------|
 | `/api/auth/status` | GET | None | Check auth status |
-| `/api/upload-auth` | GET | Required | ImageKit upload authentication |
-| `/api/inline-upload` | POST | Required | Upload images to ImageKit |
-| `/api/inline-video-upload` | POST | Required | Upload videos to ImageKit |
-| `/api/imagekit/auth` | GET | Required | ImageKit auth for deletions |
+| `/api/inline-upload` | POST | Required | Upload images via the uploads worker (R2) |
+| `/api/inline-video-upload` | POST | Required | Upload videos via the uploads worker (R2) |
+| `/api/upload-auth` | GET | Required | Retired — returns 410 (ImageKit client uploads removed) |
+| `/api/imagekit/auth` | GET | Required | Legacy ImageKit signature endpoint (no longer referenced) |
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
-| `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async via comms worker) |
+| `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async via comms worker); when `campaignId` is provided, resends using the existing campaign |
 | `/api/contact` | POST | Public | Contact form (rate-limited) |

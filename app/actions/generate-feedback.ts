@@ -4,12 +4,16 @@ import { createFeedback, getArticleById } from "@/supabase/CRUD/queries";
 import { revalidatePath } from "next/cache";
 import { blocksToHtml } from "@/lib/content-parser";
 import { Block } from "@/types/article";
+import { checkAuthStatusServer, requireAuthor } from "@/lib/auth-server";
 
 const AI_WORKER_URL = (
   process.env.NEXT_PUBLIC_AI_WORKER_URL || "http://localhost:8788"
 ).replace(/\/+$/, "");
 
 export async function generateAIFeedback(articleId: string, authorId: string) {
+  const auth = await checkAuthStatusServer();
+  requireAuthor(auth);
+
   const article = await getArticleById(articleId);
 
   if (!article) {

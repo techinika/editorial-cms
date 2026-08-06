@@ -1,5 +1,6 @@
 import { getSupabase } from "../supabase";
 import { QuickByte, QuickByteFormData } from "@/types/quickByte";
+import { sanitizeHtml } from "@/lib/content-parser";
 
 const generateSlug = (text: string): string => {
   return text
@@ -62,7 +63,7 @@ export const createQuickByte = async (data: QuickByteFormData): Promise<QuickByt
       .insert({
         title: data.title,
         slug,
-        content: data.content,
+        content: sanitizeHtml(data.content),
         link: data.link || null,
         summary: data.summary || null,
         status: data.status || "draft",
@@ -93,6 +94,7 @@ export const updateQuickByte = async (
       .from("quick_bytes")
       .update({
         ...data,
+        content: data.content ? sanitizeHtml(data.content) : data.content,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -121,6 +123,7 @@ export const updateQuickByteWithUser = async (
       .from("quick_bytes")
       .update({
         ...data,
+        content: data.content ? sanitizeHtml(data.content) : data.content,
         updated_by: userId,
         updated_at: new Date().toISOString(),
       })

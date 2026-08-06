@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveSubscribers } from "@/supabase/CRUD/queries";
-import { createCampaign } from "@/supabase/CRUD/queries";
+import { createCampaign, getCampaignById, updateCampaign } from "@/supabase/CRUD/queries";
 import { createRecipients } from "@/supabase/CRUD/queries";
 import { checkAuthStatusServer } from "@/lib/auth-server";
 
@@ -24,17 +24,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const campaign = await createCampaign({
-      subject,
-      body,
-      status: "sending",
-    });
+    let campaign;
 
-    if (!campaign) {
-      return NextResponse.json(
-        { success: false, error: "Failed to create campaign record" },
-        { status: 500 }
-      );
+    if (campaignId) {
+      const existing = await getCampaignById(campaignId);
+      if (!existing) {
+        return NextResponse.json(
+          { success: false, error: "Campaign not found" },
+          { status: 404 }
+        );
+      }
+      campaign = await updateCampaign(campaignId, { subject, body, status: "sending" });
+      if (!campaign) {
+        return NextResponse.json(
+          { success: false, error: "Failed to update campaign record" },
+          { status: 500 }
+        );
+      }
+    } else {
+      campaign = await createCampaign({
+        subject,
+        body,
+        status: "sending",
+      });
+
+      if (!campaign) {
+        return NextResponse.json(
+          { success: false, error: "Failed to create campaign record" },
+          { status: 500 }
+        );
+      }
     }
 
     const subscribers = await getActiveSubscribers();

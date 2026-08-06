@@ -36,6 +36,7 @@ import { useToast } from "@/components/Toast";
 import NextLink from "next/link";
 import supabase from "@/supabase/supabase";
 import Modal from "@/components/Modal";
+import { sanitizeHtml } from "@/lib/content-parser";
 
 interface BytesClientProps {
   user: AuthResult;
@@ -503,7 +504,7 @@ export default function BytesClient({ user }: BytesClientProps) {
 
                   <div
                     className="text-sm text-gray-700 line-clamp-3 prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: byte.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(byte.content) }}
                   />
                 </div>
               ))}
