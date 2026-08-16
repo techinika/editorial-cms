@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Calendar,
   BarChart3,
+  Sparkles,
+  Undo2,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -77,6 +79,11 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
   const [isSending, setIsSending] = useState(false);
 
   // Email editor
+  const [isRefining, setIsRefining] = useState(false);
+  const [refinedSubject, setRefinedSubject] = useState<string | null>(null);
+  const [refinedBody, setRefinedBody] = useState<string | null>(null);
+  const [originalSubject, setOriginalSubject] = useState("");
+  const [originalBody, setOriginalBody] = useState("");
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -249,6 +256,65 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
         editor.commands.setContent(template.body);
       }
     }
+  };
+
+  const handleRefine = async () => {
+    if (!newSubject.trim() && !newBody.trim()) {
+      showToast("error", "Write some content first before refining");
+      return;
+    }
+
+    setIsRefining(true);
+    setOriginalSubject(newSubject);
+    setOriginalBody(newBody);
+
+    try {
+      const response = await fetch("/api/refine-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: newSubject || undefined,
+          body: newBody || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast("error", data.error || "Failed to refine content");
+        return;
+      }
+
+      if (data.subject) setRefinedSubject(data.subject);
+      if (data.body) setRefinedBody(data.body);
+
+      showToast("success", "Content refined! Review and accept or revert.");
+    } catch (error) {
+      console.error("Refine error:", error);
+      showToast("error", "Failed to refine content");
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleAcceptRefinement = () => {
+    if (refinedSubject) setNewSubject(refinedSubject);
+    if (refinedBody) {
+      setNewBody(refinedBody);
+      if (editor) editor.commands.setContent(refinedBody);
+    }
+    setRefinedSubject(null);
+    setRefinedBody(null);
+    showToast("success", "Changes accepted!");
+  };
+
+  const handleRevertRefinement = () => {
+    setNewSubject(originalSubject);
+    setNewBody(originalBody);
+    if (editor) editor.commands.setContent(originalBody);
+    setRefinedSubject(null);
+    setRefinedBody(null);
+    showToast("success", "Reverted to original content.");
   };
 
   const getStatusColor = (status: string) => {
@@ -485,14 +551,51 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Subject *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={newSubject}
-                    onChange={(e) => setNewSubject(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-                    placeholder="Email subject..."
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      value={newSubject}
+                      onChange={(e) => setNewSubject(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
+                      placeholder="Email subject..."
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRefine}
+                      disabled={isRefining}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                      {isRefining ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      Refine
+                    </button>
+                  </div>
+                  {refinedSubject && (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-md">
+                      <span className="text-xs text-purple-600 font-medium">AI suggestion:</span>
+                      <span className="text-sm text-purple-800 flex-1">{refinedSubject}</span>
+                      <button
+                        type="button"
+                        onClick={handleAcceptRefinement}
+                        className="p-1 text-green-600 hover:text-green-700 hover:bg-green-100 rounded"
+                        title="Accept"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRevertRefinement}
+                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
+                        title="Revert"
+                      >
+                        <Undo2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -572,11 +675,51 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
                         >
                           Unlink
                         </button>
+                        <div className="w-px h-6 bg-gray-300 mx-1" />
+                        <button
+                          type="button"
+                          onClick={handleRefine}
+                          disabled={isRefining}
+                          className="flex items-center gap-1 p-1.5 rounded hover:bg-purple-100 text-purple-600 disabled:opacity-50"
+                          title="Refine with AI"
+                        >
+                          {isRefining ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                          <span className="text-xs font-medium">AI Refine</span>
+                        </button>
                       </div>
                     )}
                     <div className="p-4 min-h-[300px] prose prose-sm max-w-none">
                       <EditorContent editor={editor} />
                     </div>
+                    {refinedBody && (
+                      <div className="border-t border-purple-200 bg-purple-50 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-purple-600 font-medium">AI has a suggested refinement for the body</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleAcceptRefinement}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Accept
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleRevertRefinement}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-xs font-medium"
+                            >
+                              <Undo2 className="w-3.5 h-3.5" />
+                              Revert
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
