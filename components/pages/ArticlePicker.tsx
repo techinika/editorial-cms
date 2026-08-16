@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { BookOpen, X, GripVertical, ExternalLink } from "lucide-react";
 import { getArticles } from "@/supabase/CRUD/queries";
-import { Article } from "@/types/article";
+import { JoinedArticle } from "@/types/article";
 
 const SITE_URL = "https://techinika.com";
 
@@ -22,7 +22,7 @@ interface ArticlePickerProps {
 
 export default function ArticlePicker({ selected, onChange }: ArticlePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<JoinedArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -46,7 +46,7 @@ export default function ArticlePicker({ selected, onChange }: ArticlePickerProps
         a.summary?.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const handleAdd = (article: Article) => {
+  const handleAdd = (article: JoinedArticle) => {
     onChange([
       ...selected,
       {
