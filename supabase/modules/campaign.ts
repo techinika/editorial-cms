@@ -1,4 +1,4 @@
-import { Campaign, CampaignFormData } from "@/types/campaign";
+import { Campaign, CampaignFormData, CampaignArticleWithArticle } from "@/types/campaign";
 import { getSupabase } from "../supabase";
 
 const campaignSelect = `
@@ -173,5 +173,64 @@ export const getCampaignsCount = async (): Promise<number> => {
   } catch (err) {
     console.error("An unexpected error occurred:", err);
     return 0;
+  }
+};
+
+export const getCampaignArticles = async (
+  campaignId: string,
+): Promise<CampaignArticleWithArticle[]> => {
+  try {
+    const { data, error } = await getSupabase()
+      .from("campaign_articles")
+      .select(`
+        *,
+        article:articles (id, title, slug, summary, image, status)
+      `)
+      .eq("campaign_id", campaignId)
+      .order("position", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching campaign articles:", error);
+      return [];
+    }
+
+    return data as unknown as CampaignArticleWithArticle[];
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return [];
+  }
+};
+
+export const linkArticlesToCampaign = async (
+  campaignId: string,
+  articleIds: string[],
+): Promise<boolean> => {
+  try {
+    await getSupabase()
+      .from("campaign_articles")
+      .delete()
+      .eq("campaign_id", campaignId);
+
+    if (articleIds.length === 0) return true;
+
+    const inserts = articleIds.map((articleId, index) => ({
+      campaign_id: campaignId,
+      article_id: articleId,
+      position: index,
+    }));
+
+    const { error } = await getSupabase()
+      .from("campaign_articles")
+      .insert(inserts);
+
+    if (error) {
+      console.error("Error linking articles to campaign:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return false;
   }
 };

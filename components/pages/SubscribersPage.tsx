@@ -25,7 +25,6 @@ import {
   createSubscriber,
   updateSubscriber,
   deleteSubscriber,
-  getActiveSubscribers,
   getSubscribersCount,
   getAllSubscribers,
   getExistingEmails,
@@ -55,12 +54,6 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingSubscriber, setDeletingSubscriber] = useState<Subscriber | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Bulk email modal
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailBody, setEmailBody] = useState("");
-  const [sendingEmail, setSendingEmail] = useState(false);
 
   // CSV import modal
   const [showImportModal, setShowImportModal] = useState(false);
@@ -157,41 +150,6 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
     setDeleteLoading(false);
     setShowDeleteModal(false);
     setDeletingSubscriber(null);
-  };
-
-  const handleSendBulkEmail = async () => {
-    if (!emailSubject.trim() || !emailBody.trim()) {
-      showToast("error", "Please fill in both subject and body");
-      return;
-    }
-
-    setSendingEmail(true);
-    try {
-      const response = await fetch("/api/send-bulk-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: emailSubject,
-          body: emailBody,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        showToast("success", `Email sent to ${result.count} subscribers!`);
-        setShowEmailModal(false);
-        setEmailSubject("");
-        setEmailBody("");
-      } else {
-        showToast("error", result.error || "Failed to send emails");
-      }
-    } catch (error) {
-      console.error("Error sending bulk email:", error);
-      showToast("error", "Failed to send emails");
-    } finally {
-      setSendingEmail(false);
-    }
   };
 
   const handleDownloadCSV = async () => {
@@ -303,16 +261,6 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
               <span className="text-sm font-medium">Add Subscriber</span>
             </button>
 
-            <button
-              onClick={() => setShowEmailModal(true)}
-              className="group text-left"
-            >
-              <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
-                <Mail className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
-              </div>
-              <span className="text-sm font-medium">Send Bulk Email</span>
-            </button>
-
             <Link href="/campaigns" className="group text-left">
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Mail className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
@@ -395,24 +343,6 @@ export default function SubscribersPage({ user }: SubscribersPageProps) {
             }}
             subscriber={editingSubscriber}
             onSave={handleSave}
-          />
-        )}
-
-        {/* Bulk Email Modal */}
-        {showEmailModal && (
-          <BulkEmailModal
-            isOpen={showEmailModal}
-            onClose={() => {
-              setShowEmailModal(false);
-              setEmailSubject("");
-              setEmailBody("");
-            }}
-            onSend={handleSendBulkEmail}
-            sending={sendingEmail}
-            subject={emailSubject}
-            setSubject={setEmailSubject}
-            body={emailBody}
-            setBody={setEmailBody}
           />
         )}
 
@@ -704,104 +634,6 @@ function SubscriberEditModal({
           </button>
         </div>
       </form>
-    </Modal>
-  );
-}
-
-// Bulk Email Modal Component
-function BulkEmailModal({
-  isOpen,
-  onClose,
-  onSend,
-  sending,
-  subject,
-  setSubject,
-  body,
-  setBody,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSend: () => void;
-  sending: boolean;
-  subject: string;
-  setSubject: (value: string) => void;
-  body: string;
-  setBody: (value: string) => void;
-}) {
-  return (
-    <Modal open={isOpen} onClose={onClose} title="Send Bulk Email to All Subscribers" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Send Bulk Email to All Subscribers
-        </h3>
-        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Subject *
-          </label>
-          <input
-            type="text"
-            required
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-            placeholder="Email subject..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Body *
-          </label>
-          <textarea
-            required
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={10}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 resize-none"
-            placeholder="Email body (HTML supported)..."
-          />
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-700">
-            <strong>Note:</strong> This will send the email to all active subscribers.
-            Make sure to review your email before sending.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={onSend}
-          disabled={sending || !subject.trim() || !body.trim()}
-          className="flex items-center gap-2 px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium disabled:opacity-50"
-        >
-          {sending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Sending...
-            </>
-          ) : (
-            <>
-              <Mail className="w-4 h-4" />
-              Send Email
-            </>
-          )}
-        </button>
-      </div>
     </Modal>
   );
 }

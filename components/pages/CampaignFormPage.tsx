@@ -5,9 +5,6 @@ import {
   Mail,
   ArrowLeft,
   Loader2,
-  CheckCircle,
-  Sparkles,
-  Undo2,
   Send,
   Save,
 } from "lucide-react";
@@ -19,12 +16,25 @@ import Strike from "@tiptap/extension-strike";
 import TiptapLink from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import { createCampaign } from "@/supabase/CRUD/queries";
+import { linkArticlesToCampaign } from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { DEFAULT_TEMPLATES } from "@/types/email-template";
 import TopNavbar from "@/components/TopNavbar";
+import ArticlePicker from "./ArticlePicker";
+import EditorToolbar from "./EditorToolbar";
+import { RefinementBanner, RefinementBar } from "./RefinementUI";
+import { generateArticleCardsHtml } from "@/lib/article-email";
+
+interface SelectedArticle {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string | null;
+  image: string | null;
+}
 
 interface CampaignFormPageProps {
   user?: AuthResult;
@@ -45,6 +55,7 @@ export default function CampaignFormPage({ user }: CampaignFormPageProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ sent: number; total: number } | null>(null);
+  const [selectedArticles, setSelectedArticles] = useState<SelectedArticle[]>([]);
 
   const editor = useEditor({
     extensions: [
@@ -164,6 +175,12 @@ export default function CampaignFormPage({ user }: CampaignFormPageProps) {
       });
 
       if (created) {
+        if (selectedArticles.length > 0) {
+          await linkArticlesToCampaign(
+            created.id,
+            selectedArticles.map((a) => a.id)
+          );
+        }
         showToast("success", "Campaign saved as draft!");
         router.push("/campaigns");
       }
@@ -185,10 +202,13 @@ export default function CampaignFormPage({ user }: CampaignFormPageProps) {
     setSendProgress({ sent: 0, total: 0 });
 
     try {
+      const articleCards = generateArticleCardsHtml(selectedArticles);
+      const fullBody = articleCards ? `${body}\n${articleCards}` : body;
+
       const response = await fetch("/api/send-bulk-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, body }),
+        body: JSON.stringify({ subject, body: fullBody }),
       });
 
       const result = await response.json();
@@ -282,30 +302,12 @@ export default function CampaignFormPage({ user }: CampaignFormPageProps) {
                 </button>
               </div>
               {refinedSubject && (
-                <div className="mt-2 flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-md">
-                  <span className="text-xs text-purple-600 font-medium">
-                    AI suggestion:
-                  </span>
-                  <span className="text-sm text-purple-800 flex-1">
-                    {refinedSubject}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAcceptRefinement}
-                    className="p-1 text-green-600 hover:text-green-700 hover:bg-green-100 rounded"
-                    title="Accept"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRevertRefinement}
-                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
-                    title="Revert"
-                  >
-                    <Undo2 className="w-4 h-4" />
-                  </button>
-                </div>
+                <RefinementBanner
+                  type="subject"
+                  content={refinedSubject}
+                  onAccept={handleAcceptRefinement}
+                  onRevert={handleRevertRefinement}
+                />
               )}
             </div>
 
@@ -315,168 +317,33 @@ export default function CampaignFormPage({ user }: CampaignFormPageProps) {
               </label>
               <div className="border border-gray-200 rounded-md overflow-hidden">
                 {editor && (
-                  <div className="bg-gray-50 border-b border-gray-200 p-2 flex items-center gap-1 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => editor.chain().toggleBold().run()}
-                      className={`p-1.5 rounded ${
-                        editor.isActive("bold")
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <strong>B</strong>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => editor.chain().toggleItalic().run()}
-                      className={`p-1.5 rounded ${
-                        editor.isActive("italic")
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <em>I</em>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => editor.chain().toggleUnderline().run()}
-                      className={`p-1.5 rounded ${
-                        editor.isActive("underline")
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <u>U</u>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => editor.chain().toggleStrike().run()}
-                      className={`p-1.5 rounded ${
-                        editor.isActive("strike")
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <s>S</s>
-                    </button>
-                    <div className="w-px h-6 bg-gray-300 mx-1" />
-                    <button
-                      type="button"
-                      onClick={() => editor.chain().setParagraph().run()}
-                      className={`p-1.5 rounded ${
-                        editor.isActive("paragraph")
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      P
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        editor.chain().toggleHeading({ level: 1 }).run()
-                      }
-                      className={`p-1.5 rounded ${
-                        editor.isActive("heading", { level: 1 })
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      H1
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        editor.chain().toggleHeading({ level: 2 }).run()
-                      }
-                      className={`p-1.5 rounded ${
-                        editor.isActive("heading", { level: 2 })
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      H2
-                    </button>
-                    <div className="w-px h-6 bg-gray-300 mx-1" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = window.prompt("Enter URL:");
-                        if (url) {
-                          editor.chain().setLink({ href: url }).run();
-                        }
-                      }}
-                      className={`p-1.5 rounded ${
-                        editor.isActive("link")
-                          ? "bg-gray-200"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      Link
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => editor.chain().unsetLink().run()}
-                      className="p-1.5 rounded hover:bg-gray-100"
-                    >
-                      Unlink
-                    </button>
-                    <div className="w-px h-6 bg-gray-300 mx-1" />
-                    <button
-                      type="button"
-                      onClick={handleRefine}
-                      disabled={isRefining}
-                      className="flex items-center gap-1 p-1.5 rounded hover:bg-purple-100 text-purple-600 disabled:opacity-50"
-                      title="Refine with AI"
-                    >
-                      {isRefining ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      <span className="text-xs font-medium">AI Refine</span>
-                    </button>
-                  </div>
+                  <EditorToolbar
+                    editor={editor}
+                    isRefining={isRefining}
+                    onRefine={handleRefine}
+                  />
                 )}
                 <div className="p-4 min-h-[300px] prose prose-sm max-w-none">
                   <EditorContent editor={editor} />
                 </div>
                 {refinedBody && (
-                  <div className="border-t border-purple-200 bg-purple-50 p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-purple-600 font-medium">
-                        AI has a suggested refinement for the body
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleAcceptRefinement}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Accept
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleRevertRefinement}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-xs font-medium"
-                        >
-                          <Undo2 className="w-3.5 h-3.5" />
-                          Revert
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <RefinementBar
+                    onAccept={handleAcceptRefinement}
+                    onRevert={handleRevertRefinement}
+                  />
                 )}
               </div>
             </div>
 
+            <ArticlePicker
+              selected={selectedArticles}
+              onChange={setSelectedArticles}
+            />
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-700">
                 <strong>Note:</strong> Save as draft to send later, or send
-                immediately. Available template variables: {"{{site_url}}"},{" "}
-                {"{{unsubscribe_url}}"}, {"{{article_1_url}}"}, etc.
+                immediately. Selected articles will appear as cards at the bottom of the email.
               </p>
             </div>
           </div>
