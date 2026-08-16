@@ -5,43 +5,23 @@ import {
   Mail,
   FileText,
   Search,
-  X,
   Trash2,
   Eye,
   Loader2,
-  CheckCircle,
   AlertTriangle,
-  Calendar,
-  BarChart3,
-  Sparkles,
-  Undo2,
+  Send,
 } from "lucide-react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
-import Strike from "@tiptap/extension-strike";
-import TiptapLink from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import {
   Campaign,
-  CampaignFormData,
 } from "@/types/campaign";
 import {
   getCampaigns,
-  getCampaignById,
-  createCampaign,
-  updateCampaign,
   deleteCampaign,
-  updateCampaignStats,
   getCampaignsCount,
 } from "@/supabase/CRUD/queries";
-import { getActiveSubscribers } from "@/supabase/CRUD/queries";
 import { AuthResult } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
-import { getSubscribersCount } from "@/supabase/CRUD/queries";
-import { DEFAULT_TEMPLATES, EmailTemplate } from "@/types/email-template";
 import Modal from "@/components/Modal";
 import TopNavbar from "@/components/TopNavbar";
 
@@ -58,12 +38,6 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [totalCount, setTotalCount] = useState(0);
 
-  // New campaign form
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newSubject, setNewSubject] = useState("");
-  const [newBody, setNewBody] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
-
   // View campaign modal
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingCampaign, setViewingCampaign] = useState<Campaign | null>(null);
@@ -73,55 +47,13 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
   const [deletingCampaign, setDeletingCampaign] = useState<Campaign | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Send modal
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [sendingCampaign, setSendingCampaign] = useState<Campaign | null>(null);
-  const [isSending, setIsSending] = useState(false);
-
-  // Email editor
-  const [isRefining, setIsRefining] = useState(false);
-  const [refinedSubject, setRefinedSubject] = useState<string | null>(null);
-  const [refinedBody, setRefinedBody] = useState<string | null>(null);
-  const [originalSubject, setOriginalSubject] = useState("");
-  const [originalBody, setOriginalBody] = useState("");
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: "Compose your email...",
-      }),
-      Underline,
-      Strike,
-      TiptapLink.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-[#3182ce] underline hover:text-[#2c5282] cursor-pointer",
-        },
-      }),
-      Image.configure({
-        HTMLAttributes: {
-          class: "rounded-md max-w-full h-auto",
-        },
-      }),
-    ],
-    content: newBody,
-    immediatelyRender: false,
-    onUpdate: ({ editor }) => {
-      setNewBody(editor.getHTML());
-    },
-  });
+  // Send state
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCampaigns();
     loadCount();
   }, []);
-
-  // Update editor content when template changes
-  useEffect(() => {
-    if (editor && newBody) {
-      editor.commands.setContent(newBody);
-    }
-  }, [selectedTemplate]);
 
   const loadCampaigns = async () => {
     setLoading(true);
@@ -153,7 +85,6 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
         loadCampaigns();
         return;
       }
-      // Local filter by subject
       const filtered = campaigns.filter((c) =>
         c.subject.toLowerCase().includes(query.toLowerCase())
       );
@@ -161,30 +92,6 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
     },
     [campaigns],
   );
-
-  const handleCreateCampaign = async () => {
-    if (!newSubject.trim() || !newBody.trim()) {
-      showToast("error", "Please fill in both subject and body");
-      return;
-    }
-
-    const created = await createCampaign({
-      subject: newSubject,
-      body: newBody,
-      status: 'draft',
-    });
-
-    if (created) {
-      setCampaigns((prev) => [created, ...prev]);
-      showToast("success", "Campaign created successfully!");
-      setShowCreateModal(false);
-      setNewSubject("");
-      setNewBody("");
-      setSelectedTemplate("");
-      if (editor) editor.commands.setContent("");
-      loadCount();
-    }
-  };
 
   const handleDeleteClick = (campaign: Campaign) => {
     setDeletingCampaign(campaign);
@@ -207,22 +114,16 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
   };
 
   const handleSendCampaign = async (campaign: Campaign) => {
-    setSendingCampaign(campaign);
-    setShowSendModal(true);
-  };
+    setSendingId(campaign.id);
 
-  const confirmSend = async () => {
-    if (!sendingCampaign) return;
-
-    setIsSending(true);
     try {
       const response = await fetch("/api/send-bulk-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subject: sendingCampaign.subject,
-          body: sendingCampaign.body,
-          campaignId: sendingCampaign.id,
+          subject: campaign.subject,
+          body: campaign.body,
+          campaignId: campaign.id,
         }),
       });
 
@@ -231,90 +132,18 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
       if (result.success) {
         showToast(
           "success",
-          `Email sent to ${result.count} subscribers (${result.failed} failed)`
+          `Campaign queued! ${result.count} recipients will receive your email.`
         );
-        setShowSendModal(false);
-        loadCampaigns(); // Reload to get updated stats
+        loadCampaigns();
       } else {
-        showToast("error", result.error || "Failed to send emails");
+        showToast("error", result.error || "Failed to send campaign");
       }
     } catch (error) {
       console.error("Error sending campaign:", error);
-      showToast("error", "Failed to send emails");
+      showToast("error", "Failed to send campaign");
     } finally {
-      setIsSending(false);
-      setSendingCampaign(null);
+      setSendingId(null);
     }
-  };
-
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    const template = DEFAULT_TEMPLATES.find((t) => t.id === templateId);
-    if (template) {
-      setNewBody(template.body);
-      if (editor) {
-        editor.commands.setContent(template.body);
-      }
-    }
-  };
-
-  const handleRefine = async () => {
-    if (!newSubject.trim() && !newBody.trim()) {
-      showToast("error", "Write some content first before refining");
-      return;
-    }
-
-    setIsRefining(true);
-    setOriginalSubject(newSubject);
-    setOriginalBody(newBody);
-
-    try {
-      const response = await fetch("/api/refine-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: newSubject || undefined,
-          body: newBody || undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        showToast("error", data.error || "Failed to refine content");
-        return;
-      }
-
-      if (data.subject) setRefinedSubject(data.subject);
-      if (data.body) setRefinedBody(data.body);
-
-      showToast("success", "Content refined! Review and accept or revert.");
-    } catch (error) {
-      console.error("Refine error:", error);
-      showToast("error", "Failed to refine content");
-    } finally {
-      setIsRefining(false);
-    }
-  };
-
-  const handleAcceptRefinement = () => {
-    if (refinedSubject) setNewSubject(refinedSubject);
-    if (refinedBody) {
-      setNewBody(refinedBody);
-      if (editor) editor.commands.setContent(refinedBody);
-    }
-    setRefinedSubject(null);
-    setRefinedBody(null);
-    showToast("success", "Changes accepted!");
-  };
-
-  const handleRevertRefinement = () => {
-    setNewSubject(originalSubject);
-    setNewBody(originalBody);
-    if (editor) editor.commands.setContent(originalBody);
-    setRefinedSubject(null);
-    setRefinedBody(null);
-    showToast("success", "Reverted to original content.");
   };
 
   const getStatusColor = (status: string) => {
@@ -345,21 +174,12 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
             Quick Actions
           </h2>
           <div className="flex flex-wrap gap-6">
-            <button
-              onClick={() => {
-                setNewSubject("");
-                setNewBody("");
-                setSelectedTemplate("");
-                if (editor) editor.commands.setContent("");
-                setShowCreateModal(true);
-              }}
-              className="group text-left"
-            >
+            <Link href="/campaigns/new" className="group text-left">
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
                 <Mail className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />
               </div>
               <span className="text-sm font-medium">Create Campaign</span>
-            </button>
+            </Link>
 
             <Link href="/subscribers" className="group text-left">
               <div className="w-40 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:border-[#3182ce] transition-all shadow-sm group-hover:shadow-md mb-2">
@@ -392,19 +212,13 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
             />
           </div>
 
-          <button
-            onClick={() => {
-              setNewSubject("");
-              setNewBody("");
-              setSelectedTemplate("");
-              if (editor) editor.commands.setContent("");
-              setShowCreateModal(true);
-            }}
+          <Link
+            href="/campaigns/new"
             className="flex items-center gap-2 px-4 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium"
           >
             <Mail className="w-4 h-4" />
             Create Campaign
-          </button>
+          </Link>
         </div>
 
         {/* Campaigns List */}
@@ -455,7 +269,12 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(campaign.status)}`}>
-                          {campaign.status}
+                          {campaign.status === 'sending' ? (
+                            <span className="flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              sending
+                            </span>
+                          ) : campaign.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
@@ -482,10 +301,15 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
                           {campaign.status === 'draft' && (
                             <button
                               onClick={() => handleSendCampaign(campaign)}
-                              className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md"
+                              disabled={sendingId === campaign.id}
+                              className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md disabled:opacity-50"
                               title="Send"
                             >
-                              <Mail className="w-4 h-4" />
+                              {sendingId === campaign.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
                             </button>
                           )}
                           <button
@@ -517,236 +341,74 @@ export default function CampaignsPage({ user }: CampaignsPageProps) {
           )}
         </section>
 
-        {/* Create Campaign Modal */}
-        <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create New Campaign" className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Create New Campaign
-                </h3>
-                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-md">
-                  <X className="w-5 h-5" />
-                </button>
+        {/* View Campaign Modal */}
+        <Modal
+          open={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingCampaign(null);
+          }}
+          title="Campaign Details"
+          className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+        >
+          {viewingCampaign && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {viewingCampaign.subject}
+              </h3>
+              <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(viewingCampaign.status)}`}>
+                  {viewingCampaign.status}
+                </span>
+                <span>{viewingCampaign.total_recipients || 0} recipients</span>
+                {viewingCampaign.open_rate && <span>{viewingCampaign.open_rate}% open rate</span>}
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Templates
-                  </label>
-                  <select
-                    value={selectedTemplate}
-                    onChange={(e) => handleTemplateSelect(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-                  >
-                    <option value="">Select a template...</option>
-                    {DEFAULT_TEMPLATES.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      required
-                      value={newSubject}
-                      onChange={(e) => setNewSubject(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20"
-                      placeholder="Email subject..."
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRefine}
-                      disabled={isRefining}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium disabled:opacity-50"
-                    >
-                      {isRefining ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      Refine
-                    </button>
-                  </div>
-                  {refinedSubject && (
-                    <div className="mt-2 flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-md">
-                      <span className="text-xs text-purple-600 font-medium">AI suggestion:</span>
-                      <span className="text-sm text-purple-800 flex-1">{refinedSubject}</span>
-                      <button
-                        type="button"
-                        onClick={handleAcceptRefinement}
-                        className="p-1 text-green-600 hover:text-green-700 hover:bg-green-100 rounded"
-                        title="Accept"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleRevertRefinement}
-                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
-                        title="Revert"
-                      >
-                        <Undo2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Body * (WYSIWYG Editor)
-                  </label>
-                  <div className="border border-gray-200 rounded-md overflow-hidden">
-                    {editor && (
-                      <div className="bg-gray-50 border-b border-gray-200 p-2 flex items-center gap-1 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().toggleBold().run()}
-                          className={`p-1.5 rounded ${editor.isActive("bold") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          <strong>B</strong>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().toggleItalic().run()}
-                          className={`p-1.5 rounded ${editor.isActive("italic") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          <em>I</em>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().toggleUnderline().run()}
-                          className={`p-1.5 rounded ${editor.isActive("underline") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          <u>U</u>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().toggleStrike().run()}
-                          className={`p-1.5 rounded ${editor.isActive("strike") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          <s>S</s>
-                        </button>
-                        <div className="w-px h-6 bg-gray-300 mx-1" />
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().setParagraph().run()}
-                          className={`p-1.5 rounded ${editor.isActive("paragraph") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          P
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().toggleHeading({ level: 1 }).run()}
-                          className={`p-1.5 rounded ${editor.isActive("heading", { level: 1 }) ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          H1
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().toggleHeading({ level: 2 }).run()}
-                          className={`p-1.5 rounded ${editor.isActive("heading", { level: 2 }) ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          H2
-                        </button>
-                        <div className="w-px h-6 bg-gray-300 mx-1" />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const url = window.prompt("Enter URL:");
-                            if (url) {
-                              editor.chain().setLink({ href: url }).run();
-                            }
-                          }}
-                          className={`p-1.5 rounded ${editor.isActive("link") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                        >
-                          Link
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editor.chain().unsetLink().run()}
-                          className="p-1.5 rounded hover:bg-gray-100"
-                        >
-                          Unlink
-                        </button>
-                        <div className="w-px h-6 bg-gray-300 mx-1" />
-                        <button
-                          type="button"
-                          onClick={handleRefine}
-                          disabled={isRefining}
-                          className="flex items-center gap-1 p-1.5 rounded hover:bg-purple-100 text-purple-600 disabled:opacity-50"
-                          title="Refine with AI"
-                        >
-                          {isRefining ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="w-4 h-4" />
-                          )}
-                          <span className="text-xs font-medium">AI Refine</span>
-                        </button>
-                      </div>
-                    )}
-                    <div className="p-4 min-h-[300px] prose prose-sm max-w-none">
-                      <EditorContent editor={editor} />
-                    </div>
-                    {refinedBody && (
-                      <div className="border-t border-purple-200 bg-purple-50 p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-purple-600 font-medium">AI has a suggested refinement for the body</span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={handleAcceptRefinement}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleRevertRefinement}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-xs font-medium"
-                            >
-                              <Undo2 className="w-3.5 h-3.5" />
-                              Revert
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-700">
-                    <strong>Note:</strong> You can save as draft and send later, or send immediately after creating.
-                    Available template variables: {"{{site_url}}"}, {"{{unsubscribe_url}}"}, {"{{article_1_url}}"}, etc.
-                  </p>
-                </div>
+              <div className="border border-gray-200 rounded-md p-4 prose prose-sm max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: viewingCampaign.body }} />
               </div>
+            </div>
+          )}
+        </Modal>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateCampaign}
-                  className="px-6 py-2 bg-[#3182ce] text-white rounded-md hover:bg-[#2c5282] transition-colors text-sm font-medium"
-                >
-                  Save as Draft
-                </button>
-              </div>
+        {/* Delete Confirmation Modal */}
+        <Modal
+          open={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Delete Campaign"
+          className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-red-100 rounded-full">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Delete Campaign
+            </h3>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to delete &quot;{deletingCampaign?.subject}&quot;? This
+            action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+            >
+              {deleteLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Delete
+            </button>
+          </div>
         </Modal>
       </main>
     </div>
