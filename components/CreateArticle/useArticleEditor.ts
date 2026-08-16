@@ -114,6 +114,7 @@ export function useArticleEditor({
   const [isUpdatingOwner, setIsUpdatingOwner] = useState(false);
   const [isAddingContributor, setIsAddingContributor] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isGeneratingSEO, setIsGeneratingSEO] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -125,7 +126,7 @@ export function useArticleEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false, strike: false }),
       Placeholder.configure({ placeholder: "Start writing your amazing story..." }),
       Underline,
       Strike,
@@ -446,6 +447,31 @@ export function useArticleEditor({
     finally { setIsGeneratingAI(false); }
   };
 
+  const handleGenerateSEO = async () => {
+    if (!articleId) { showToast("warning", "Please save the article first"); return; }
+    if (!authUser?.authenticated || !authUser.user) { showToast("warning", "Please log in to generate SEO metadata"); return; }
+    setIsGeneratingSEO(true);
+    try {
+      const response = await fetch("/api/generate-seo", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleId }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (typeof data.tags === "string" && typeof data.description === "string") {
+          setMetadata((prev) => ({
+            ...prev,
+            tags: data.tags,
+            seoDescription: data.description,
+          }));
+          setHasUnsavedChanges(true);
+          showToast("success", "Tags & SEO description generated!");
+        } else { showToast("info", "No SEO metadata generated"); }
+      } else { showToast("error", "Failed to generate SEO metadata"); }
+    } catch { showToast("error", "Failed to generate SEO metadata"); }
+    finally { setIsGeneratingSEO(false); }
+  };
+
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !authUser?.authenticated || !authUser.user || !articleId) return;
     setIsSubmittingComment(true);
@@ -503,6 +529,7 @@ export function useArticleEditor({
     isNewArticle, contributors, setContributors, allAuthors, setAllAuthors,
     showTeamPanel, setShowTeamPanel, selectedOwnerId, setSelectedOwnerId,
     isUpdatingOwner, isAddingContributor, isGeneratingAI, setIsGeneratingAI,
+    isGeneratingSEO, setIsGeneratingSEO,
     hasUnsavedChanges, setHasUnsavedChanges, showPublishModal, setShowPublishModal,
     showUpdateModal, setShowUpdateModal, parsedBlocks, toc, articleFormat, setArticleFormat,
     editor, wordCount,
@@ -511,6 +538,7 @@ export function useArticleEditor({
     handleAssetClick, updateAssetAltText, handleSwapAsset, handleRemoveAsset,
     removeThumbnail, handleSaveDraft, handlePublish, handleUpdate,
     handlePublishCheck, handleUpdateCheck, handleGenerateAIFeedback,
+    handleGenerateSEO,
     handleSubmitComment, handleResolveFeedback, handleChangeOwner,
     handleAddContributor, handleRemoveContributor,
   };

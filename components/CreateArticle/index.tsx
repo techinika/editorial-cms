@@ -241,6 +241,8 @@ export default function ArticleEditor({
           authUser={editor.authUser}
           setShowAssetModal={editor.setShowAssetModal}
           removeThumbnail={editor.removeThumbnail}
+          isGeneratingSEO={editor.isGeneratingSEO}
+          handleGenerateSEO={editor.handleGenerateSEO}
         />
 
         {/* EDITOR AREA */}

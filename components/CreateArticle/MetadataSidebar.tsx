@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ImageIcon, Loader2, X, AlertCircle } from "lucide-react";
+import { ImageIcon, Loader2, X, AlertCircle, Sparkles } from "lucide-react";
 import { Category } from "@/types/category";
 import { Metadata } from "./useArticleEditor";
 
@@ -18,12 +18,14 @@ interface MetadataSidebarProps {
   authUser: any;
   setShowAssetModal: (show: boolean) => void;
   removeThumbnail: () => void;
+  isGeneratingSEO: boolean;
+  handleGenerateSEO: () => void;
 }
 
 export default function MetadataSidebar({
   metadata, setMetadata, categories, uploadingImage, isOwner, isAdmin,
   allAuthors, selectedOwnerId, setSelectedOwnerId, authUser,
-  setShowAssetModal, removeThumbnail,
+  setShowAssetModal, removeThumbnail, isGeneratingSEO, handleGenerateSEO,
 }: MetadataSidebarProps) {
   if (!isOwner) {
     return (
@@ -88,6 +90,17 @@ export default function MetadataSidebar({
 
       {/* Read Time */}
       <ReadTimeField value={metadata.readTime} onChange={(v) => setMetadata((prev) => ({ ...prev, readTime: v }))} />
+
+      {/* Generate Tags & SEO */}
+      <button
+        type="button"
+        onClick={handleGenerateSEO}
+        disabled={isGeneratingSEO}
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#3182ce] hover:bg-[#2c5282] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {isGeneratingSEO ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+        {isGeneratingSEO ? "Generating..." : "Generate Tags & SEO Description"}
+      </button>
 
       {/* Tags */}
       <InputField label="Tags" value={metadata.tags} onChange={(v) => setMetadata((prev) => ({ ...prev, tags: v }))} placeholder="React, Next.js, TypeScript" />

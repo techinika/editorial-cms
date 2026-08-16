@@ -29,6 +29,9 @@ export async function GET() {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        return NextResponse.json({ authenticated: false });
+      }
       const errorText = await response.text();
       return NextResponse.json(
         { authenticated: false, error: `Auth check failed: ${response.statusText}` },
