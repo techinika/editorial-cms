@@ -119,6 +119,20 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Email templates with variable support
 - Campaign analytics
 
+### Event Management (/events/new)
+- Create events with title, format, status, location and date/time range (end validated against start)
+- Organizer field with live company search over `featured_startups`
+- Contact person select from authors
+- Registration choice: none, platform registration (`external_link = "register"`, blog RSVP page), or external URL
+- SEO description, full description, tags, featured toggle
+- Save as draft or publish (`publish_status`; the blog only shows published events)
+
+### Article-Company Matching (/article-companies)
+- Search & pick an article, view/remove its existing matches in `article_companies`
+- Manual matching via company search
+- AI matching: reads the article content and scans companies (name/description/industry/tags) in chunks through the ai-worker (`POST /api/ai/match-companies`)
+- Ranked suggestions with confidence % and reason — confirm individually or all at once; already-matched companies are filtered out
+
 ### Stats Dashboard (/stats)
 - Lifetime KPIs: total published, total views, average views per article
 - Views trend chart with 7/14/30/90 day selectable ranges
@@ -338,6 +352,8 @@ npm run lint
 | `/bytes` | Quick bytes management | Required |
 | `/comments` | Comment moderation | Required |
 | `/campaigns` | Email campaign management | Required |
+| `/events/new` | Create new event (company organizer search, registration choice) | Required |
+| `/article-companies` | Match articles to companies (manual + AI suggestions) | Required |
 | `/stats` | Analytics dashboard | Required |
 
 ## User Roles & Permissions
@@ -369,6 +385,9 @@ npm run lint
 | MainPage | `components/MainPage/` | Dashboard with article cards, filters, quick actions |
 | CreateArticle | `components/CreateArticle/` | Article editor with toolbar, metadata, feedback, team panels |
 | AdsPage | `components/AdsPage/` | Banner ads and top banner management |
+| EventFormPage | `components/pages/EventFormPage.tsx` | Event creation form with organizer search and registration choice |
+| ArticleMatchesPage | `components/pages/ArticleMatchesPage.tsx` | Article ↔ company matching (manual + AI) |
+| CompanySearchInput | `components/companies/CompanySearchInput.tsx` | Debounced company search input (shared by events and matching) |
 | StatsPage | `components/pages/StatsPage.tsx` | KPI cards, articles breakdown |
 | CalendarPicker | `components/Stats/CalendarPicker.tsx` | Month-view calendar date picker |
 | PeriodStatsSection | `components/Stats/PeriodStatsSection.tsx` | Period stats with calendar and article filtering |
@@ -385,5 +404,8 @@ npm run lint
 | `/api/upload-auth` | GET | Required | Retired — returns 410 (ImageKit client uploads removed) |
 | `/api/imagekit/auth` | GET | Required | Legacy ImageKit signature endpoint (no longer referenced) |
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
+| `/api/generate-seo` | POST | Required | AI SEO tags + meta description for an article |
+| `/api/refine-email` | POST | Required | AI refinement of campaign subject/body |
+| `/api/match-companies` | POST | Required | AI article↔company matching (proxies ai-worker, returns ranked suggestions) |
 | `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async via comms worker); when `campaignId` is provided, resends using the existing campaign |
 | `/api/contact` | POST | Public | Contact form (rate-limited) |

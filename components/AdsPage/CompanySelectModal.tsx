@@ -68,8 +68,8 @@ export default function CompanySelectModal({ isOpen, onClose, onSelect }: Compan
                 onClick={() => onSelect(company.id, company.name)}
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
               >
-                {company.logo ? (
-                  <img src={company.logo} alt={company.name} className="w-10 h-10 rounded object-cover" />
+                {company.image?.url ? (
+                  <img src={company.image.url} alt={company.name} className="w-10 h-10 rounded object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-gray-500" />

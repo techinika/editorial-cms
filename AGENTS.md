@@ -62,6 +62,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ### Proxy
 - `proxy.ts` exports a function named `proxy` (not `middleware`) for Next.js 16 Turbopack.
 
+### Companies & Events
+- Company images live in `assets` via `featured_startups.image_ref`. Always join
+  `image:assets!image_ref(id, url)` and render `company.image?.url`. Never use `logo_url`.
+- `events.external_link`: `"register"` = platform RSVP page on the blog, a URL = external
+  registration link, `null` = no registration.
+- Event slugs are `generateSlug(title) + "-" + Date.now().toString(36)` — the events table has a
+  global unique slug constraint shared with org-cms.
+
 ## Key Files
 
 | File | Purpose |
@@ -71,6 +79,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `supabase/modules/subscribers.ts` | Subscriber queries (getAllSubscribers for CSV export, createSubscribers for bulk import) |
 | `supabase/modules/campaignRecipients.ts` | Campaign recipient tracking for async email queue |
 | `supabase/modules/quickBytes.ts` | Quick byte queries (search, count, auto-slug) |
+| `supabase/modules/companies.ts` | Company search/list (`CompanyOption`, images via `image_ref` asset join) |
+| `supabase/modules/events.ts` | Event creation (`createEvent`) |
+| `supabase/modules/articleCompanies.ts` | Article↔company match CRUD for `article_companies` |
+| `app/api/match-companies/route.ts` | AI article↔company matching proxy (chunks companies through ai-worker) |
+| `components/pages/EventFormPage.tsx` | Event creation form (organizer search, registration choice) |
+| `components/pages/ArticleMatchesPage.tsx` | Article ↔ company matching page (manual + AI suggestions) |
+| `components/companies/CompanySearchInput.tsx` | Debounced company search input (shared) |
 | `lib/auth-server.ts` | Server-side auth helper |
 | `lib/content-parser.ts` | HTML<->blocks conversion, sanitization |
 | `components/Modal.tsx` | Accessible modal component |

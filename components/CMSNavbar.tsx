@@ -14,7 +14,9 @@ import {
   Clock,
   Settings,
   X,
-  Image
+  Image,
+  Calendar,
+  Link2
 } from "lucide-react";
 import { AuthResult } from "@/lib/auth";
 
@@ -39,6 +41,8 @@ export default function CMSNavbar({ user, title = "Blog CMS", showBack, navLinks
 
   const defaultNavLinks: NavLink[] = [
     { href: "/create", icon: <Plus className="w-5 h-5" />, label: "Create" },
+    { href: "/events/new", icon: <Calendar className="w-5 h-5" />, label: "New Event" },
+    { href: "/article-companies", icon: <Link2 className="w-5 h-5" />, label: "Article Matches" },
     { href: "/categories", icon: <Tag className="w-5 h-5" />, label: "Categories" },
     { href: "/stats", icon: <BarChart3 className="w-5 h-5" />, label: "Stats" },
     { href: "/pending", icon: <Clock className="w-5 h-5" />, label: "Pending" },

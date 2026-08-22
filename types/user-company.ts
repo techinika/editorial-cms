@@ -1,5 +1,10 @@
 export type UserCompanyActiveStatus = "confirmation_pending" | "pending" | "accepted" | "rejected";
 
+export interface CompanyImage {
+  id: string;
+  url: string;
+}
+
 export interface UserCompany {
   id: string;
   user_id: string | null;
@@ -14,7 +19,8 @@ export interface UserCompany {
     id: string;
     name: string;
     slug: string;
-    logo: string | null;
+    image_ref: string | null;
+    image: CompanyImage | null;
   } | null;
   addedByUser?: {
     id: string;
@@ -27,7 +33,8 @@ export interface FeaturedStartup {
   created_at: string;
   name: string;
   slug: string;
-  logo: string | null;
+  image_ref: string | null;
+  image: CompanyImage | null;
   description: string | null;
   website: string | null;
 }

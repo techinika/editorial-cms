@@ -33,6 +33,16 @@ export { getArticlesByDateRange } from "../modules/stats";
 export type { ContributorArticle } from "../modules/contributors";
 export type { Asset, AssetFormData, AssetType } from "@/types/asset";
 export type { UserCompany, FeaturedStartup } from "@/types/user-company";
+export type {
+  CompanyOption,
+  ArticleCompanyMatch,
+  CompanySuggestion,
+} from "@/types/article-company";
+export {
+  EVENT_FORMATS,
+  EVENT_STATUSES,
+} from "@/types/event";
+export type { Event, EventFormData, EventFormat, EventStatus } from "@/types/event";
 
 export * from "../modules/userCompany";
 export * from "../modules/ads";
@@ -49,3 +59,6 @@ export {
 export type { CampaignRecipient } from "../modules/campaignRecipients";
 export * from "../modules/queries";
 export * from "../modules/quickBytes";
+export * from "../modules/companies";
+export * from "../modules/events";
+export * from "../modules/articleCompanies";

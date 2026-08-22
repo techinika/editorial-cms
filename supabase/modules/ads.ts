@@ -4,7 +4,7 @@ import { getSupabase } from "../supabase";
 const bannerAdSelect = `
   *,
   image_ref_asset:assets!image_ref (id, name, url, type, views, created_at, updated_at),
-  related_company_featured:featured_startups!related_company (id, name, description, logo_url, website, created_at)
+  related_company_featured:featured_startups!related_company (id, name, description, website, created_at, image_ref, image:assets!image_ref(id, url))
 `;
 
 export const getBannerAds = async (

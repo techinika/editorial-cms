@@ -3,7 +3,7 @@ import { getSupabase } from "../supabase";
 
 const userCompanySelect = `
   *,
-  company:featured_startups (id, name, slug, logo_url),
+  company:featured_startups (id, name, slug, image_ref, image:assets!image_ref(id, url)),
   addedByUser:authors!added_by (id, name)
 `;
 
