@@ -10,6 +10,8 @@ import {
   MessageCircle,
   Image,
   User,
+  Calendar,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -59,6 +61,16 @@ export default function QuickActions({ user }: QuickActionsProps) {
           onClick={() => router.push("/create")}
           icon={<Plus className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
           label="Create New Article"
+        />
+        <ActionCard
+          href="/events/new"
+          icon={<Calendar className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
+          label="New Event"
+        />
+        <ActionCard
+          href="/article-companies"
+          icon={<Link2 className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
+          label="Article Matches"
         />
         <ActionCard
           href="/categories"
