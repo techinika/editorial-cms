@@ -9,6 +9,7 @@ import {
   Save,
   Send,
   Building2,
+  Sparkles,
 } from "lucide-react";
 import TopNavbar from "@/components/TopNavbar";
 import CompanySearchInput from "@/components/companies/CompanySearchInput";
@@ -189,7 +190,23 @@ export default function EventFormPage({ user }: EventFormPageProps) {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">SEO Description</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">SEO Description</label>
+                <button
+                  type="button"
+                  onClick={form.handleGenerateSeo}
+                  disabled={form.isGeneratingSeo}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-purple-50 border border-purple-200 text-purple-700 rounded-md hover:bg-purple-100 transition-colors text-xs font-medium disabled:opacity-50"
+                  title="Generate tags & SEO description from title and full description"
+                >
+                  {form.isGeneratingSeo ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  Generate with AI
+                </button>
+              </div>
               <textarea
                 value={form.seoDescription}
                 onChange={(e) => form.setSeoDescription(e.target.value)}

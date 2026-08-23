@@ -125,6 +125,7 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Contact person select from authors
 - Registration choice: none, platform registration (`external_link = "register"`, blog RSVP page), or external URL
 - Full description in a rich text editor (Tiptap) — headings, lists, links; stored as HTML and sanitized on save (the blog renders it with `sanitizeHtml`)
+- "Generate with AI" button: reads title + full description to auto-fill tags and SEO description (ai-worker `/api/ai/seo` via `/api/generate-event-seo`)
 - SEO description, tags, featured toggle
 - Save as draft or publish (`publish_status`; the blog only shows published events)
 
@@ -409,6 +410,7 @@ npm run lint
 | `/api/imagekit/auth` | GET | Required | Legacy ImageKit signature endpoint (no longer referenced) |
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
 | `/api/generate-seo` | POST | Required | AI SEO tags + meta description for an article |
+| `/api/generate-event-seo` | POST | Required | AI SEO tags + meta description for an unsaved event (title + description) |
 | `/api/refine-email` | POST | Required | AI refinement of campaign subject/body |
 | `/api/match-companies` | POST | Required | AI article↔company matching (proxies ai-worker, returns ranked suggestions with company names) |
 | `/api/match-all` | POST | Required | AI batch matching: latest published articles × all companies, grouped by company |

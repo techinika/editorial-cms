@@ -83,6 +83,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `supabase/modules/quickBytes.ts` | Quick byte queries (search, count, auto-slug) |
 | `supabase/modules/companies.ts` | Company search/list (`CompanyOption`, images via `image_ref` asset join) |
 | `supabase/modules/events.ts` | Event creation (`createEvent`) |
+| `app/api/generate-event-seo/route.ts` | Event SEO generation proxy (ai-worker `/api/ai/seo`, unsaved events) |
 | `supabase/modules/articleCompanies.ts` | Article↔company match CRUD for `article_companies` |
 | `app/api/match-companies/route.ts` | AI article↔company matching proxy (chunks companies through ai-worker) |
 | `app/api/match-all/route.ts` | AI batch matching proxy (latest published articles × all companies, grouped by company) |

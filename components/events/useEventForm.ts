@@ -35,6 +35,7 @@ export function useEventForm() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
 
   useEffect(() => {
     loadAuthors();
@@ -109,6 +110,43 @@ export function useEventForm() {
     }
   };
 
+  const handleGenerateSeo = async () => {
+    if (!title.trim() || !fullDescription.trim()) {
+      showToast("warning", "Add a title and full description first");
+      return;
+    }
+
+    setIsGeneratingSeo(true);
+    try {
+      const plainText = fullDescription
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const res = await fetch("/api/generate-event-seo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content: plainText }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast("error", data.error || "Failed to generate SEO metadata");
+        return;
+      }
+
+      setTags(data.tags);
+      setSeoDescription(data.description);
+      showToast("success", "Tags & SEO description generated!");
+    } catch (err) {
+      console.error("Event SEO generation error:", err);
+      showToast("error", "Failed to generate SEO metadata");
+    } finally {
+      setIsGeneratingSeo(false);
+    }
+  };
+
   return {
     title,
     setTitle,
@@ -141,6 +179,8 @@ export function useEventForm() {
     setIsFeatured,
     dateError,
     isSaving,
+    isGeneratingSeo,
     handleSave,
+    handleGenerateSeo,
   };
 }
