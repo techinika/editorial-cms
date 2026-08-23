@@ -69,6 +69,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
   registration link, `null` = no registration.
 - Event slugs are `generateSlug(title) + "-" + Date.now().toString(36)` — the events table has a
   global unique slug constraint shared with org-cms.
+- `events.full_description` is rich text (HTML) edited via `components/events/RichTextEditor.tsx`
+  and sanitized with `sanitizeHtml()` before insert.
 
 ## Key Files
 
@@ -86,6 +88,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `app/api/match-all/route.ts` | AI batch matching proxy (latest published articles × all companies, grouped by company) |
 | `components/article-matches/BatchMatches.tsx` | Self-contained batch matching UI with per-company groups |
 | `components/pages/EventFormPage.tsx` | Event creation form (organizer search, registration choice) |
+| `components/events/RichTextEditor.tsx` | Reusable Tiptap HTML editor with formatting toolbar |
+| `components/events/useEventForm.ts` | Event form state + save logic hook |
 | `components/pages/ArticleMatchesPage.tsx` | Article ↔ company matching page (manual + AI suggestions) |
 | `components/companies/CompanySearchInput.tsx` | Debounced company search input (shared) |
 | `lib/auth-server.ts` | Server-side auth helper |

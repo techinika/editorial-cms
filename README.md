@@ -124,7 +124,8 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Organizer field with live company search over `featured_startups`
 - Contact person select from authors
 - Registration choice: none, platform registration (`external_link = "register"`, blog RSVP page), or external URL
-- SEO description, full description, tags, featured toggle
+- Full description in a rich text editor (Tiptap) — headings, lists, links; stored as HTML and sanitized on save (the blog renders it with `sanitizeHtml`)
+- SEO description, tags, featured toggle
 - Save as draft or publish (`publish_status`; the blog only shows published events)
 
 ### Article-Company Matching (/article-companies)

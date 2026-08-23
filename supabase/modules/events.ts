@@ -1,5 +1,6 @@
 import { EventFormData, Event } from "@/types/event";
 import { getSupabase } from "../supabase";
+import { sanitizeHtml } from "@/lib/content-parser";
 
 export const createEvent = async (
   data: EventFormData,
@@ -7,7 +8,12 @@ export const createEvent = async (
   try {
     const { data: event, error } = await getSupabase()
       .from("events")
-      .insert(data)
+      .insert({
+        ...data,
+        full_description: data.full_description
+          ? sanitizeHtml(data.full_description)
+          : null,
+      })
       .select("id, title, slug")
       .single();
 
