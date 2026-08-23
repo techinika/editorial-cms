@@ -44,9 +44,11 @@ export async function POST(request: Request) {
     }
 
     const bestByCompany = new Map<string, CompanySuggestion>();
+    const companyNameById = new Map<string, string>();
 
     for (let i = 0; i < (companies || []).length; i += CHUNK_SIZE) {
       const chunk = companies!.slice(i, i + CHUNK_SIZE);
+      chunk.forEach((c) => companyNameById.set(c.id, c.name));
 
       try {
         const aiRes = await fetch(`${AI_WORKER_URL}/api/ai/match-companies`, {
@@ -76,7 +78,10 @@ export async function POST(request: Request) {
           if (!m.company_id || m.confidence < MIN_CONFIDENCE) continue;
           const existing = bestByCompany.get(m.company_id);
           if (!existing || m.confidence > existing.confidence) {
-            bestByCompany.set(m.company_id, m);
+            bestByCompany.set(m.company_id, {
+              ...m,
+              name: companyNameById.get(m.company_id),
+            });
           }
         }
       } catch (chunkErr) {

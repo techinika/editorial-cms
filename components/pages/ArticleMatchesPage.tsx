@@ -15,6 +15,7 @@ import CompanySearchInput from "@/components/companies/CompanySearchInput";
 import ArticleSelector from "@/components/article-matches/ArticleSelector";
 import ExistingMatches from "@/components/article-matches/ExistingMatches";
 import SuggestionsList from "@/components/article-matches/SuggestionsList";
+import BatchMatches from "@/components/article-matches/BatchMatches";
 import { useToast } from "@/components/Toast";
 import { AuthResult } from "@/lib/auth";
 import {
@@ -189,6 +190,8 @@ export default function ArticleMatchesPage({ user }: ArticleMatchesPageProps) {
             </p>
             <ArticleSelector value={selectedArticle} onChange={handleSelectArticle} />
           </div>
+
+          {!selectedArticle && <BatchMatches />}
 
           {selectedArticle && (
             <>

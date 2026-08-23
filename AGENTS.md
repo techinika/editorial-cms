@@ -83,6 +83,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `supabase/modules/events.ts` | Event creation (`createEvent`) |
 | `supabase/modules/articleCompanies.ts` | Article↔company match CRUD for `article_companies` |
 | `app/api/match-companies/route.ts` | AI article↔company matching proxy (chunks companies through ai-worker) |
+| `app/api/match-all/route.ts` | AI batch matching proxy (latest published articles × all companies, grouped by company) |
+| `components/article-matches/BatchMatches.tsx` | Self-contained batch matching UI with per-company groups |
 | `components/pages/EventFormPage.tsx` | Event creation form (organizer search, registration choice) |
 | `components/pages/ArticleMatchesPage.tsx` | Article ↔ company matching page (manual + AI suggestions) |
 | `components/companies/CompanySearchInput.tsx` | Debounced company search input (shared) |

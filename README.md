@@ -132,6 +132,8 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Manual matching via company search
 - AI matching: reads the article content and scans companies (name/description/industry/tags) in chunks through the ai-worker (`POST /api/ai/match-companies`)
 - Ranked suggestions with confidence % and reason — confirm individually or all at once; already-matched companies are filtered out
+- Match Everything: with no article selected, "Scan all with AI" cross-checks the latest published articles against all companies (`POST /api/ai/match-batch` via `/api/match-all`) and groups suggestions by company — confirm per article, per company, or globally
+- Suggestions display company names resolved server-side
 
 ### Stats Dashboard (/stats)
 - Lifetime KPIs: total published, total views, average views per article
@@ -387,6 +389,7 @@ npm run lint
 | AdsPage | `components/AdsPage/` | Banner ads and top banner management |
 | EventFormPage | `components/pages/EventFormPage.tsx` | Event creation form with organizer search and registration choice |
 | ArticleMatchesPage | `components/pages/ArticleMatchesPage.tsx` | Article ↔ company matching (manual + AI) |
+| BatchMatches | `components/article-matches/BatchMatches.tsx` | "Scan all with AI" batch matching grouped by company |
 | CompanySearchInput | `components/companies/CompanySearchInput.tsx` | Debounced company search input (shared by events and matching) |
 | StatsPage | `components/pages/StatsPage.tsx` | KPI cards, articles breakdown |
 | CalendarPicker | `components/Stats/CalendarPicker.tsx` | Month-view calendar date picker |
@@ -406,6 +409,7 @@ npm run lint
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
 | `/api/generate-seo` | POST | Required | AI SEO tags + meta description for an article |
 | `/api/refine-email` | POST | Required | AI refinement of campaign subject/body |
-| `/api/match-companies` | POST | Required | AI article↔company matching (proxies ai-worker, returns ranked suggestions) |
+| `/api/match-companies` | POST | Required | AI article↔company matching (proxies ai-worker, returns ranked suggestions with company names) |
+| `/api/match-all` | POST | Required | AI batch matching: latest published articles × all companies, grouped by company |
 | `/api/send-bulk-email` | POST | Admin | Queue bulk email to subscribers (async via comms worker); when `campaignId` is provided, resends using the existing campaign |
 | `/api/contact` | POST | Public | Contact form (rate-limited) |
