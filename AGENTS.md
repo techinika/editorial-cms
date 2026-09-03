@@ -59,6 +59,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
   from `no-reply@techinika.com`. Never send transactional email from a user-facing address.
 - `support@techinika.com` / `editorial@techinika.com` are contact addresses only.
 
+### Subscribers & Campaigns
+- Newsletter subscribers and email campaigns are managed in **Listmonk** (`newsletter.techinika.com`),
+  not this CMS. The `/subscribers` and `/campaigns` pages have been removed.
+- The legacy Supabase subscriber/campaign modules (`supabase/modules/subscribers.ts`,
+  `campaign.ts`, `campaignRecipients.ts`) and `/api/send-bulk-email` remain only as backend
+  infrastructure and have no UI.
+
 ### Proxy
 - `proxy.ts` exports a function named `proxy` (not `middleware`) for Next.js 16 Turbopack.
 
@@ -78,8 +85,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 |------|---------|
 | `supabase/supabase.ts` | Supabase client setup (anon + admin) |
 | `supabase/modules/stats.ts` | Stats queries (getAllStats, getUserStats, getArticleCountByPeriod, getArticlesByDateRange, getViewsByDay) |
-| `supabase/modules/subscribers.ts` | Subscriber queries (getAllSubscribers for CSV export, createSubscribers for bulk import) |
-| `supabase/modules/campaignRecipients.ts` | Campaign recipient tracking for async email queue |
+| `supabase/modules/subscribers.ts` | Subscriber queries (getAllSubscribers for CSV export, createSubscribers for bulk import) — backend only; no UI |
+| `supabase/modules/campaignRecipients.ts` | Campaign recipient tracking for async email queue — backend only; no UI |
 | `supabase/modules/quickBytes.ts` | Quick byte queries (search, count, auto-slug) |
 | `supabase/modules/companies.ts` | Company search/list (`CompanyOption`, images via `image_ref` asset join) |
 | `supabase/modules/events.ts` | Event creation (`createEvent`) |

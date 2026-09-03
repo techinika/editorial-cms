@@ -81,13 +81,6 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Company association for ads
 - Real-time updates
 
-### Subscribers (/subscribers)
-- View all subscribers in table format
-- Add/edit/delete subscribers
-- Bulk email to all active subscribers
-- Download subscribers as CSV (email, status, subscribed date)
-- Import subscribers from CSV file with duplicate detection
-
 ### Categories Management (/categories)
 - View all categories in table format
 - Add new category with name and description
@@ -109,15 +102,6 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - Approve/delete comments
 - Filter by status (pending, approved)
 - Search comments
-
-### Campaigns (/campaigns)
-- Create email campaigns with WYSIWYG editor
-- Save as draft or send immediately
-- Async email queue for 10k+ subscribers (prevents timeouts)
-- Batch processing with progress tracking
-- Campaign stats: sent, failed, total recipients
-- Email templates with variable support
-- Campaign analytics
 
 ### Event Management (/events/new)
 - Create events with title, format, status, location and date/time range (end validated against start)
@@ -352,10 +336,8 @@ npm run lint
 | `/categories` | Manage categories | Required |
 | `/ads` | Manage banner ads and top banners | Required |
 | `/assets` | Manage uploaded assets | Required |
-| `/subscribers` | Manage email subscribers | Required |
 | `/bytes` | Quick bytes management | Required |
 | `/comments` | Comment moderation | Required |
-| `/campaigns` | Email campaign management | Required |
 | `/events/new` | Create new event (company organizer search, registration choice) | Required |
 | `/article-companies` | Match articles to companies (manual + AI suggestions) | Required |
 | `/stats` | Analytics dashboard | Required |
@@ -376,8 +358,6 @@ npm run lint
 | Manage ads | No | Yes |
 | Manage assets | Own only | All |
 | Send bulk email | No | Yes |
-| Manage subscribers | Yes | Yes |
-| Manage campaigns | Yes | Yes |
 
 ## Key Components
 

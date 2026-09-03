@@ -106,20 +106,6 @@ export default function QuickActions({ user }: QuickActionsProps) {
         )}
         {user?.isAdmin && (
           <ActionCard
-            href="/subscribers"
-            icon={<FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
-            label="Subscribers"
-          />
-        )}
-        {user?.isAdmin && (
-          <ActionCard
-            href="/campaigns"
-            icon={<FileText className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
-            label="Campaigns"
-          />
-        )}
-        {user?.isAdmin && (
-          <ActionCard
             href="/authors"
             icon={<User className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
             label="Authors"
