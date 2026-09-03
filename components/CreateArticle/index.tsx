@@ -217,6 +217,7 @@ export default function ArticleEditor({
           linkUrl={editor.linkUrl}
           onLinkUrlChange={editor.setLinkUrl}
           onSetLink={editor.setLink}
+          onToggleLinkInput={() => editor.setShowLinkInput(!editor.showLinkInput)}
           onToggleImageOptions={() => editor.setShowImageOptions(!editor.showImageOptions)}
           onToggleVideoOptions={() => editor.setShowVideoOptions(!editor.showVideoOptions)}
           onUploadImage={editor.handleEditorImageUpload}

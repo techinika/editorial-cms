@@ -67,20 +67,27 @@ export default function EditorToolbar({ editor, isRefining, onRefine }: EditorTo
       <button
         type="button"
         onClick={() => {
-          const url = window.prompt("Enter URL:");
-          if (url) editor.chain().setLink({ href: url }).run();
+          const url = window.prompt("Enter URL:", editor.getAttributes("link").href || "https://");
+          if (url === null) return;
+          if (url.trim() === "") {
+            editor.chain().focus().unsetLink().run();
+            return;
+          }
+          editor.chain().focus().setLink({ href: url.trim() }).run();
         }}
         className={`p-1.5 rounded ${editor.isActive("link") ? "bg-gray-200" : "hover:bg-gray-100"}`}
       >
         Link
       </button>
-      <button
-        type="button"
-        onClick={() => editor.chain().unsetLink().run()}
-        className="p-1.5 rounded hover:bg-gray-100"
-      >
-        Unlink
-      </button>
+      {editor.isActive("link") && (
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().unsetLink().run()}
+          className="p-1.5 rounded hover:bg-gray-100"
+        >
+          Unlink
+        </button>
+      )}
       <div className="w-px h-6 bg-gray-300 mx-1" />
       <button
         type="button"

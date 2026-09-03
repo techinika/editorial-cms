@@ -5,7 +5,7 @@ import { Editor } from "@tiptap/react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, Heading1, Heading2, Heading3,
-  Quote, Code, Link as LinkIcon, Unlink, Undo, Redo,
+  Quote, Code, Link as LinkIcon, Undo, Redo,
   ImagePlus, Video, Loader2, Check,
 } from "lucide-react";
 
@@ -35,6 +35,7 @@ interface EditorToolbarProps {
   linkUrl: string;
   onLinkUrlChange: (url: string) => void;
   onSetLink: () => void;
+  onToggleLinkInput: () => void;
   onToggleImageOptions: () => void;
   onToggleVideoOptions: () => void;
   onUploadImage: () => void;
@@ -45,7 +46,7 @@ interface EditorToolbarProps {
 
 export default function EditorToolbar({
   editor, uploadingEditorImage, showImageOptions, showVideoOptions,
-  showLinkInput, linkUrl, onLinkUrlChange, onSetLink,
+  showLinkInput, linkUrl, onLinkUrlChange, onSetLink, onToggleLinkInput,
   onToggleImageOptions, onToggleVideoOptions,
   onUploadImage, onUploadVideo, onInlineImageSelect, onInlineVideoSelect,
 }: EditorToolbarProps) {
@@ -74,6 +75,44 @@ export default function EditorToolbar({
         <div className="w-px h-6 bg-gray-300 mx-2" />
 
         {/* Link */}
+        <div className="relative">
+          <ToolbarButton
+            onClick={() => {
+              if (editor.isActive("link")) {
+                editor.chain().focus().unsetLink().run();
+              } else {
+                onToggleLinkInput();
+              }
+            }}
+            isActive={editor.isActive("link")}
+            title={editor.isActive("link") ? "Remove Link" : "Add Link"}
+          >
+            <LinkIcon className="w-4 h-4" />
+          </ToolbarButton>
+          {showLinkInput && (
+            <div className="absolute top-full mt-2 left-0 bg-white rounded-md shadow-xl border border-gray-200 p-2 z-50 min-w-[280px]">
+              <input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => onLinkUrlChange(e.target.value)}
+                placeholder="https://example.com"
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onSetLink();
+                  }
+                }}
+              />
+              <div className="flex gap-2 mt-2">
+                <button onClick={onSetLink} className="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Apply</button>
+                <button onClick={onToggleLinkInput} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Image */}
         <div className="relative">
           <ToolbarButton onClick={onToggleImageOptions} title="Add Image" disabled={uploadingEditorImage}>
             {uploadingEditorImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
