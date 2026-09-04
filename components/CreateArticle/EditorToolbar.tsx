@@ -6,7 +6,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, Heading1, Heading2, Heading3,
   Quote, Code, Link as LinkIcon, Undo, Redo,
-  ImagePlus, Video, Loader2, Check,
+  ImagePlus, Video, Loader2, Check, Sparkles,
 } from "lucide-react";
 
 const PRIMARY_COLOR = "#3182ce";
@@ -42,6 +42,7 @@ interface EditorToolbarProps {
   onUploadVideo: () => void;
   onInlineImageSelect: () => void;
   onInlineVideoSelect: () => void;
+  onOpenAIArticleModal: () => void;
 }
 
 export default function EditorToolbar({
@@ -49,6 +50,7 @@ export default function EditorToolbar({
   showLinkInput, linkUrl, onLinkUrlChange, onSetLink, onToggleLinkInput,
   onToggleImageOptions, onToggleVideoOptions,
   onUploadImage, onUploadVideo, onInlineImageSelect, onInlineVideoSelect,
+  onOpenAIArticleModal,
 }: EditorToolbarProps) {
   if (!editor) return null;
 
@@ -137,6 +139,16 @@ export default function EditorToolbar({
             </div>
           )}
         </div>
+
+        <div className="w-px h-6 bg-gray-300 mx-2" />
+        <button
+          onClick={onOpenAIArticleModal}
+          title="Generate a full article from source material"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all duration-200 bg-[#3182ce]/10 text-[#3182ce] hover:bg-[#3182ce]/15 text-sm font-medium"
+        >
+          <Sparkles className="w-4 h-4" />
+          AI Generate
+        </button>
       </div>
     </div>
   );

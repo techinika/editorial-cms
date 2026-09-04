@@ -29,6 +29,7 @@ import MetadataSidebar from "./MetadataSidebar";
 import FeedbackPanel from "./FeedbackPanel";
 import TeamPanel from "./TeamPanel";
 import AssetEditModal from "./AssetEditModal";
+import AIGenerateArticleModal from "./AIGenerateArticleModal";
 
 const PRIMARY_COLOR = "#3182ce";
 
@@ -224,6 +225,7 @@ export default function ArticleEditor({
           onUploadVideo={editor.handleEditorVideoUpload}
           onInlineImageSelect={editor.handleInlineImageSelect}
           onInlineVideoSelect={editor.handleInlineVideoSelect}
+          onOpenAIArticleModal={() => editor.setShowAIArticleModal(true)}
         />
       )}
 
@@ -369,6 +371,13 @@ export default function ArticleEditor({
           onClose={() => { editor.setShowAssetEditModal(false); editor.setEditingAsset(null); }}
         />
       )}
+
+      <AIGenerateArticleModal
+        open={editor.showAIArticleModal}
+        onClose={() => editor.setShowAIArticleModal(false)}
+        isGenerating={editor.isGeneratingArticle}
+        onGenerate={editor.handleGenerateArticle}
+      />
     </div>
   );
 }

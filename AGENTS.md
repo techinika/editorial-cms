@@ -49,6 +49,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - All HTML output is sanitized via `sanitizeHtml()` (xss-package whitelist), including Quick Bytes on create/update.
 - `generateBlockId()` uses `crypto.randomUUID()`.
 
+### AI article generation (`/api/generate-article`)
+- Calls the ai-worker `/api/ai/generate` with `json: true`, a custom `system` prompt, and the pasted
+  source material. The worker returns parsed `{ title, body }`.
+- The system prompt follows the Techinika editorial guidelines: paragraphs ≤ 5 lines, exact dates,
+  no invented facts/URLs, tech relevance, and **no emojis** anywhere in the output.
+- The body must **not** contain an `<h1>` (the platform renders the headline separately) — sections
+  use `<h2 id="kebab-case">`, and at least one `<div class="highlight-box">` is used for callouts.
+- `handleGenerateArticle()` in `useArticleEditor.ts` sets the article format to `"html"` on success
+  (blocks mode strips inline links/highlight boxes).
+
 ### Security
 - `sanitizeHtml()` (xss whitelist) on all rendered HTML content.
 - Security headers in `next.config.ts`: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection, Permissions-Policy.
@@ -91,6 +101,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `supabase/modules/companies.ts` | Company search/list (`CompanyOption`, images via `image_ref` asset join) |
 | `supabase/modules/events.ts` | Event creation (`createEvent`) |
 | `app/api/generate-event-seo/route.ts` | Event SEO generation proxy (ai-worker `/api/ai/seo`, unsaved events) |
+| `app/api/generate-article/route.ts` | AI article-draft proxy: posts source material to ai-worker `/api/ai/generate` with `json: true` + a journalist system prompt; returns `{ title, body }` |
+| `components/CreateArticle/AIGenerateArticleModal.tsx` | AI article generation modal (uses `components/Modal.tsx`); "AI Generate" toolbar button opens it and, on success, fills `metadata.title` and the Tiptap body |
 | `supabase/modules/articleCompanies.ts` | Article↔company match CRUD for `article_companies` |
 | `app/api/match-companies/route.ts` | AI article↔company matching proxy (chunks companies through ai-worker) |
 | `app/api/match-all/route.ts` | AI batch matching proxy (latest published articles × all companies, grouped by company) |

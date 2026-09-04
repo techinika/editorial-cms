@@ -115,6 +115,8 @@ export function useArticleEditor({
   const [isAddingContributor, setIsAddingContributor] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isGeneratingSEO, setIsGeneratingSEO] = useState(false);
+  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
+  const [showAIArticleModal, setShowAIArticleModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -472,6 +474,32 @@ export function useArticleEditor({
     finally { setIsGeneratingSEO(false); }
   };
 
+  const handleGenerateArticle = async (sourceMaterial: string) => {
+    if (!sourceMaterial.trim()) { showToast("warning", "Please provide some source material"); return; }
+    if (!authUser?.authenticated || !authUser.user) { showToast("warning", "Please log in to generate an article"); return; }
+    setIsGeneratingArticle(true);
+    try {
+      const response = await fetch("/api/generate-article", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceMaterial: sourceMaterial.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && typeof data.title === "string" && typeof data.body === "string") {
+        setMetadata((prev) => ({ ...prev, title: data.title }));
+        setArticleFormat("html");
+        editor?.commands.setContent(data.body);
+        setHasUnsavedChanges(true);
+        setShowAIArticleModal(false);
+        showToast("success", "Article generated! Review it before publishing.");
+      } else {
+        showToast("error", data?.error || "Failed to generate the article");
+      }
+    } catch {
+      showToast("error", "Failed to generate the article");
+    } finally { setIsGeneratingArticle(false); }
+  };
+
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !authUser?.authenticated || !authUser.user || !articleId) return;
     setIsSubmittingComment(true);
@@ -530,6 +558,8 @@ export function useArticleEditor({
     showTeamPanel, setShowTeamPanel, selectedOwnerId, setSelectedOwnerId,
     isUpdatingOwner, isAddingContributor, isGeneratingAI, setIsGeneratingAI,
     isGeneratingSEO, setIsGeneratingSEO,
+    isGeneratingArticle, setIsGeneratingArticle,
+    showAIArticleModal, setShowAIArticleModal,
     hasUnsavedChanges, setHasUnsavedChanges, showPublishModal, setShowPublishModal,
     showUpdateModal, setShowUpdateModal, parsedBlocks, toc, articleFormat, setArticleFormat,
     editor, wordCount,
@@ -538,7 +568,7 @@ export function useArticleEditor({
     handleAssetClick, updateAssetAltText, handleSwapAsset, handleRemoveAsset,
     removeThumbnail, handleSaveDraft, handlePublish, handleUpdate,
     handlePublishCheck, handleUpdateCheck, handleGenerateAIFeedback,
-    handleGenerateSEO,
+    handleGenerateSEO, handleGenerateArticle,
     handleSubmitComment, handleResolveFeedback, handleChangeOwner,
     handleAddContributor, handleRemoveContributor,
   };

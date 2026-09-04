@@ -43,6 +43,14 @@ A content management system for blogs built with Next.js 16, Supabase, and Tailw
 - **Tags input** for article categorization
 - **Inline asset editing** (alt text, caption, swap, remove)
 
+### AI Article Generation (Create/Edit Article)
+- **AI Generate** button at the end of the editor toolbar opens a modal
+- Paste source material (a press release, LinkedIn post, program page, or announcement) and click Generate
+- Proxies to the ai-worker (`/api/ai/generate` via `/api/generate-article`) with a custom journalist system prompt
+- The worker returns `{ title, body }`; the title fills the headline field and the body is inserted into the Tiptap editor
+- Generation switches the article to **HTML** format (blocks are not used for AI-generated content)
+- The system prompt embeds the Techinika editorial guidelines: <5-line paragraphs, exact dates, no invented facts/URLs, tech relevance, **no emojis**, no `<h1>` in the body (headline is rendered separately), `<h2>` sections with kebab-case `id`s, and a `<div class="highlight-box">` callout
+
 ### Feedback System (/edit/[articleId])
 - Users can add feedback comments on articles
 - Authors must resolve all feedback before publishing
@@ -390,6 +398,7 @@ npm run lint
 | `/api/imagekit/auth` | GET | Required | Legacy ImageKit signature endpoint (no longer referenced) |
 | `/api/generate-feedback` | POST | Required | AI-generated article feedback |
 | `/api/generate-seo` | POST | Required | AI SEO tags + meta description for an article |
+| `/api/generate-article` | POST | Required | AI full-article draft (title + HTML body) from pasted source material — proxies the ai-worker `/api/ai/generate` in JSON mode with a journalist system prompt |
 | `/api/generate-event-seo` | POST | Required | AI SEO tags + meta description for an unsaved event (title + description) |
 | `/api/refine-email` | POST | Required | AI refinement of campaign subject/body |
 | `/api/match-companies` | POST | Required | AI article↔company matching (proxies ai-worker, returns ranked suggestions with company names) |
