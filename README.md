@@ -185,8 +185,7 @@ WORKER_API_KEY=
 
 # Email
 # All transactional email (campaigns, bulk sends) is sent from no-reply@techinika.com
-# via the comms worker. `support@`/`editorial@` are user-facing contact addresses only.
-RESEND_FROM="Techinika <no-reply@techinika.com>"
+# via the comms worker (Amazon SES). `support@`/`editorial@` are user-facing contact addresses only.
 ```
 
 > **Note**: The service role key is used server-side only and is never exposed to client bundles. It is read from `SUPABASE_SERVICE_KEY` env var at runtime.
