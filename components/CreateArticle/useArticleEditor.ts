@@ -16,6 +16,7 @@ import {
 import { checkAuthStatus, AuthResult } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import { Category } from "@/types/category";
+import type { ContentType, PartnerOption } from "@/types/idea";
 import { JoinedArticle } from "@/types/article";
 import { ArticleFeedback } from "@/types/article";
 import { ArticleContributor } from "@/types/article";
@@ -41,6 +42,10 @@ export interface Metadata {
   image: string | null;
   thumbnail_id: string | null;
   sponsored: boolean;
+  /** Internal editorial classification. Independent of `sponsored`. */
+  content_type: ContentType;
+  /** Who the piece came from, if anyone. */
+  partner_id: string | null;
 }
 
 export interface ArticleEditorProps {
@@ -76,6 +81,11 @@ export function useArticleEditor({
     image: initialArticle?.image || null,
     thumbnail_id: initialArticle?.thumbnail_id || null,
     sponsored: initialArticle?.sponsored || false,
+    // The migration backfills every pre-existing article to 'editorial' and
+    // makes the column NOT NULL with that default, so the ?? only guards an
+    // article fetched before the migration ran.
+    content_type: (initialArticle?.content_type as ContentType) || "editorial",
+    partner_id: initialArticle?.partner_id || null,
   });
   const { showToast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -85,6 +95,10 @@ export function useArticleEditor({
   const [isPublished, setIsPublished] = useState(initialArticle?.status === "published");
   const [articleId, setArticleId] = useState<string | null>(initialArticle?.id || null);
   const [categories, setCategories] = useState<Category[]>([]);
+  // Active partners for the article's partner dropdown. Fetched from the
+  // picker endpoint, which projects only id/name/slug — an author tagging
+  // their own piece doesn't need a partner's contact details.
+  const [partners, setPartners] = useState<PartnerOption[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingEditorImage, setUploadingEditorImage] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -170,6 +184,12 @@ export function useArticleEditor({
       checkAuthStatus().then(setAuthUser);
     }
     getCategories().then(setCategories).catch(console.error);
+    // Fire-and-forget: a missing partner list only costs the dropdown, so it
+    // must not take the editor down with it.
+    fetch("/api/partners?picker=1")
+      .then((r) => (r.ok ? r.json() : { partners: [] }))
+      .then((d) => setPartners(d.partners ?? []))
+      .catch((e) => console.error("Failed to load partner options:", e));
     if (initialIsAdmin) fetchAllAuthors().then(setAllAuthors).catch(console.error);
   }, []);
 
@@ -343,7 +363,7 @@ export function useArticleEditor({
           image: metadata.image, category_id: metadata.category_id || null, tags: metadata.tags,
           summary: metadata.seoDescription, read_time: `${metadata.readTime} min`, status: "draft",
           author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
-          sponsored: metadata.sponsored,
+          sponsored: metadata.sponsored, content_type: metadata.content_type, partner_id: metadata.partner_id,
         });
         if (result) setHasUnsavedChanges(false);
       } else {
@@ -352,7 +372,7 @@ export function useArticleEditor({
           image: metadata.image, category_id: metadata.category_id || null, tags: metadata.tags,
           summary: metadata.seoDescription, read_time: `${metadata.readTime}`, status: "draft",
           author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
-          sponsored: metadata.sponsored,
+          sponsored: metadata.sponsored, content_type: metadata.content_type, partner_id: metadata.partner_id,
         });
         if (result) { setArticleId(result.id); setHasUnsavedChanges(false); }
       }
@@ -373,7 +393,7 @@ export function useArticleEditor({
           image: metadata.image, category_id: metadata.category_id || null, tags: metadata.tags,
           summary: metadata.seoDescription, read_time: `${metadata.readTime} min`, status: "published",
           author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
-          sponsored: metadata.sponsored,
+          sponsored: metadata.sponsored, content_type: metadata.content_type, partner_id: metadata.partner_id,
         }, authUser.user.id);
       } else {
         result = await createArticle({
@@ -382,7 +402,7 @@ export function useArticleEditor({
           summary: metadata.seoDescription, read_time: `${metadata.readTime} min`, status: "published",
           author_id: isAdmin && selectedOwnerId ? selectedOwnerId : authUser.user.id,
           author_name: authUser.user.user_metadata.full_name || null,
-          sponsored: metadata.sponsored,
+          sponsored: metadata.sponsored, content_type: metadata.content_type, partner_id: metadata.partner_id,
         });
       }
       if (result) {
@@ -409,7 +429,7 @@ export function useArticleEditor({
         summary: metadata.seoDescription, read_time: `${metadata.readTime} min`,
         status: isPublished ? "published" : "draft",
         author_id: authorId, author_name: authUser.user.user_metadata.full_name || null, thumbnail_id: metadata.thumbnail_id || null,
-        sponsored: metadata.sponsored,
+        sponsored: metadata.sponsored, content_type: metadata.content_type, partner_id: metadata.partner_id,
       }, authUser.user.id);
     } finally { setIsSaving(false); setShowUpdateModal(false); }
   };
@@ -545,7 +565,7 @@ export function useArticleEditor({
   return {
     metadata, setMetadata, isSaving, setIsSaving, showPreview, setShowPreview,
     linkUrl, setLinkUrl, showLinkInput, setShowLinkInput,
-    isPublished, setIsPublished, articleId, setArticleId, categories,
+    isPublished, setIsPublished, articleId, setArticleId, categories, partners,
     uploadingImage, setUploadingImage, uploadingEditorImage, setUploadingEditorImage,
     showAssetModal, setShowAssetModal, showInlineAssetModal, setShowInlineAssetModal,
     inlineAssetType, setInlineAssetType, showImageOptions, setShowImageOptions,

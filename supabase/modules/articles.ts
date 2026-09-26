@@ -99,6 +99,10 @@ export const createArticle = async (
         author_name: data.author_name || null,
         drafted_at: data.status === "draft" ? new Date().toISOString() : null,
         sponsored: data.sponsored || false,
+        // content_type is NOT NULL with default 'editorial' in the database;
+        // partner_id is a plain nullable uuid.
+        content_type: data.content_type || "editorial",
+        partner_id: data.partner_id || null,
       };
 
     // Only include blocks/table_of_contents if we have them
@@ -173,6 +177,16 @@ export const updateArticle = async (
     // Handle sponsored field
     if (data.sponsored !== undefined) {
       updateData.sponsored = data.sponsored;
+    }
+
+    // Editorial classification and partner. Only written when supplied, so an
+    // update that doesn't know about them (an older client, a script) can't
+    // silently reset them.
+    if (data.content_type !== undefined) {
+      updateData.content_type = data.content_type;
+    }
+    if (data.partner_id !== undefined) {
+      updateData.partner_id = data.partner_id;
     }
 
     // Clean up undefined values

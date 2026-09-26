@@ -30,6 +30,43 @@ export const isAuthorizedEditor = (authResult: AuthResult): boolean => {
   return !!authResult.authenticated && (authResult.role === "author" || !!authResult.isAdmin);
 };
 
+// Admin-only guard for the editorial back-office (ideas, partners).
+// Separate from isAuthorizedEditor on purpose: an author can write articles but
+// must not be able to reassign other people's pitches or edit the partner list.
+export const isAdminOnly = (authResult: AuthResult): boolean => {
+  return !!authResult.authenticated && !!authResult.isAdmin;
+};
+
+// Redirect variant of isAdminOnly, for server components.
+export const requireAdmin = (
+  authResult: AuthResult,
+  redirectPath?: string,
+): void => {
+  if (!isAdminOnly(authResult)) {
+    const authUrl = getAuthUrl();
+    const baseUrl = getBaseUrl() || "http://localhost:3001";
+    const destination = redirectPath || "/";
+    const loginUrl = `${authUrl}/status?redirect=${encodeURIComponent(baseUrl)}${destination}`;
+    redirect(loginUrl);
+  }
+};
+
+// Redirect variant of isAuthorizedEditor, for pages that both authors and admins
+// need. Unlike requireAuthor this admits a platform admin whose role isn't
+// literally "author", which is what an editor-level page wants.
+export const requireEditor = (
+  authResult: AuthResult,
+  redirectPath?: string,
+): void => {
+  if (!isAuthorizedEditor(authResult)) {
+    const authUrl = getAuthUrl();
+    const baseUrl = getBaseUrl() || "http://localhost:3001";
+    const destination = redirectPath || "/";
+    const loginUrl = `${authUrl}/status?redirect=${encodeURIComponent(baseUrl)}${destination}`;
+    redirect(loginUrl);
+  }
+};
+
 // Server-side auth check (for server components)
 export const checkAuthStatusServer = async (): Promise<AuthResult> => {
   const authUrl = getAuthUrl();

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ImageIcon, Loader2, X, AlertCircle, Sparkles } from "lucide-react";
 import { Category } from "@/types/category";
+import type { ContentType, PartnerOption } from "@/types/idea";
 import { Metadata } from "./useArticleEditor";
 
 interface MetadataSidebarProps {
@@ -20,12 +21,14 @@ interface MetadataSidebarProps {
   removeThumbnail: () => void;
   isGeneratingSEO: boolean;
   handleGenerateSEO: () => void;
+  /** Active partners, for the article's partner field. */
+  partners: PartnerOption[];
 }
 
 export default function MetadataSidebar({
   metadata, setMetadata, categories, uploadingImage, isOwner, isAdmin,
   allAuthors, selectedOwnerId, setSelectedOwnerId, authUser,
-  setShowAssetModal, removeThumbnail, isGeneratingSEO, handleGenerateSEO,
+  setShowAssetModal, removeThumbnail, isGeneratingSEO, handleGenerateSEO, partners,
 }: MetadataSidebarProps) {
   if (!isOwner) {
     return (
@@ -118,6 +121,40 @@ export default function MetadataSidebar({
           </button>
           <span className="text-sm text-gray-700">{metadata.sponsored ? "Yes, this is a sponsored article" : "No, this is not sponsored"}</span>
         </div>
+      </div>
+
+      {/* Content type + partner.
+          Deliberately separate from the Sponsored toggle above: sponsored is a
+          public badge the blog renders, while this is the internal editorial
+          classification of the piece. They overlap but are not the same
+          question, so neither is derived from the other. */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Content Type</label>
+        <select
+          value={metadata.content_type}
+          onChange={(e) => setMetadata((prev) => ({ ...prev, content_type: e.target.value as ContentType }))}
+          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] transition-all"
+        >
+          <option value="editorial">Editorial — our own journalism</option>
+          <option value="commercial">Commercial — paid or commissioned</option>
+        </select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Partner</label>
+        <select
+          value={metadata.partner_id || ""}
+          onChange={(e) => setMetadata((prev) => ({ ...prev, partner_id: e.target.value || null }))}
+          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3182ce]/20 focus:border-[#3182ce] transition-all"
+        >
+          <option value="">No partner</option>
+          {partners.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <p className="text-[11px] text-gray-400">
+          Who this came from. Independent of the sponsored flag.
+        </p>
       </div>
 
       <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-md border border-amber-200">

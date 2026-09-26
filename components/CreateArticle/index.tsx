@@ -246,6 +246,7 @@ export default function ArticleEditor({
           removeThumbnail={editor.removeThumbnail}
           isGeneratingSEO={editor.isGeneratingSEO}
           handleGenerateSEO={editor.handleGenerateSEO}
+          partners={editor.partners}
         />
 
         {/* EDITOR AREA */}

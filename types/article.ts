@@ -1,6 +1,7 @@
 import { Author } from "./author";
 import { Category } from "./category";
 import { Asset } from "./asset";
+import type { ContentType } from "./idea";
 
 export type ArticleStatus = "draft" | "published" | "cancelled";
 
@@ -51,6 +52,10 @@ export type Article = {
   published_by: string | null;
   thumbnail_id: string | null;
   sponsored: boolean | null;
+  /** Internal editorial classification. NOT the public `sponsored` badge. */
+  content_type: ContentType;
+  /** Who the piece came from, if anyone. */
+  partner_id: string | null;
 };
 
 export interface JoinedArticle extends Omit<
@@ -84,6 +89,8 @@ export interface ArticleFormData {
   published_by?: string | null;
   thumbnail_id?: string | null;
   sponsored?: boolean;
+  content_type?: ContentType;
+  partner_id?: string | null;
 }
 
 export interface ArticleFeedback {

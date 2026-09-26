@@ -13,6 +13,8 @@ import {
   User,
   Calendar,
   Link2,
+  Lightbulb,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -103,6 +105,20 @@ export default function QuickActions({ user }: QuickActionsProps) {
           icon={<Video className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
           label="Videos"
         />
+        {/* Authors need the ideas board too — their own assigned pitches live
+            there, and that's where a pitch becomes a draft article. */}
+        <ActionCard
+          href="/ideas"
+          icon={<Lightbulb className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
+          label="Ideas"
+        />
+        {user?.isAdmin && (
+          <ActionCard
+            href="/partners"
+            icon={<Building2 className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
+            label="Partners"
+          />
+        )}
         {user?.isAdmin && (
           <ActionCard
             href="/ads"
