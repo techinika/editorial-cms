@@ -9,6 +9,7 @@ import {
   Clock,
   MessageCircle,
   Image,
+  Video,
   User,
   Calendar,
   Link2,
@@ -96,6 +97,11 @@ export default function QuickActions({ user }: QuickActionsProps) {
           href="/assets"
           icon={<Image className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
           label="Assets"
+        />
+        <ActionCard
+          href="/videos"
+          icon={<Video className="w-12 h-12 text-[#3182ce]" strokeWidth={1.5} />}
+          label="Videos"
         />
         {user?.isAdmin && (
           <ActionCard
