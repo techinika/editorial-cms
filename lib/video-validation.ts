@@ -1,15 +1,17 @@
-import type { VideoInput, VideoProvider, VideoStatus } from "@/types/video";
-import { extractProviderId, parseDurationToSeconds } from "@/lib/video";
+import type { VideoInput, VideoProvider } from "@/types/video";
+import { extractProviderId, parseDurationToSeconds, autoSlug } from "@/lib/video";
 
 /**
  * Validation and normalisation for video writes.
  *
  * Kept out of the route handlers so the same rules apply no matter which entry
  * point writes a video, and so the rules are unit-testable without a request.
+ *
+ * status and published_at are *not* handled here — the caller sets both from
+ * the `intent` the save button sent, via resolvePublishState().
  */
 
 const PROVIDERS: VideoProvider[] = ["youtube", "vimeo"];
-const STATUSES: VideoStatus[] = ["draft", "published", "archived"];
 
 export type FieldErrors = Record<string, string>;
 
@@ -52,9 +54,16 @@ export function validateVideoInput(
   }
 
   // ── slug ─────────────────────────────────────────────────────────────────
+  // Derived from the title when the client didn't send one, so an editor never
+  // has to think about slugs. An explicit slug is still honoured (the form
+  // exposes it for the rare hand-tuned case) but must be well-formed.
   if (!partial || has("slug")) {
     if (!isNonEmptyString(input.slug)) {
-      errors.slug = "Slug is required";
+      if (isNonEmptyString(value.title ?? input.title)) {
+        value.slug = autoSlug(String(value.title ?? input.title));
+      } else {
+        errors.slug = "Slug is required";
+      }
     } else {
       const slug = input.slug.trim().toLowerCase();
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
@@ -126,19 +135,14 @@ export function validateVideoInput(
     }
   }
 
-  // ── status ───────────────────────────────────────────────────────────────
-  if (!partial || has("status")) {
-    if (!STATUSES.includes(input.status as VideoStatus)) {
-      errors.status = "Status must be draft, published or archived";
-    } else {
-      value.status = input.status as VideoStatus;
-    }
-  }
+  // ── status / published_at ────────────────────────────────────────────────
+  // Deliberately absent. Both are decided server-side from the `intent` the
+  // button sent (see resolvePublishState), so a hand-crafted request cannot
+  // publish a video, back-date it, or leave a draft carrying a live timestamp.
 
   // ── optional text ────────────────────────────────────────────────────────
   for (const field of [
     "description",
-    "transcript",
     "companion_article_slug",
     "thumbnail",
     "tags",
@@ -175,30 +179,14 @@ export function validateVideoInput(
   }
 
   // ── timestamps ───────────────────────────────────────────────────────────
-  const publishedAt = toIsoOrNull(input.published_at);
+  // `scheduled_at` is an editorial marker only. The public site gates on
+  // published_at, which this layer never accepts from the client.
   const scheduledAt = toIsoOrNull(input.scheduled_at);
-
-  if (has("published_at") && input.published_at && publishedAt === null) {
-    errors.published_at = "Not a valid date";
-  } else if (has("published_at")) {
-    value.published_at = publishedAt;
-  }
 
   if (has("scheduled_at") && input.scheduled_at && scheduledAt === null) {
     errors.scheduled_at = "Not a valid date";
   } else if (has("scheduled_at")) {
     value.scheduled_at = scheduledAt;
-  }
-
-  // published_at is what the site's RLS predicate reads, so a video marked
-  // published with no date would be filtered out forever (published_at <= now()
-  // is false on NULL). Default it on the way in rather than silently failing.
-  if (
-    value.status === "published" &&
-    (value.published_at === null || value.published_at === undefined) &&
-    !(partial && !has("published_at"))
-  ) {
-    value.published_at = new Date().toISOString();
   }
 
   // ── is_featured ──────────────────────────────────────────────────────────

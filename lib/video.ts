@@ -1,4 +1,4 @@
-import type { VideoProvider, VideoStatus } from "@/types/video";
+import type { VideoIntent, VideoProvider, VideoStatus } from "@/types/video";
 
 /**
  * Strips anything but a bare id out of whatever the editor pasted, so both
@@ -86,6 +86,78 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+/**
+ * Slug derived from the title, with a last-resort fallback.
+ *
+ * A title made entirely of characters that slugify strips (an emoji, or
+ * "日本語") produces an empty string, and the column is NOT NULL — so fall back
+ * to something stable rather than letting the insert fail on a title the
+ * editor can't tell is a problem.
+ */
+export function autoSlug(title: string): string {
+  return slugify(title) || `video-${Date.now().toString(36)}`;
+}
+
+/**
+ * Reads the intent off a request body, returning null for anything unrecognised
+ * so the route can reject it rather than silently defaulting to a publish.
+ */
+export function readIntent(body: unknown): VideoIntent | null {
+  if (typeof body !== "object" || body === null) return null;
+  const intent = (body as Record<string, unknown>).intent;
+  return intent === "draft" || intent === "publish" || intent === "archive"
+    ? intent
+    : null;
+}
+
+export interface PublishState {
+  status: VideoStatus;
+  published_at: string | null;
+}
+
+/**
+ * Turns the pressed button into the status + published_at pair, on the server.
+ *
+ * The form never sends a status or a publish date: `published_at` is set here,
+ * at the moment of publishing, so it always reflects when the video actually
+ * went live rather than a date someone typed into a form and forgot to update.
+ *
+ * `current` is the stored row, or null when creating. The rules:
+ *
+ * - draft   → published_at is cleared. A draft has never been published, and a
+ *             stale date here makes `isLive` disagree with the public site.
+ * - publish → dated now, *unless* the video is already published. Re-dating on
+ *             every edit would silently reshuffle an already-live video back to
+ *             the top of "latest" each time someone fixes a typo, so an edit to
+ *             a live video keeps its original date.
+ * - archive → keeps the original date so un-archiving restores it.
+ */
+export function resolvePublishState(
+  intent: VideoIntent,
+  current: { status: VideoStatus; published_at: string | null } | null = null,
+  now: Date = new Date(),
+): PublishState {
+  if (intent === "draft") {
+    return { status: "draft", published_at: null };
+  }
+
+  if (intent === "archive") {
+    return {
+      status: "archived",
+      published_at: current?.published_at ?? null,
+    };
+  }
+
+  // intent === "publish"
+  const alreadyLive =
+    current?.status === "published" && Boolean(current?.published_at);
+
+  return {
+    status: "published",
+    published_at: alreadyLive ? current!.published_at : now.toISOString(),
+  };
 }
 
 /** "1:02:03" / "12:34" — matches the watch page's duration formatting. */

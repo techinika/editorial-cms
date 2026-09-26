@@ -7,7 +7,8 @@ import {
   getVideoCategories,
 } from "@/supabase/modules/videos";
 import { validateVideoInput, normaliseVideoInput } from "@/lib/video-validation";
-import type { VideoStatus } from "@/types/video";
+import { resolvePublishState, readIntent } from "@/lib/video";
+import type { VideoStatus, VideoInput } from "@/types/video";
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,10 +64,22 @@ export async function POST(request: NextRequest) {
 
     const input = normaliseVideoInput(body);
 
+    // status + published_at come from the button, applied here so the client
+    // can never name its own status or supply its own publish date.
+    const intent = readIntent(body);
+    if (!intent) {
+      return NextResponse.json(
+        { error: "Invalid input", details: { intent: "Unknown save action" } },
+        { status: 400 }
+      );
+    }
+    const state = resolvePublishState(intent, null);
+    const row: VideoInput = { ...input, ...state };
+
     // Catch the duplicate-slug case up front so the editor gets a field-level
     // message instead of a raw Postgres unique-violation bubbling out of the
     // module as a 500.
-    const existing = await getVideoBySlug(input.slug);
+    const existing = await getVideoBySlug(row.slug);
     if (existing) {
       return NextResponse.json(
         { error: "Invalid input", details: { slug: "This slug is already in use" } },
@@ -74,7 +87,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const video = await createVideo(input);
+    const video = await createVideo(row);
     if (!video) {
       return NextResponse.json({ error: "Failed to create video" }, { status: 500 });
     }

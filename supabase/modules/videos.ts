@@ -56,7 +56,6 @@ function sanitiseInput(input: Partial<VideoInput>): Partial<VideoInput> {
     "slug",
     "summary",
     "description",
-    "transcript",
     "companion_article_slug",
     "provider",
     "provider_id",

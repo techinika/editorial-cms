@@ -7,6 +7,7 @@ import {
   getVideoBySlug,
 } from "@/supabase/modules/videos";
 import { validateVideoInput } from "@/lib/video-validation";
+import { resolvePublishState, readIntent } from "@/lib/video";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -59,6 +60,26 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           { status: 409 }
         );
       }
+    }
+
+    // Only a save button moves a video between states. A PATCH with no intent
+    // (or an intent the client doesn't recognise) leaves status and
+    // published_at exactly as they are, so a metadata-only edit can't
+    // accidentally publish a draft or re-date a live video.
+    const intent = readIntent(body);
+    if (intent) {
+      Object.assign(
+        value,
+        resolvePublishState(intent, {
+          status: existing.status,
+          published_at: existing.published_at,
+        })
+      );
+    } else if (body && typeof body === "object" && "intent" in body) {
+      return NextResponse.json(
+        { error: "Invalid input", details: { intent: "Unknown save action" } },
+        { status: 400 }
+      );
     }
 
     const video = await updateVideo(id, value);

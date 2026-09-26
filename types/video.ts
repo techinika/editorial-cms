@@ -2,6 +2,16 @@ export type VideoProvider = "youtube" | "vimeo";
 
 export type VideoStatus = "draft" | "published" | "archived";
 
+/**
+ * Which save button the editor pressed. The server turns this into the
+ * status + published_at pair (see `resolvePublishState` in lib/video.ts) — the
+ * form never sends either field itself.
+ *
+ * Declared here rather than in lib/video.ts so the types module stays the leaf
+ * of the dependency graph.
+ */
+export type VideoIntent = "draft" | "publish" | "archive";
+
 export interface VideoCategory {
   id: string;
   slug: string;
@@ -54,7 +64,6 @@ export interface VideoInput {
   slug: string;
   summary: string;
   description?: string | null;
-  transcript?: string | null;
   companion_article_slug?: string | null;
   provider: VideoProvider;
   provider_id: string;
@@ -67,6 +76,28 @@ export interface VideoInput {
   scheduled_at?: string | null;
   is_featured?: boolean;
   notice?: string | null;
+}
+
+/**
+ * What the write routes accept from the client: a VideoInput minus the fields
+ * the server owns. `status` and `published_at` are decided by the button the
+ * editor pressed (see `resolvePublishState`), never by the request body.
+ */
+export type VideoWriteBody = Omit<
+  VideoInput,
+  "status" | "published_at"
+> & {
+  intent: VideoIntent;
+  slug?: string;
+  published_at?: string | null;
+};
+
+/** One row of the combobox that picks a related article. */
+export interface ArticleOption {
+  id: string;
+  title: string;
+  slug: string;
+  status?: string | null;
 }
 
 export interface VideoListResult {
