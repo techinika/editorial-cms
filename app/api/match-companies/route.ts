@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getArticleById } from "@/supabase/CRUD/queries";
 import { getSupabaseAdminClient } from "@/supabase/supabase";
 import { CompanySuggestion } from "@/types/article-company";
-import { checkAuthStatusServer } from "@/lib/auth-server";
+import { checkAuthStatusServer, isAuthorizedEditor } from "@/lib/auth-server";
 
 const AI_WORKER_URL = (
   process.env.NEXT_PUBLIC_AI_WORKER_URL || "http://localhost:8788"
@@ -15,8 +15,8 @@ const MIN_CONFIDENCE = 40;
 export async function POST(request: Request) {
   try {
     const auth = await checkAuthStatusServer();
-    if (!auth.authenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAuthorizedEditor(auth)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { articleId } = await request.json();

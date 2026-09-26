@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/supabase/supabase";
-import { checkAuthStatusServer } from "@/lib/auth-server";
+import { checkAuthStatusServer, isAuthorizedEditor } from "@/lib/auth-server";
 
 const AI_WORKER_URL = (
   process.env.NEXT_PUBLIC_AI_WORKER_URL || "http://localhost:8788"
@@ -24,8 +24,8 @@ interface BatchPair {
 export async function POST() {
   try {
     const auth = await checkAuthStatusServer();
-    if (!auth.authenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAuthorizedEditor(auth)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const admin = getSupabaseAdminClient();

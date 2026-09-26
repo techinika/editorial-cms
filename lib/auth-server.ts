@@ -24,6 +24,12 @@ export const requireAuthor = (
   }
 };
 
+// API-route guard: authenticated AND an author (or platform admin).
+// Route handlers must reject (403) when this returns false.
+export const isAuthorizedEditor = (authResult: AuthResult): boolean => {
+  return !!authResult.authenticated && (authResult.role === "author" || !!authResult.isAdmin);
+};
+
 // Server-side auth check (for server components)
 export const checkAuthStatusServer = async (): Promise<AuthResult> => {
   const authUrl = getAuthUrl();

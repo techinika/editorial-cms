@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAsset } from "@/supabase/CRUD/queries";
 import { addArticleAsset } from "@/supabase/CRUD/queries";
-import { checkAuthStatusServer } from "@/lib/auth-server";
+import { checkAuthStatusServer, isAuthorizedEditor } from "@/lib/auth-server";
 
 const UPLOADS_WORKER_URL = (
   process.env.NEXT_PUBLIC_UPLOADS_WORKER_URL || "http://localhost:8790"
@@ -10,8 +10,8 @@ const UPLOADS_WORKER_URL = (
 export async function POST(request: NextRequest) {
   try {
     const authResult = await checkAuthStatusServer();
-    if (!authResult.authenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAuthorizedEditor(authResult)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
